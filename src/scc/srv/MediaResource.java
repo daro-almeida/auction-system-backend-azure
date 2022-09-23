@@ -45,8 +45,10 @@ public class MediaResource
 	@Path("/{id}")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	public byte[] download(@PathParam("id") String id) {
-		//throw new ServiceUnavailableException();
-		return map.get(id);
+		if (map.containsKey(id))
+			return map.get(id);
+		else
+			throw new NotFoundException();
 	}
 
 	/**
@@ -55,7 +57,7 @@ public class MediaResource
 	@GET
 	@Path("/")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<String> list() {
-		return new ArrayList<String>( map.keySet());
+	public String list() {
+		return new ArrayList<>(map.keySet()).toString();
 	}
 }
