@@ -1,5 +1,6 @@
 package scc.srv;
 
+import jakarta.ws.rs.core.Response;
 import scc.utils.Hash;
 
 import java.util.ArrayList;
@@ -30,7 +31,7 @@ public class MediaResource
 	@POST
 	@Path("/")
 	@Consumes(MediaType.APPLICATION_OCTET_STREAM)
-	@Produces(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.TEXT_PLAIN)
 	public String upload(byte[] contents) {
 		String key = Hash.of(contents);
 		map.put( key, contents);
@@ -56,7 +57,7 @@ public class MediaResource
 	 */
 	@GET
 	@Path("/")
-	@Produces(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.TEXT_PLAIN)
 	public String list() {
 		return new ArrayList<>(map.keySet()).toString();
 	}
