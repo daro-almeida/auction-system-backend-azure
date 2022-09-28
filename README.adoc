@@ -1,0 +1,7 @@
+== DEPLOY
+URL: https://scc-backend-57833-57940-58369.azurewebsites.net/
+
+[source,shell]
+----
+mvn compile package azure-webapp:deploy
+----
