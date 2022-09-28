@@ -9,11 +9,10 @@ import jakarta.ws.rs.core.MediaType;
  * Class with control endpoints.
  */
 @Path("/ctrl")
-public class ControlResource
-{
+public class ControlResource {
 
 	/**
-	 * This methods just prints a string. It may be useful to check if the current 
+	 * This methods just prints a string. It may be useful to check if the current
 	 * version is running on Azure.
 	 */
 	@Path("/version")

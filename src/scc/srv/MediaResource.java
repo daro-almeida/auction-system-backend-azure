@@ -21,9 +21,8 @@ import jakarta.ws.rs.core.MediaType;
  * Resource for managing media files, such as images.
  */
 @Path("/media")
-public class MediaResource
-{
-	Map<String,byte[]> map = new HashMap<String,byte[]>();
+public class MediaResource {
+	Map<String, byte[]> map = new HashMap<String, byte[]>();
 
 	/**
 	 * Post a new image.The id of the image is its hash.
@@ -34,7 +33,7 @@ public class MediaResource
 	@Produces(MediaType.TEXT_PLAIN)
 	public String upload(byte[] contents) {
 		String key = Hash.of(contents);
-		map.put( key, contents);
+		map.put(key, contents);
 		return key;
 	}
 
