@@ -2,6 +2,7 @@ package scc.srv;
 
 import scc.utils.Hash;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 import com.azure.core.util.BinaryData;
@@ -35,7 +36,7 @@ public class MediaResource {
 	@POST
 	@Path("/")
 	@Consumes(MediaType.APPLICATION_OCTET_STREAM)
-	@Produces(MediaType.TEXT_PLAIN)
+	@Produces(MediaType.APPLICATION_JSON)
 	public String upload(byte[] contents) {
 		var key = Hash.of(contents);
 		var blob = this.blob_client.getBlobClient(key);
@@ -60,8 +61,8 @@ public class MediaResource {
 	 */
 	@GET
 	@Path("/")
-	@Produces(MediaType.TEXT_PLAIN)
-	public String list() {
-		return this.blob_client.listBlobs().stream().map(b -> b.getName()).collect(Collectors.toList()).toString();
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<String> list() {
+		return this.blob_client.listBlobs().stream().map(b -> b.getName()).collect(Collectors.toList());
 	}
 }
