@@ -24,3 +24,11 @@ hs_err_pid*
 
 # target directory
 target/
+
+# jdtls
+/.settings/
+/.project
+/.classpath
+
+# macos cringe
+.DS_Store
