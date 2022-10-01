@@ -1,16 +1,15 @@
 package scc.srv;
 
-import jakarta.ws.rs.core.Response;
 import scc.utils.Hash;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
+
+import com.azure.core.util.BinaryData;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobContainerClientBuilder;
 
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -22,7 +21,13 @@ import jakarta.ws.rs.core.MediaType;
  */
 @Path("/media")
 public class MediaResource {
-	Map<String, byte[]> map = new HashMap<String, byte[]>();
+	private final BlobContainerClient blob_client;
+
+	public MediaResource() {
+		this.blob_client = new BlobContainerClientBuilder()
+				.connectionString(BuildConstants.AZURE_STORAGE_ACC_CONNECTION_STRING)
+				.containerName(BuildConstants.AZURE_STORAGE_CONTAINER_IMAGES).buildClient();
+	}
 
 	/**
 	 * Post a new image.The id of the image is its hash.
@@ -32,8 +37,9 @@ public class MediaResource {
 	@Consumes(MediaType.APPLICATION_OCTET_STREAM)
 	@Produces(MediaType.TEXT_PLAIN)
 	public String upload(byte[] contents) {
-		String key = Hash.of(contents);
-		map.put(key, contents);
+		var key = Hash.of(contents);
+		var blob = this.blob_client.getBlobClient(key);
+		blob.upload(BinaryData.fromBytes(contents), true);
 		return key;
 	}
 
@@ -45,10 +51,8 @@ public class MediaResource {
 	@Path("/{id}")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	public byte[] download(@PathParam("id") String id) {
-		if (map.containsKey(id))
-			return map.get(id);
-		else
-			throw new NotFoundException();
+		var blob = this.blob_client.getBlobClient(id);
+		return blob.downloadContent().toBytes();
 	}
 
 	/**
@@ -58,6 +62,6 @@ public class MediaResource {
 	@Path("/")
 	@Produces(MediaType.TEXT_PLAIN)
 	public String list() {
-		return new ArrayList<>(map.keySet()).toString();
+		return this.blob_client.listBlobs().stream().map(b -> b.getName()).collect(Collectors.toList()).toString();
 	}
 }
