@@ -60,7 +60,12 @@
       <groupId>org.jboss.resteasy</groupId>  
       <artifactId>resteasy-servlet-initializer</artifactId>  
       <version>6.1.0.Final</version> 
-    </dependency> 
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-storage-blob</artifactId>
+      <version>12.19.1</version>
+    </dependency>
   </dependencies>  
   <build> 
     <sourceDirectory>src</sourceDirectory>  
