@@ -30,5 +30,8 @@ target/
 /.project
 /.classpath
 
+# intellij
+/*.iml
+
 # macos cringe
 .DS_Store
