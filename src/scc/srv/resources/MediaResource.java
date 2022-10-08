@@ -1,4 +1,4 @@
-package scc.srv;
+package scc.srv.resources;
 
 import java.util.List;
 
@@ -9,6 +9,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import scc.srv.mediaStorage.MediaStorage;
 
 import static scc.srv.BuildConstants.*;
 

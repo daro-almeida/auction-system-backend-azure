@@ -4,6 +4,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 import jakarta.ws.rs.core.Application;
+import scc.srv.mediaStorage.AzureMediaStorage;
+import scc.srv.resources.AuctionsResource;
+import scc.srv.resources.ControlResource;
+import scc.srv.resources.MediaResource;
+import scc.srv.resources.UsersResource;
 
 public class MainApplication extends Application {
 	private Set<Object> singletons = new HashSet<Object>();
@@ -20,6 +25,7 @@ public class MainApplication extends Application {
 		resources.add(ControlResource.class);
 		singletons.add(new MediaResource(media_storage));
 		singletons.add(new UsersResource());
+		singletons.add(new AuctionsResource(media_storage));
 	}
 
 	@Override

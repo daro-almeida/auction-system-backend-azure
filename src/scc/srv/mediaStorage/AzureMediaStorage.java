@@ -1,4 +1,4 @@
-package scc.srv;
+package scc.srv.mediaStorage;
 
 import java.util.List;
 import java.util.stream.Collectors;

@@ -1,4 +1,4 @@
-package scc.data;
+package scc.data.client;
 
 public enum AuctionStatus{
     OPEN,

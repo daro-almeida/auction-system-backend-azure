@@ -1,42 +1,53 @@
-package scc.srv;
+package scc.srv.resources;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import scc.data.JSON.AuctionJSON;
+import scc.data.client.Auction;
+import scc.data.client.Bid;
+import scc.data.client.Question;
+import scc.srv.mediaStorage.MediaStorage;
+import scc.utils.Hash;
 
+import java.util.Base64;
+import java.util.Date;
+
+import static scc.data.client.AuctionStatus.*;
 import static scc.srv.BuildConstants.*;
 
 @Path("/auction")
 public class AuctionsResource {
+    private MediaStorage storage;
 
-    public AuctionsResource() {
-
+    public AuctionsResource(MediaStorage storage) {
+        this.storage = storage;
     }
 
     /**
      * Posts a new auction
-     * @param title Title of the auction
-     * @param description Description of the auction
-     * @param image Image associated with the auction
-     * @param ownerId Identifier of the user who creates the auction
-     * @param endTime Time limit for when the bids can be performed until then
-     * @param minimumPrice Minimum amount for the bids
+     * @param auctionJSON JSON which contains the necessary information to create an auction
      * @return Auction's generated identifier
      */
     @POST
     @Path("/")
-    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String createAuction(String title,
-                                String description,
-                                byte[] image,
-                                String ownerId,
-                                /*Date endTime,*/
-                                long minimumPrice){
-        //TODO: Upload the image to blob and get its associated id
-        //TODO: Create the auction with given parameters plus set default for the remaining ones
+    public String createAuction(AuctionJSON auctionJSON){
+        // Upload the image to blob and get its associated id
+        var photo = Base64.getDecoder().decode(auctionJSON.imageBase64());
+        var photoId = Hash.of(photo);
+        storage.upload(photo);
+        //Create the auction with given parameters plus set default for the remaining ones
+        var auction = new Auction(auctionJSON.title(),
+                auctionJSON.description(),
+                photoId,
+                auctionJSON.userId(),
+                auctionJSON.endTime(),
+                auctionJSON.minimumPrice());
         //TODO: Save the generated data to its respective database
-        //TODO: Return the created auction's id
-        return null;
+
+        //Return the created auction's id
+        return auction.getId();
     }
 
     /**
@@ -50,41 +61,42 @@ public class AuctionsResource {
      */
     @PUT
     @Path("/{"+ AUCTION_ID +"}")
-    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
+    @Consumes(MediaType.APPLICATION_JSON)
     public void updateAuction(@PathParam(AUCTION_ID) String auctionId,
-                              String title,
-                              String description,
-                              byte[] image,
-                              /*Date endTime,*/
-                              long minimumPrice){
+                              AuctionJSON auctionJSON){
         //TODO: Get the given id and look for auction with same id
         //TODO: If it doesn't exist, return NotFoundException
+
         //TODO: If the image is not null and its hash is different than current one
-        //TODO: Upload the image to blob and get its associated id
+        //Upload the image to blob and get its associated id
+        var photo = Base64.getDecoder().decode(auctionJSON.imageBase64());
+        var photoId = Hash.of(photo);
+        storage.upload(photo);
         //TODO: Update the data if the parameters aren't null
     }
 
     /**
      * Creates a bid on an auction
      * @param auctionId Identifier of the auction
-     * @param bidderId Identifier of the user who performs the bid
+     * @param userId Identifier of the user who performs the bid
      * @param bidAmount Quantity that the user wants to provide for the auction
      * @return Bid's generated identifier
      */
     @POST
     @Path("/{"+ AUCTION_ID +"}/bid")
-    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public String createBid(@PathParam(AUCTION_ID) String auctionId,
-                            String bidderId,
+                            String userId,
                             long bidAmount){
         //TODO: Check if the auction exists, if not, return NotFoundException
         //TODO: Check if the user exists, if not, return NotFoundException
-        //TODO: Create the bid with given parameters
+        //Create the bid with given parameters
+        var bid = new Bid(auctionId, userId, bidAmount);
         //TODO: Save the bid into its respective database
         //TODO: Return the created bid's id
         // (don't know if necessary since we only have list operation)
-        return null;
+        return bid.getBidId();
     }
 
     /**
@@ -111,17 +123,18 @@ public class AuctionsResource {
      */
     @POST
     @Path("/{"+ AUCTION_ID +"}/question")
-    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public String createQuestion(@PathParam(AUCTION_ID) String auctionId,
                                  String userId,
                                  String description){
         //TODO: Check if the auction exists, if not, return NotFoundException
         //TODO: Check if the user exists, if not, return NotFoundException
-        //TODO: Create the question with given parameters
+        //Create the question with given parameters
+        var question = new Question(auctionId, userId, description);
         //TODO: Save the question into its respective database
         //TODO: Return the created question's id
-        return null;
+        return question.getQuestionId();
     }
 
     /**
@@ -134,7 +147,7 @@ public class AuctionsResource {
      */
     @POST
     @Path("/{"+ AUCTION_ID +"}/question/{"+ QUESTION_ID+"}")
-    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public String createReply(@PathParam(AUCTION_ID) String auctionId,
                             @PathParam(QUESTION_ID) String questionId,

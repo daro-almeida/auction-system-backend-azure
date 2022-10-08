@@ -1,11 +1,11 @@
-package scc.srv;
+package scc.srv.resources;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import scc.data.CosmosDBLayer;
-import scc.data.User;
-import scc.data.UserDAO;
-import scc.data.UserJSON;
+import scc.data.client.User;
+import scc.data.database.UserDAO;
+import scc.data.JSON.UserJSON;
 import scc.utils.Hash;
 
 import java.util.Base64;
