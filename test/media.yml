@@ -1,0 +1,33 @@
+config:
+  target: "http://localhost:8080/rest"
+  processor: "./media.js"
+  phases:
+  - name: "Warm up"
+    duration: 10
+    arrivalRate: 1
+    rampTo: 30
+  - name: "Main"
+    duration: 5
+    arrivalRate: 10
+
+scenarios:
+  - name: "Upload Image"
+    weight: 3
+    flow:
+      - post:
+          url: "/media"
+          headers:
+            Content-Type: application/octet-stream
+            Accept: application/json
+          beforeRequest: "inject_image_body"
+          afterResponse: "on_upload_complete"
+
+  - name: "Download Image"
+    weight: 10
+    flow:
+      - function: "pick_uploaded_image"
+      - get:
+          url: "/media/{{ image_id }}" 
+          headers:
+            Accept: application/octet-stream
+          ifTrue: "image_id"

@@ -1,8 +1,8 @@
 config:
-  target: 'https://scc-backend-57833-57940-58369.azurewebsites.net/rest'
+  target: 'http://localhost:8080/rest'
   plugins:
     metrics-by-endpoint: {}
-  processor: "./test-utils.js"
+  processor: "./processor.js"
   variables:
      metricsProcessEndpoint : "myProcessEndpoint"  # function used to aggregate endpoints for statistics
   phases:
