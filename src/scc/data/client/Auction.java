@@ -1,8 +1,8 @@
-package scc.data;
+package scc.data.client;
 
 import java.util.Date;
 
-import static scc.data.AuctionStatus.*;
+import static scc.data.client.AuctionStatus.*;
 
 /**
  * Represents an auction
@@ -13,7 +13,7 @@ public class Auction {
     private String title;
     private String description;
     private String pictureId;
-    private String ownerId;
+    private final String userId;
     private Date endTime;
     private long minimumPrice;
     private String winnerBidId;
@@ -22,30 +22,30 @@ public class Auction {
     public Auction(String title,
                    String description,
                    String pictureId,
-                   String ownerId,
+                   String userId,
                    Date endTime,
-                   long minimumPrice,
-                   String winnerBidId){
-        this(generateAuctionId(), title, description, pictureId, ownerId, endTime, minimumPrice, winnerBidId);
+                   long minimumPrice){
+        this(generateAuctionId(), title, description, pictureId, userId, endTime, minimumPrice, null, OPEN);
     }
 
     public Auction(String id,
                    String title,
                    String description,
                    String pictureId,
-                   String ownerId,
+                   String userId,
                    Date endTime,
                    long minimumPrice,
-                   String winnerBidId){
+                   String winnerBidId,
+                   AuctionStatus status){
         this.id = id;
         this.title = title;
         this.description = description;
         this.pictureId = pictureId;
-        this.ownerId = ownerId;
+        this.userId = userId;
         this.endTime = endTime;
         this.minimumPrice = minimumPrice;
         this.winnerBidId = winnerBidId;
-        status = OPEN;
+        this.status = status;
     }
 
     private static String generateAuctionId(){
@@ -66,15 +66,19 @@ public class Auction {
 
     public void setPictureId(String pictureId) {this.pictureId = pictureId;}
 
-    public String getOwnerId() { return ownerId;}
+    public String getUserId() { return userId;}
 
-    public String getEndTime() { return endTime.toString();}
+    public Date getEndTime() { return endTime;}
 
     public void setEndTime(Date endTime) {this.endTime = endTime;}
 
     public long getMinimumPrice() { return minimumPrice;}
 
     public void setMinimumPrice(long minimumPrice) {this.minimumPrice = minimumPrice;}
+
+    public String getWinnerBidId() {return winnerBidId;}
+
+    public void setWinnerBidId(String winnerBidId) {this.winnerBidId = winnerBidId;}
 
     public AuctionStatus getStatus() { return status;}
 
@@ -84,14 +88,14 @@ public class Auction {
     public String toString(){
         return "Auction{" +
                 "id='" + id + '\'' +
-                "title='" + title + '\'' +
-                "description='" + description + '\'' +
-                "pictureId='" + pictureId + '\'' +
-                "ownerId='" + ownerId + '\'' +
-                "endTime='" + getEndTime() + '\'' +
-                "minimumPrice='" + minimumPrice + '\'' +
-                "winnerBidId='" + winnerBidId + '\'' + // return null if not closed?
-                "status='" + status + '\'' + // Either the value or description
+                ", title='" + title + '\'' +
+                ", description='" + description + '\'' +
+                ", pictureId='" + pictureId + '\'' +
+                ", userId='" + userId + '\'' +
+                ", endTime='" + endTime + '\'' +
+                ", minimumPrice='" + minimumPrice + '\'' +
+                ", winnerBidId='" + winnerBidId + '\'' + // return null if not closed?
+                ", status='" + status + '\'' + // Either the value or description
                 '}';
 
     }

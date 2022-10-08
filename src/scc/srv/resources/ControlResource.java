@@ -1,4 +1,4 @@
-package scc.srv;
+package scc.srv.resources;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -19,7 +19,7 @@ public class ControlResource {
 	@GET
 	@Produces(MediaType.TEXT_PLAIN)
 	public String hello() {
-		return "v: 1.1.0";
+		return "v: 1.1.1";
 	}
 
 }
