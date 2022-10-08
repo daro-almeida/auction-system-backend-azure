@@ -8,7 +8,9 @@ import static scc.srv.BuildConstants.*;
 @Path("/auction")
 public class AuctionsResource {
 
-    public AuctionsResource(){}
+    public AuctionsResource() {
+
+    }
 
     /**
      * Posts a new auction

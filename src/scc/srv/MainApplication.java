@@ -9,9 +9,12 @@ public class MainApplication extends Application {
 	private Set<Object> singletons = new HashSet<Object>();
 	private Set<Class<?>> resources = new HashSet<Class<?>>();
 
+
+
 	public MainApplication() {
 		resources.add(ControlResource.class);
 		singletons.add(new MediaResource());
+		singletons.add(new UsersResource());
 	}
 
 	@Override

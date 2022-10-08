@@ -2,7 +2,9 @@ package scc.srv;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import scc.data.CosmosDBLayer;
 import scc.data.User;
+import scc.data.UserParamsJSON;
 
 import static scc.srv.BuildConstants.*;
 
@@ -12,27 +14,29 @@ import static scc.srv.BuildConstants.*;
 @Path("/user")
 public class UsersResource {
 
+    private final CosmosDBLayer db;
+
     public UsersResource() {
+        db = CosmosDBLayer.getInstance();
     }
 
     @POST
     @Path("/")
-    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String createUser(String nickname,
-                             String name,
-                             String password,
-                             byte[] photo) {
+    public String createUser(UserParamsJSON u) {
+        System.out.println(u);
         //TODO: upload image to blob and get photoId (hash)
         //TODO: create User class
         //TODO: upload User to db
-        return null; //return userId (?)
+        //db.putUser();
+        return "1"; //return userId (?)
     }
 
     @DELETE
     @Path("/{"+ USER_ID +"}")
     public void deleteUser(@PathParam(USER_ID) String id) {
-        //TODO: remove User from db
+        db.delUserById(id);
     }
 
     @PUT
