@@ -53,35 +53,21 @@ public class Auction {
     }
 
     public String getId(){ return id;}
-
     public String getTitle() { return title;}
-
-    public void setTitle(String title) {this.title = title;}
-
     public String getDescription() { return description;}
-
-    public void setDescription(String description) {this.description = description;}
-
     public String getPictureId() { return pictureId;}
-
-    public void setPictureId(String pictureId) {this.pictureId = pictureId;}
-
     public String getUserId() { return userId;}
-
     public Date getEndTime() { return endTime;}
-
-    public void setEndTime(Date endTime) {this.endTime = endTime;}
-
     public long getMinimumPrice() { return minimumPrice;}
-
-    public void setMinimumPrice(long minimumPrice) {this.minimumPrice = minimumPrice;}
-
     public String getWinnerBidId() {return winnerBidId;}
-
-    public void setWinnerBidId(String winnerBidId) {this.winnerBidId = winnerBidId;}
-
     public AuctionStatus getStatus() { return status;}
 
+    public void setTitle(String title) {this.title = title;}
+    public void setDescription(String description) {this.description = description;}
+    public void setPictureId(String pictureId) {this.pictureId = pictureId;}
+    public void setEndTime(Date endTime) {this.endTime = endTime;}
+    public void setMinimumPrice(long minimumPrice) {this.minimumPrice = minimumPrice;}
+    public void setWinnerBidId(String winnerBidId) {this.winnerBidId = winnerBidId;}
     public void setStatus(AuctionStatus status) {this.status = status;}
 
     @Override

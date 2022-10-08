@@ -54,49 +54,31 @@ public class AuctionDAO {
     public String get_rid() {
         return _rid;
     }
+    public String get_ts() {
+        return _ts;
+    }
+    public String getId(){ return id;}
+    public String getTitle() { return title;}
+    public String getDescription() { return description;}
+    public String getPictureId() { return pictureId;}
+    public String getUserId() { return userId;}
+    public Date getEndTime() { return endTime;}
+    public long getMinimumPrice() { return minimumPrice;}
+    public String getWinnerBidId() {return winnerBidId;}
+    public AuctionStatus getStatus() { return status;}
 
     public void set_rid(String _rid) {
         this._rid = _rid;
     }
-
-    public String get_ts() {
-        return _ts;
-    }
-
     public void set_ts(String _ts) {
         this._ts = _ts;
     }
-
-    public String getId(){ return id;}
-
-    public String getTitle() { return title;}
-
     public void setTitle(String title) {this.title = title;}
-
-    public String getDescription() { return description;}
-
     public void setDescription(String description) {this.description = description;}
-
-    public String getPictureId() { return pictureId;}
-
     public void setPictureId(String pictureId) {this.pictureId = pictureId;}
-
-    public String getUserId() { return userId;}
-
-    public Date getEndTime() { return endTime;}
-
     public void setEndTime(Date endTime) {this.endTime = endTime;}
-
-    public long getMinimumPrice() { return minimumPrice;}
-
     public void setMinimumPrice(long minimumPrice) {this.minimumPrice = minimumPrice;}
-
-    public String getWinnerBidId() {return winnerBidId;}
-
     public void setWinnerBidId(String winnerBidId) {this.winnerBidId = winnerBidId;}
-
-    public AuctionStatus getStatus() { return status;}
-
     public void setStatus(AuctionStatus status) {this.status = status;}
 
     public Auction toAuction() {return new Auction(id, title, description, pictureId, userId, endTime, minimumPrice, winnerBidId, status);}

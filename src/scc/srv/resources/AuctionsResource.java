@@ -6,6 +6,7 @@ import scc.data.JSON.AuctionJSON;
 import scc.data.client.Auction;
 import scc.data.client.Bid;
 import scc.data.client.Question;
+import scc.data.client.Reply;
 import scc.srv.mediaStorage.MediaStorage;
 import scc.utils.Hash;
 
@@ -53,13 +54,9 @@ public class AuctionsResource {
     /**
      * Updates an existing auction
      * @param auctionId Identifier of the auction
-     * @param title Possible new title of the auction
-     * @param description Possible new description of the auction
-     * @param image Possible new image of the auction
-     * @param endTime Possible new time limit of the auction
-     * @param minimumPrice Possible new minimum price of the auction
+     * @param auctionJSON JSON which contains the info that wants to be changed
      */
-    @PUT
+    @PATCH
     @Path("/{"+ AUCTION_ID +"}")
     @Consumes(MediaType.APPLICATION_JSON)
     public void updateAuction(@PathParam(AUCTION_ID) String auctionId,
@@ -106,7 +103,7 @@ public class AuctionsResource {
      */
     @GET
     @Path("/{"+ AUCTION_ID +"}/bid")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
     public String listBids(@PathParam(AUCTION_ID) String auctionId){
         //TODO: Check if the auction exists, if not, return NotFoundException
         //TODO: Gather all the bids associated with given auction
@@ -157,9 +154,10 @@ public class AuctionsResource {
         //TODO: Check if the question exists, if not return NotFoundException
         //TODO: Check if the user exists, if not return NotFoundException
         //TODO: Create the reply with given parameters
+        var reply = new Reply(auctionId, questionId, userId, description);
         //TODO: Save the reply into its respective database
         //TODO: Return the created reply's id
-        return null;
+        return reply.getReplyId();
     }
 
     /**
@@ -169,11 +167,29 @@ public class AuctionsResource {
      */
     @GET
     @Path("/{"+ AUCTION_ID +"}/question")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
     public String listQuestions(@PathParam(AUCTION_ID) String auctionId){
         //TODO: Check if the auction exists, if not return NotFoundException
         //TODO: Gather all the questions associated to the auctionId
         //TODO: Construct the respective String with collected data then return it
+        return null;
+    }
+
+    @GET
+    @Path("/")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String listAuctionsAboutToClose(){
+        //TODO: Iterate through all auctions and get the ones who about to close (need to define the interval to which we consider "close to end")
+        //TODO: Construct the string with collected information and return it
+        return null;
+    }
+
+    @GET
+    @Path("/{" + USER_ID + "}/")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String listAuctionsOfUser(@PathParam(USER_ID) String userId){
+        //TODO: Iterate through all auctions and get the ones whose owner id is the same as the one given
+        //TODO: Construct the string with collected information and return it
         return null;
     }
 }

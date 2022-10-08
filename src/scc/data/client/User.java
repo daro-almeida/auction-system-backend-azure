@@ -31,35 +31,28 @@ public class User {
     public String getId() {
         return id;
     }
-
     public String getNickname() {
         return nickname;
+    }
+    public String getName() {
+        return name;
+    }
+    public String getHashedPwd() {
+        return hashedPwd;
+    }
+    public String getPhotoId() {
+        return photoId;
     }
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
     }
-
-    public String getName() {
-        return name;
-    }
-
     public void setName(String name) {
         this.name = name;
     }
-
-    public String getHashedPwd() {
-        return hashedPwd;
-    }
-
     public void setPwd(String pwd) {
         this.hashedPwd = Hash.of(pwd);
     }
-
-    public String getPhotoId() {
-        return photoId;
-    }
-
     public void setPhotoId(String photoId) {
         this.photoId = photoId;
     }
