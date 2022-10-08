@@ -7,24 +7,26 @@ import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.util.CosmosPagedIterable;
 
-public class CosmosDBLayer {
+public abstract class CosmosDBLayer {
     private static final String CONNECTION_URL = "https://scc2223ddb.documents.azure.com:443/";
     private static final String DB_KEY = "sidbO47aj4HzQkgQmkkfTqubuqGX1EavpYOiBt73EkKeR5zRBXPaDqEm8nD3BMLwZdZRCNmKRkEQuPYmOlmYKg==";
     private static final String DB_NAME = "scc2223container";
 
-    private static CosmosDBLayer instance;
+    private static CosmosClient clientInstance;
+    private static CosmosDatabase dbInstance;
     private final CosmosClient client;
-    private CosmosDatabase db;
-    private CosmosContainer users;
-    public CosmosDBLayer(CosmosClient client) {
-        this.client = client;
+    protected final CosmosDatabase db;
+
+    public CosmosDBLayer() {
+        this.client = getClientInstance();
+        this.db = getDbInstance();
     }
 
-    public static synchronized CosmosDBLayer getInstance() {
-        if (instance != null)
-            return instance;
+    private static synchronized CosmosClient getClientInstance() {
+        if (clientInstance != null)
+            return clientInstance;
 
-        CosmosClient client = new CosmosClientBuilder()
+        clientInstance = new CosmosClientBuilder()
                 .endpoint(CONNECTION_URL)
                 .key(DB_KEY)
                 //.directMode()
@@ -34,48 +36,17 @@ public class CosmosDBLayer {
                 .connectionSharingAcrossClientsEnabled(true)
                 .contentResponseOnWriteEnabled(true)
                 .buildClient();
-        instance = new CosmosDBLayer(client);
-        return instance;
-
+        return clientInstance;
     }
 
-    private synchronized void init() {
-        if (db != null)
-            return;
-        db = client.getDatabase(DB_NAME);
-        users = db.getContainer("users");
-
-    }
-
-    public CosmosItemResponse<Object> delUserById(String id) {
-        init();
-        PartitionKey key = new PartitionKey(id);
-        return users.deleteItem(id, key, new CosmosItemRequestOptions());
-    }
-
-    public CosmosItemResponse<Object> delUser(UserDAO user) {
-        init();
-        return users.deleteItem(user, new CosmosItemRequestOptions());
-    }
-
-    public CosmosItemResponse<UserDAO> putUser(UserDAO user) {
-        init();
-        return users.createItem(user);
-    }
-
-    public CosmosPagedIterable<UserDAO> getUserById(String id) {
-        init();
-        return users.queryItems("SELECT * FROM users WHERE users.id=\"" + id + "\"", new CosmosQueryRequestOptions(), UserDAO.class);
-    }
-
-    public CosmosPagedIterable<UserDAO> getUsers() {
-        init();
-        return users.queryItems("SELECT * FROM users ", new CosmosQueryRequestOptions(), UserDAO.class);
+    private static synchronized CosmosDatabase getDbInstance() {
+        if (dbInstance != null)
+            return dbInstance;
+        dbInstance = getClientInstance().getDatabase(DB_NAME);
+        return dbInstance;
     }
 
     public void close() {
         client.close();
     }
-
-
 }
