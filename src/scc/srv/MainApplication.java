@@ -9,11 +9,16 @@ public class MainApplication extends Application {
 	private Set<Object> singletons = new HashSet<Object>();
 	private Set<Class<?>> resources = new HashSet<Class<?>>();
 
-
-
 	public MainApplication() {
+		// -------------------- Media Storage --------------------
+		var media_storage = new AzureMediaStorage(BuildConstants.AZURE_STORAGE_ACC_CONNECTION_STRING,
+				BuildConstants.AZURE_STORAGE_CONTAINER_IMAGES);
+		// var users_media_storage = new
+		// AzureMediaStorage(BuildConstants.AZURE_STORAGE_ACC_CONNECTION_STRING,
+		// BuildConstants.AZURE_STORAGE_CONTAINER_IMAGES);
+
 		resources.add(ControlResource.class);
-		singletons.add(new MediaResource());
+		singletons.add(new MediaResource(media_storage));
 		singletons.add(new UsersResource());
 	}
 

@@ -1,14 +1,6 @@
 package scc.srv;
 
-import com.azure.storage.blob.models.BlobItem;
-import scc.utils.Hash;
-
 import java.util.List;
-import java.util.stream.Collectors;
-
-import com.azure.core.util.BinaryData;
-import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobContainerClientBuilder;
 
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -25,12 +17,10 @@ import static scc.srv.BuildConstants.*;
  */
 @Path("/media")
 public class MediaResource {
-	private final BlobContainerClient blob_client;
+	private final MediaStorage storage;
 
-	public MediaResource() {
-		this.blob_client = new BlobContainerClientBuilder()
-				.connectionString(BuildConstants.AZURE_STORAGE_ACC_CONNECTION_STRING)
-				.containerName(BuildConstants.AZURE_STORAGE_CONTAINER_IMAGES).buildClient();
+	public MediaResource(MediaStorage storage) {
+		this.storage = storage;
 	}
 
 	/**
@@ -41,10 +31,7 @@ public class MediaResource {
 	@Consumes(MediaType.APPLICATION_OCTET_STREAM)
 	@Produces(MediaType.APPLICATION_JSON)
 	public String upload(byte[] contents) {
-		var key = Hash.of(contents);
-		var blob = this.blob_client.getBlobClient(key);
-		blob.upload(BinaryData.fromBytes(contents), true);
-		return key;
+		return this.storage.upload(contents);
 	}
 
 	/**
@@ -52,11 +39,10 @@ public class MediaResource {
 	 * id does not exist.
 	 */
 	@GET
-	@Path("/{"+ MEDIA_ID +"}")
+	@Path("/{" + MEDIA_ID + "}")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	public byte[] download(@PathParam(MEDIA_ID) String id) {
-		var blob = this.blob_client.getBlobClient(id);
-		return blob.downloadContent().toBytes();
+		return this.storage.download(id);
 	}
 
 	/**
@@ -66,6 +52,6 @@ public class MediaResource {
 	@Path("/")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<String> list() {
-		return this.blob_client.listBlobs().stream().map(BlobItem::getName).collect(Collectors.toList());
+		return this.storage.list();
 	}
 }
