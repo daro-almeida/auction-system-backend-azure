@@ -4,6 +4,8 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import scc.data.User;
 
+import static scc.srv.BuildConstants.*;
+
 /**
  * Resource for managing users.
  */
@@ -17,7 +19,10 @@ public class UsersResource {
     @Path("/")
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.APPLICATION_JSON)
-    public String createUser(String nickname, String name, String password, byte[] photo) {
+    public String createUser(String nickname,
+                             String name,
+                             String password,
+                             byte[] photo) {
         //TODO: upload image to blob and get photoId (hash)
         //TODO: create User class
         //TODO: upload User to db
@@ -25,16 +30,16 @@ public class UsersResource {
     }
 
     @DELETE
-    @Path("/{id}")
-    public void deleteUser(@PathParam("id") String id) {
+    @Path("/{"+ USER_ID +"}")
+    public void deleteUser(@PathParam(USER_ID) String id) {
         //TODO: remove User from db
     }
 
     @PUT
-    @Path("/{id}")
+    @Path("/{"+ USER_ID +"}")
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.APPLICATION_JSON)
-    public String updateUser(@PathParam("id") String id) {
+    public String updateUser(@PathParam(USER_ID) String id) {
         //TODO: upload image to blob and get photoId (hash)
         //TODO: create User class
         //TODO: upload User to db

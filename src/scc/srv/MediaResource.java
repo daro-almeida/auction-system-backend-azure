@@ -17,6 +17,8 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
+import static scc.srv.BuildConstants.*;
+
 /**
  * Resource for managing media files, such as images.
  */
@@ -49,9 +51,9 @@ public class MediaResource {
 	 * id does not exist.
 	 */
 	@GET
-	@Path("/{id}")
+	@Path("/{"+ MEDIA_ID +"}")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	public byte[] download(@PathParam("id") String id) {
+	public byte[] download(@PathParam(MEDIA_ID) String id) {
 		var blob = this.blob_client.getBlobClient(id);
 		return blob.downloadContent().toBytes();
 	}
