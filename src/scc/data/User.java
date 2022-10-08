@@ -25,7 +25,7 @@ public class User {
     }
 
     private static String generateUserID() {
-        return "0:" + System.currentTimeMillis();
+        return String.valueOf(System.currentTimeMillis());
     }
 
     public String getId() {
