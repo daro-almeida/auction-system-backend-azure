@@ -23,7 +23,8 @@ public class AzureMediaStorage implements MediaStorage {
 	public String upload(byte[] contents) {
 		var key = Hash.of(contents);
 		var blob = this.blobClient.getBlobClient(key);
-		blob.upload(BinaryData.fromBytes(contents), false);
+		if(!blob.exists())
+			blob.upload(BinaryData.fromBytes(contents), false);
 		return key;
 	}
 
