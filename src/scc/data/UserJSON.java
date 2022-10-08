@@ -1,13 +1,16 @@
 package scc.data;
 
-public class UserParamsJSON  {
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public class UserJSON {
 
     public final String nickname;
     public final String name;
     public final String password;
     public final String imageBase64;
 
-    public UserParamsJSON(String nickname, String name, String password, String imageBase64) {
+    public UserJSON(@JsonProperty("nickname") String nickname, @JsonProperty("name") String name,
+                    @JsonProperty("password") String password, @JsonProperty("imageBase64") String imageBase64) {
         this.nickname = nickname;
         this.name = name;
         this.password = password;
@@ -16,7 +19,7 @@ public class UserParamsJSON  {
 
     @Override
     public String toString() {
-        return "UserParamsJSON{" +
+        return "UserJSON{" +
                 "nickname='" + nickname + '\'' +
                 ", name='" + name + '\'' +
                 ", password='" + password + '\'' +

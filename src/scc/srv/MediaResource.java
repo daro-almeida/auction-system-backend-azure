@@ -1,5 +1,6 @@
 package scc.srv;
 
+import com.azure.storage.blob.models.BlobItem;
 import scc.utils.Hash;
 
 import java.util.List;
@@ -65,6 +66,6 @@ public class MediaResource {
 	@Path("/")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<String> list() {
-		return this.blob_client.listBlobs().stream().map(b -> b.getName()).collect(Collectors.toList());
+		return this.blob_client.listBlobs().stream().map(BlobItem::getName).collect(Collectors.toList());
 	}
 }

@@ -4,7 +4,11 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import scc.data.CosmosDBLayer;
 import scc.data.User;
-import scc.data.UserParamsJSON;
+import scc.data.UserDAO;
+import scc.data.UserJSON;
+import scc.utils.Hash;
+
+import java.util.Base64;
 
 import static scc.srv.BuildConstants.*;
 
@@ -24,26 +28,33 @@ public class UsersResource {
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String createUser(UserParamsJSON u) {
-        System.out.println(u);
+    public String createUser(UserJSON u) {
         //TODO: upload image to blob and get photoId (hash)
+        var photo = Base64.getDecoder().decode(u.imageBase64);
+        var photoId = Hash.of(photo);
+
         //TODO: create User class
+        var user = new User(u.nickname, u.name, u.password, photoId);
         //TODO: upload User to db
-        //db.putUser();
-        return "1"; //return userId (?)
+        db.putUser(new UserDAO(user));
+
+        return user.getId();
     }
 
     @DELETE
     @Path("/{"+ USER_ID +"}")
     public void deleteUser(@PathParam(USER_ID) String id) {
-        db.delUserById(id);
+        var res = db.delUserById(id);
+
     }
 
     @PUT
     @Path("/{"+ USER_ID +"}")
-    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String updateUser(@PathParam(USER_ID) String id) {
+    public String updateUser(@PathParam(USER_ID) String id, UserJSON u) {
+
+
         //TODO: upload image to blob and get photoId (hash)
         //TODO: create User class
         //TODO: upload User to db
