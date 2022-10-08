@@ -1,8 +1,7 @@
-package scc.data;
+package scc.data.database;
 
+import scc.data.client.User;
 import scc.utils.Hash;
-
-import java.util.Arrays;
 
 /**
  * Represents a User, as stored in the database

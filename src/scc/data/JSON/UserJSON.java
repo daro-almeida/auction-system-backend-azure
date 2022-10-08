@@ -1,4 +1,4 @@
-package scc.data;
+package scc.data.JSON;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

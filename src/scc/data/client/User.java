@@ -1,4 +1,4 @@
-package scc.data;
+package scc.data.client;
 
 import scc.utils.Hash;
 

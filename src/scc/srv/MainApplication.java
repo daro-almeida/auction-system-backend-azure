@@ -7,6 +7,11 @@ import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosClient;
 import com.azure.cosmos.CosmosClientBuilder;
 import jakarta.ws.rs.core.Application;
+import scc.srv.mediaStorage.AzureMediaStorage;
+import scc.srv.resources.AuctionsResource;
+import scc.srv.resources.ControlResource;
+import scc.srv.resources.MediaResource;
+import scc.srv.resources.UsersResource;
 
 public class MainApplication extends Application {
 	private final Set<Object> singletons = new HashSet<Object>();
@@ -20,6 +25,7 @@ public class MainApplication extends Application {
 		resources.add(ControlResource.class);
 		singletons.add(new MediaResource(mediaStorage));
 		singletons.add(new UsersResource(mediaStorage));
+		singletons.add(new AuctionsResource(mediaStorage));
 	}
 
 	@Override

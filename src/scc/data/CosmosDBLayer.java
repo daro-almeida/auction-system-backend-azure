@@ -6,6 +6,7 @@ import com.azure.cosmos.models.CosmosItemResponse;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.util.CosmosPagedIterable;
+import scc.data.database.UserDAO;
 
 public abstract class CosmosDBLayer {
     private static final String CONNECTION_URL = "https://scc2223ddb.documents.azure.com:443/";
