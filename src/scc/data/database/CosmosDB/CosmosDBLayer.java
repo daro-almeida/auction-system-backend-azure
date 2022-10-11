@@ -1,4 +1,4 @@
-package scc.data;
+package scc.data.database.CosmosDB;
 
 import com.azure.cosmos.*;
 import com.azure.cosmos.models.CosmosItemRequestOptions;
