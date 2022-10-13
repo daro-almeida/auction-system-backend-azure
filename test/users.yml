@@ -12,7 +12,7 @@ config:
 
 scenarios:
   - name: "Create user"
-    weight: 1
+    weight: 2
     flow:
       - post:
           url: "/user"
@@ -21,3 +21,21 @@ scenarios:
             Accept: application/json
           beforeRequest: "inject_random_user"
           afterResponse: "on_user_create_complete"
+
+  - name: "Delete User"
+    weight: 2
+    flow:
+      - function: "pick_uploaded_user"
+      - delete:
+          url: "/user/{{ userId }}"
+          ifTrue: "userId"
+
+  - name: "Update User"
+    weight: 2
+    flow:
+      - function: "pick_uploaded_user"
+      - patch:
+          url: "/user/{{ userId }}"
+          headers:
+            Content-Type: application/json
+          ifTrue: "userId"

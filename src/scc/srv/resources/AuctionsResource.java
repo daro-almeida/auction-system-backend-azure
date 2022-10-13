@@ -88,7 +88,7 @@ public class AuctionsResource {
         }
         if(auctionJSON.endTime() != null) operations.replace("/endTime", auctionJSON.endTime());
         if(auctionJSON.minimumPrice() >= 0) operations.replace("/minimumPrice", auctionJSON.minimumPrice());
-
+        if(auctionJSON.status() != null) operations.replace("/status", auctionJSON.status());
         //Get the given id and look for auction with same id
         //If it doesn't exist, return NotFoundException
         var response = dbAuctions.updateAuction(auctionId, operations);
@@ -210,7 +210,7 @@ public class AuctionsResource {
 
         //Change the replyDescription of the selected question
         var operations = CosmosPatchOperations.create();
-        operations.add("/replyDescription", args.description());
+        operations.replace("/replyDescription", args.description());
         var addReply = dbQuestions.updateQuestion(questionId, operations);
         if (addReply.getStatusCode() == 404) throw new NotFoundException();
     }
