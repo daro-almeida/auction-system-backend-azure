@@ -8,6 +8,7 @@ public class Question {
     private final String auctionId;
     private final String userId;
     private final String description;
+    private String replyDescription;
 
     public Question(String auctionId, String userId, String description){
         this(generateQuestionId(), auctionId, userId, description);
@@ -18,6 +19,7 @@ public class Question {
         this.auctionId = auctionId;
         this.userId = userId;
         this.description = description;
+        replyDescription = null;
     }
 
     private static String generateQuestionId(){
@@ -28,6 +30,9 @@ public class Question {
     public String getAuctionId() {return auctionId;}
     public String getUserId() {return userId;}
     public String getDescription() {return description;}
+    public String getReplyDescription() {return replyDescription;}
+
+    public void setReplyDescription(String replyDescription) {this.replyDescription = replyDescription;}
 
     @Override
     public String toString(){
@@ -36,6 +41,7 @@ public class Question {
                 ", auctionId='" + auctionId + '\'' +
                 ", userId='" + userId + '\'' +
                 ", description='" + description + '\'' +
+                ", replyDescription='" + replyDescription + '\'' +
                 '}';
     }
 }

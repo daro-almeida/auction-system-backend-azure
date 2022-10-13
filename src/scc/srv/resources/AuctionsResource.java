@@ -4,15 +4,14 @@ import com.azure.cosmos.models.CosmosPatchOperations;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import scc.data.JSON.AuctionJSON;
+import scc.data.JSON.CreateReplyJSONArgs;
 import scc.data.client.Auction;
 import scc.data.client.Bid;
 import scc.data.client.Question;
-import scc.data.client.Reply;
 import scc.data.database.AuctionDAO;
 import scc.data.database.BidDAO;
 import scc.data.database.CosmosDB.*;
 import scc.data.database.QuestionDAO;
-import scc.data.database.ReplyDAO;
 import scc.srv.mediaStorage.MediaStorage;
 import scc.utils.Hash;
 
@@ -27,7 +26,6 @@ public class AuctionsResource {
     private final UserCosmosDBLayer dbUsers;
     private final BidCosmosDBLayer dbBids;
     private final QuestionCosmosDBLayer dbQuestions;
-    private final ReplyCosmosDBLayer dbReplies;
 
     public AuctionsResource(MediaStorage storage) {
         this.storage = storage;
@@ -35,7 +33,6 @@ public class AuctionsResource {
         this.dbUsers = new UserCosmosDBLayer();
         this.dbBids = new BidCosmosDBLayer();
         this.dbQuestions = new QuestionCosmosDBLayer();
-        this.dbReplies = new ReplyCosmosDBLayer();
     }
 
     /**
@@ -189,18 +186,16 @@ public class AuctionsResource {
      * Creates a reply on a question done in an auction
      * @param auctionId Identifier of the auction
      * @param questionId Identifier of the question
-     * @param userId Identifier of the user who performs the reply
-     * @param description Text of the reply
+     * @param args Arguments necessary for the execution of creating a reply
      * @return Reply's generated id
      */
     @POST
     @Path("/{"+ AUCTION_ID +"}/question/{"+ QUESTION_ID+"}")
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    public String createReply(@PathParam(AUCTION_ID) String auctionId,
+    public void createReply(@PathParam(AUCTION_ID) String auctionId,
                             @PathParam(QUESTION_ID) String questionId,
-                            String userId,
-                            String description){
+                            CreateReplyJSONArgs args){
+        if(args.userId() == null || args.description() == null) throw new BadRequestException();
         //Check if the auction exists, if not return NotFoundException
         var responseAuction = dbAuctions.getAuctionById(auctionId);
         if (responseAuction.isEmpty()) throw new NotFoundException();
@@ -210,17 +205,14 @@ public class AuctionsResource {
         if (responseQuestion.isEmpty()) throw new NotFoundException();
 
         //Check if the user exists, if not return NotFoundException
-        var responseUser = dbUsers.getUserById(userId);
+        var responseUser = dbUsers.getUserById(args.userId());
         if (responseUser.isEmpty()) throw new NotFoundException();
 
-        //Create the reply with given parameters
-        var reply = new Reply(auctionId, questionId, userId, description);
-
-        //Save the reply into its respective database
-        dbReplies.putReply(new ReplyDAO(reply));
-
-        //Return the created reply's id
-        return reply.getReplyId();
+        //Change the replyDescription of the selected question
+        var operations = CosmosPatchOperations.create();
+        operations.add("/replyDescription", args.description());
+        var addReply = dbQuestions.updateQuestion(questionId, operations);
+        if (addReply.getStatusCode() == 404) throw new NotFoundException();
     }
 
     /**

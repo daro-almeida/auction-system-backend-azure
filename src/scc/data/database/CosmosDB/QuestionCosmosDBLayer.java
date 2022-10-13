@@ -2,8 +2,11 @@ package scc.data.database.CosmosDB;
 
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.models.CosmosItemResponse;
+import com.azure.cosmos.models.CosmosPatchOperations;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
+import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.util.CosmosPagedIterable;
+import scc.data.database.AuctionDAO;
 import scc.data.database.CosmosDB.CosmosDBLayer;
 import scc.data.database.QuestionDAO;
 
@@ -52,5 +55,10 @@ public class QuestionCosmosDBLayer extends CosmosDBLayer {
     public Optional<QuestionDAO> getQuestionById(String id){
         return questions.queryItems("SELECT * FROM questions WHERE questions.id=\"" + id + "\"", new CosmosQueryRequestOptions(),
                 QuestionDAO.class).stream().findFirst();
+    }
+
+    public CosmosItemResponse<QuestionDAO> updateQuestion(String id, CosmosPatchOperations operations){
+        return questions.patchItem(id, new PartitionKey(id), operations, QuestionDAO.class);
+
     }
 }
