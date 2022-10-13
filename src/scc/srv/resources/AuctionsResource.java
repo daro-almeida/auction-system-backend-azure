@@ -4,6 +4,8 @@ import com.azure.cosmos.models.CosmosPatchOperations;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import scc.data.JSON.AuctionJSON;
+import scc.data.JSON.CreateBidJSONArgs;
+import scc.data.JSON.CreateQuestionJSONArgs;
 import scc.data.JSON.CreateReplyJSONArgs;
 import scc.data.client.Auction;
 import scc.data.client.Bid;
@@ -96,8 +98,7 @@ public class AuctionsResource {
     /**
      * Creates a bid on an auction
      * @param auctionId Identifier of the auction
-     * @param userId Identifier of the user who performs the bid
-     * @param bidAmount Quantity that the user wants to provide for the auction
+     * @param args Arguments necessary to create a bid on the auction
      * @return Bid's generated identifier
      */
     @POST
@@ -105,18 +106,18 @@ public class AuctionsResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public String createBid(@PathParam(AUCTION_ID) String auctionId,
-                            String userId,
-                            long bidAmount){
+                            CreateBidJSONArgs args){
+        if(args.bidAmount() < 0 || args.userId() == null) throw new BadRequestException();
         //Check if the auction exists, if not, return NotFoundException
         var responseAuction = dbAuctions.getAuctionById(auctionId);
         if (responseAuction.isEmpty()) throw new NotFoundException();
 
         //Check if the user exists, if not, return NotFoundException
-        var responseUser = dbUsers.getUserById(userId);
+        var responseUser = dbUsers.getUserById(args.userId());
         if (responseUser.isEmpty()) throw new NotFoundException();
 
         //Create the bid with given parameters
-        var bid = new Bid(auctionId, userId, bidAmount);
+        var bid = new Bid(auctionId, args.userId(), args.bidAmount());
 
         //Save the bid into its respective database
         dbBids.putBid(new BidDAO(bid));
@@ -153,8 +154,7 @@ public class AuctionsResource {
     /**
      * Creates a question on an auction
      * @param auctionId Identifier of the auction
-     * @param userId Identifier of the user who performs the question
-     * @param description Text of the question
+     * @param args Arguments necessary to create a question in the auction
      * @return Question's generated identifier
      */
     @POST
@@ -162,18 +162,18 @@ public class AuctionsResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public String createQuestion(@PathParam(AUCTION_ID) String auctionId,
-                                 String userId,
-                                 String description){
+                                 CreateQuestionJSONArgs args){
+        if(args.userId() == null || args.description() == null) throw new BadRequestException();
         //Check if the auction exists, if not, return NotFoundException
         var responseAuction = dbAuctions.getAuctionById(auctionId);
         if (responseAuction.isEmpty()) throw new NotFoundException();
 
         //Check if the user exists, if not, return NotFoundException
-        var responseUser = dbUsers.getUserById(userId);
+        var responseUser = dbUsers.getUserById(args.userId());
         if (responseUser.isEmpty()) throw new NotFoundException();
 
         //Create the question with given parameters
-        var question = new Question(auctionId, userId, description);
+        var question = new Question(auctionId, args.userId(), args.description());
 
         //Save the question into its respective database
         dbQuestions.putQuestion(new QuestionDAO(question));
