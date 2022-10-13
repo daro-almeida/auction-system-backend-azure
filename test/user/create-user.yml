@@ -1,0 +1,18 @@
+config:
+  target: "{{ $processEnvironment.SERVER_HOST }}/rest/user"
+  processor: "./user.js"
+  plugins:
+    expect: {}
+  phases:
+    - duration: 1
+      arrivalCount: 1
+
+scenarios:
+  - name: "Create user"
+    flow:
+      - function: "contextAddRandomUser"
+      - post:
+          url: "/"
+          beforeRequest: "prepareCreateUser"
+          expect:
+            - statusCode: 200

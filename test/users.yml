@@ -6,9 +6,10 @@ config:
     duration: 5
     arrivalRate: 1
     rampTo: 5
-  - name: "Main"
+  - name: "Load"
     duration: 5
     arrivalRate: 10
+
 
 scenarios:
   - name: "Create user"

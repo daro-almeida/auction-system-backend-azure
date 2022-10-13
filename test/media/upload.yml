@@ -5,13 +5,11 @@ config:
     expect: {}
   phases:
     - duration: 1
-      arrivalCount: 2
+      arrivalCount: 1
 
 scenarios:
   - name: "Upload Image"
-    weight: 1
     flow:
-      - log: "uploading image"
       - post:
           url: "/media"
           headers:
@@ -21,14 +19,3 @@ scenarios:
           afterResponse: "on_upload_complete"
           expect:
             - statusCode: 200
-
-  - name: "Download Image"
-    weight: 1
-    flow:
-      - log: "downloading image"
-      - function: "pick_uploaded_image"
-      - get:
-          url: "/media/{{ image_id }}" 
-          headers:
-            Accept: application/octet-stream
-          ifTrue: "image_id"

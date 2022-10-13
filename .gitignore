@@ -25,6 +25,12 @@ hs_err_pid*
 # target directory
 target/
 
+# javascript
+node_modules/
+
+# python
+__pycache__/
+
 # jdtls
 /.settings/
 /.project

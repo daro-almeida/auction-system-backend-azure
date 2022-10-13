@@ -1,0 +1,25 @@
+config:
+  target: "{{ $processEnvironment.SERVER_HOST }}/rest"
+  processor: "../rt.js"
+  plugins:
+    expect: {}
+  phases:
+    - duration: 1
+      arrivalCount: 1
+
+scenarios:
+  - name: "Create auction"
+    flow:
+      - function: "contextAddRandomUser"
+      - post:
+          url: "/user"
+          beforeRequest: "prepareCreateUser"
+          afterRequest: "extractUserIdFromBody"
+          expect:
+            - statusCode: 200
+      - function: "contextAddRandomAuction"
+      - post:
+          url: "/auction"
+          beforeRequest: "prepareCreateAuction"
+          expect:
+            - statusCode: 200
