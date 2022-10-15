@@ -12,7 +12,7 @@ URL: http://localhost:8080/
 .launch container (run just once)
 [source,shell]
 ----
-docker run -it --rm --network host -v ./target/scc2223-lab1-1.0.war:/usr/local/tomcat/webapps/ROOT.war tomcat:latest
+docker run -it --rm --network host -v ./target/scc2223-lab1-1.0.war:/usr/local/tomcat/webapps/ROOT.war --env-file azure.env tomcat:latest
 ----
 
 .package
@@ -27,7 +27,22 @@ URL: http://localhost:8080/
 .launch container (run just once)
 [source,shell]
 ----
-podman run -it --rm --network host -v ./target/scc2223-lab1-1.0.war:/usr/local/tomcat/webapps/ROOT.war:Z docker.io/tomcat:latest
+podman run -it --rm --network host -v ./target/scc2223-lab1-1.0.war:/usr/local/tomcat/webapps/ROOT.war:Z --env-file azure.env docker.io/tomcat:latest
+----
+
+.Template azure.env file
+[source,shell]
+----
+BACKEND_KIND=
+AZURE_BLOB_STORAGE_CONNECTION_STRING=
+AZURE_BLOB_STORAGE_AUCTION_MEDIA_CONTAINER_NAME=
+AZURE_BLOB_STORAGE_USER_MEDIA_CONTAINER_NAME=
+AZURE_COSMOS_DB_KEY=
+AZURE_COSMOS_DB_URL=
+AZURE_COSMOS_DB_DATABASE=
+AZURE_ENABLE_CACHING=0
+AZURE_REDIS_KEY=
+AZURE_REDIS_URL=
 ----
 
 .package
