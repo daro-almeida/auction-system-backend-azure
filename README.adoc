@@ -12,7 +12,7 @@ URL: http://localhost:8080/
 .launch container (run just once)
 [source,shell]
 ----
-docker run -it --rm --network host -v ./target/scc2223-lab1-1.0.war:/usr/local/tomcat/webapps/ROOT.war --env-file azure.env tomcat:latest
+docker run -it --rm --network host -v ${pwd}/target/scc2223-lab1-1.0.war:/usr/local/tomcat/webapps/ROOT.war --env-file azure.env tomcat:latest
 ----
 
 .package
