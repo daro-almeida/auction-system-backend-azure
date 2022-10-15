@@ -45,7 +45,7 @@ public class AuctionResource {
     /**
      * Posts a new auction
      * 
-     * @param auctionJSON JSON which contains the necessary information to create an
+     * @param request JSON which contains the necessary information to create an
      *                    auction
      * @return Auction's generated identifier
      */
@@ -84,7 +84,7 @@ public class AuctionResource {
      * Updates an existing auction
      * 
      * @param auctionId   Identifier of the auction
-     * @param auctionJSON JSON which contains the info that wants to be changed
+     * @param request JSON which contains the info that wants to be changed
      */
     @PATCH
     @Path("/{" + AUCTION_ID + "}")
@@ -120,7 +120,7 @@ public class AuctionResource {
      * Creates a bid on an auction
      * 
      * @param auctionId Identifier of the auction
-     * @param args      Arguments necessary to create a bid on the auction
+     * @param request      Arguments necessary to create a bid on the auction
      * @return Bid's generated identifier
      */
     @POST
@@ -171,7 +171,7 @@ public class AuctionResource {
      * Creates a question on an auction
      * 
      * @param auctionId Identifier of the auction
-     * @param args      Arguments necessary to create a question in the auction
+     * @param request      Arguments necessary to create a question in the auction
      * @return Question's generated identifier
      */
     @POST
@@ -203,7 +203,7 @@ public class AuctionResource {
      * 
      * @param auctionId  Identifier of the auction
      * @param questionId Identifier of the question
-     * @param args       Arguments necessary for the execution of creating a reply
+     * @param request       Arguments necessary for the execution of creating a reply
      * @return
      */
     @POST

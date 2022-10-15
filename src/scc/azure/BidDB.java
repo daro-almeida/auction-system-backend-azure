@@ -21,6 +21,11 @@ class BidDB {
         this.container = db.getContainer(config.bidContainer);
     }
 
+    /**
+     * Returns the bid saved in the database with given identifier
+     * @param bidId identifier of the bid
+     * @return Object that represents a bid
+     */
     public Optional<BidDAO> getBid(String bidId) {
         var options = this.createQueryOptions(bidId);
         return this.container
@@ -32,16 +37,31 @@ class BidDB {
                 .findFirst();
     }
 
+    /**
+     * Checks if a bid with given identifier exists in the database
+     * @param bidId identifier of the bid
+     * @return True if exists in the database, false otherwise
+     */
     public boolean bidExists(String bidId) {
         return this.getBid(bidId).isPresent();
     }
 
+    /**
+     * Creates an entry in the database that represents a bid
+     * @param bid Object that represents a bid
+     * @return 200 with bid's generated identifier
+     */
     public Result<BidDAO, AuctionService.Error> createBid(BidDAO bid) {
         assert bid.getBidId() == null; // Auto-generated
         var response = this.container.createItem(bid);
         return Result.ok(response.getItem());
     }
 
+    /**
+     * Lists all the bids present in an auction with a given identifier
+     * @param auctionId identifier of the auction
+     * @return List of bids made in the auction
+     */
     public List<BidDAO> listBids(String auctionId) {
         var options = this.createQueryOptions(auctionId);
         return this.container

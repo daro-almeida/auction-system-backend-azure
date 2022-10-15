@@ -31,6 +31,9 @@ public class UserResource {
         this.service = service;
     }
 
+    /**
+     * JSON which represents the set of parameters required to create an user
+     */
     public static record CreateUserRequest(
             @JsonProperty(required = true) String nickname,
             @JsonProperty(required = true) String name,
@@ -38,6 +41,11 @@ public class UserResource {
             String imageBase64) {
     }
 
+    /**
+     * Creates an user and inserts it into the database
+     * @param request JSON file which has the necessary parameters to create an user
+     * @return Created user's nickname
+     */
     @POST
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -63,6 +71,10 @@ public class UserResource {
         return result.value();
     }
 
+    /**
+     * Deletes a user from the database
+     * @param id nickname of the user wished to be deleted
+     */
     @DELETE
     @Path("/{" + USER_ID + "}")
     public void deleteUser(@PathParam(USER_ID) String id) {
@@ -72,9 +84,17 @@ public class UserResource {
             this.throwUserError(result.unwrapErr());
     }
 
+    /**
+     * JSON which represents the set of parameters to update on the user
+     */
     public static record UpdateUserRequest(String name, String password, String imageBase64) {
     }
 
+    /**
+     * Updates the values saved in the user with given nickname to the new values from the request
+     * @param id nickname of the user to be updated
+     * @param request Request that has the new parameters
+     */
     @PATCH
     @Path("/{" + USER_ID + "}")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -103,6 +123,10 @@ public class UserResource {
             this.throwUserError(result.unwrapErr());
     }
 
+    /**
+     * Throws an exception that corresponds to the error given
+     * @param error Error code of the response
+     */
     private void throwUserError(UserService.Error error) {
         switch (error) {
             case USER_NOT_FOUND:

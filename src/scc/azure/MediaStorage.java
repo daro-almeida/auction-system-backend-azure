@@ -26,6 +26,11 @@ public class MediaStorage {
                 .containerName(config.userContainer).buildClient();
     }
 
+    /**
+     * Upload an image into the blob storage container for auctions
+     * @param contents byte array of an image
+     * @return Uploaded image's generated identifier
+     */
     public String uploadAuctionMedia(byte[] contents) {
         var key = this.createAuctionMediaID(contents);
         var blob = this.auctionClient.getBlobClient(key);
@@ -34,6 +39,11 @@ public class MediaStorage {
         return key;
     }
 
+    /**
+     * Upload an image into the blob storage container for users
+     * @param contents byte array of an image
+     * @return Uploaded image's generated identifier
+     */
     public String uploadUserMedia(byte[] contents) {
         var key = this.createUserMediaID(contents);
         var blob = this.userClient.getBlobClient(key);
@@ -42,6 +52,11 @@ public class MediaStorage {
         return key;
     }
 
+    /**
+     * Downloads the contents of an image with given identifier
+     * @param mediaID identifier of the media resource
+     * @return byte content of the image
+     */
     public Optional<byte[]> downloadMedia(String mediaID) {
         var client = this.getClientFromID(mediaID);
         if (client == null)
@@ -54,6 +69,11 @@ public class MediaStorage {
             return Optional.empty();
     }
 
+    /**
+     * Deletes the contents of an image with given identifier
+     * @param mediaID identifier of the media resource
+     * @return true if it was deleted, false otherwise
+     */
     public boolean deleteMedia(String mediaID) {
         var client = this.getClientFromID(mediaID);
         if (client == null)
@@ -68,14 +88,29 @@ public class MediaStorage {
         }
     }
 
+    /**
+     * Generates an identifier with prefix of "auction" to determine which blob storage container it goes to
+     * @param data contents of the media resource
+     * @return media resource's generated identifier
+     */
     private String createAuctionMediaID(byte[] data) {
         return AUCTION_PREFIX + Hash.of(data);
     }
 
+    /**
+     * Generates an identifier with prefix of "users" to determine which blob storage container it goes to
+     * @param data contents of the media resource
+     * @return media resource's generated identifier
+     */
     private String createUserMediaID(byte[] data) {
         return USER_PREFIX + Hash.of(data);
     }
 
+    /**
+     * Get the client to the respective blob storage container with given identifier
+     * @param mediaID identifier of the media resource
+     * @return client to the blob storage container or null if invalid
+     */
     private BlobContainerClient getClientFromID(String mediaID) {
         if (mediaID.startsWith(AUCTION_PREFIX))
             return this.auctionClient;

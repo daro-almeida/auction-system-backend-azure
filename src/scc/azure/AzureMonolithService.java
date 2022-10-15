@@ -53,6 +53,11 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         this.questionDB = new QuestionDB(dbClient, cosmosConfig);
     }
 
+    /**
+     * Creates an auction
+     * @param params JSON that contains the necessary information to create an auction
+     * @return 200 with auction's identifier if successful, 
+     */
     @Override
     public Result<String, scc.services.AuctionService.Error> createAuction(CreateAuctionParams params) {
         if (!this.userDB.userExists(params.userId()))
