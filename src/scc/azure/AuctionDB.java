@@ -72,7 +72,7 @@ class AuctionDB {
             return Result.ok();
         } catch (CosmosException e) {
             if (e.getStatusCode() == 404)
-                return Result.error(AuctionService.Error.USER_NOT_FOUND);
+                return Result.err(AuctionService.Error.USER_NOT_FOUND);
             throw e;
         }
     }
@@ -89,7 +89,7 @@ class AuctionDB {
             this.container.patchItem(auctionId, partitionKey, ops, AuctionDAO.class);
             return Result.ok();
         } catch (CosmosException e) {
-            return Result.error(AuctionService.Error.AUCTION_NOT_FOUND);
+            return Result.err(AuctionService.Error.AUCTION_NOT_FOUND);
         }
     }
 

@@ -1,12 +1,11 @@
 package scc.resources;
 
-import java.util.Base64;
-import java.util.Optional;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
@@ -43,6 +42,7 @@ public class UserResource {
 
     /**
      * Creates an user and inserts it into the database
+     * 
      * @param request JSON file which has the necessary parameters to create an user
      * @return Created user's nickname
      */
@@ -54,25 +54,21 @@ public class UserResource {
         System.out.println("Received create user request");
         System.out.println(request);
 
-        Optional<byte[]> photo = Optional.empty();
-        if (request.imageBase64 != null) {
-            photo = Optional.of(Base64.getDecoder().decode(request.imageBase64));
-        }
-
         var result = this.service.createUser(new UserService.CreateUserParams(
                 request.nickname(),
                 request.name(),
                 request.password(),
-                photo));
+                ResourceUtils.decodeBase64Nullable(request.imageBase64)));
 
         if (result.isErr())
-            this.throwUserError(result.unwrapErr());
+            this.throwUserError(result.error(), result.errorMessage());
 
         return result.value();
     }
 
     /**
      * Deletes a user from the database
+     * 
      * @param id nickname of the user wished to be deleted
      */
     @DELETE
@@ -81,7 +77,7 @@ public class UserResource {
         System.out.println("Received delete user request for id " + id);
         var result = this.service.deleteUser(id);
         if (result.isErr())
-            this.throwUserError(result.unwrapErr());
+            this.throwUserError(result.error(), result.errorMessage());
     }
 
     /**
@@ -91,8 +87,10 @@ public class UserResource {
     }
 
     /**
-     * Updates the values saved in the user with given nickname to the new values from the request
-     * @param id nickname of the user to be updated
+     * Updates the values saved in the user with given nickname to the new values
+     * from the request
+     * 
+     * @param id      nickname of the user to be updated
      * @param request Request that has the new parameters
      */
     @PATCH
@@ -102,10 +100,7 @@ public class UserResource {
         System.out.println("Received update user request for id " + id);
         System.out.println(request);
 
-        Optional<byte[]> photo = Optional.empty();
-        if (request.imageBase64 != null) {
-            photo = Optional.of(Base64.getDecoder().decode(request.imageBase64));
-        }
+        var photo = ResourceUtils.decodeBase64Nullable(request.imageBase64());
 
         var updateOps = new UserService.UpdateUserOps();
         if (request.name() != null)
@@ -120,21 +115,24 @@ public class UserResource {
         var result = this.service.updateUser(id, updateOps);
 
         if (result.isErr())
-            this.throwUserError(result.unwrapErr());
+            this.throwUserError(result.error(), result.errorMessage());
     }
 
     /**
      * Throws an exception that corresponds to the error given
+     * 
      * @param error Error code of the response
      */
-    private void throwUserError(UserService.Error error) {
+    private void throwUserError(UserService.Error error, String message) {
         switch (error) {
             case USER_NOT_FOUND:
                 throw new NotFoundException();
             case USER_ALREADY_EXISTS:
                 throw new WebApplicationException(409);
+            case BAD_REQUEST:
+                throw new BadRequestException(message);
             default:
-                throw new WebApplicationException(500);
+                throw new InternalServerErrorException();
         }
     }
 }

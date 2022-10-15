@@ -67,9 +67,9 @@ class QuestionDB {
     public Result<QuestionDAO, AuctionService.Error> createReply(String questionId, QuestionDAO.Reply reply) {
         var question = this.getQuestion(questionId);
         if (question.isEmpty())
-            return Result.error(AuctionService.Error.QUESTION_NOT_FOUND);
+            return Result.err(AuctionService.Error.QUESTION_NOT_FOUND);
         if (question.get().getReply() != null)
-            return Result.error(AuctionService.Error.QUESTION_ALREADY_REPLIED);
+            return Result.err(AuctionService.Error.QUESTION_ALREADY_REPLIED);
 
         var partitionKey = this.createPartitionKey(questionId);
         var patch = CosmosPatchOperations.create();

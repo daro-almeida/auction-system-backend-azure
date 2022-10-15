@@ -6,6 +6,7 @@ import scc.utils.Result;
 
 public interface UserService {
     public static enum Error {
+        BAD_REQUEST,
         USER_NOT_FOUND,
         USER_ALREADY_EXISTS,
     }
@@ -70,4 +71,34 @@ public interface UserService {
     }
 
     Result<Void, Error> updateUser(String userId, UpdateUserOps ops);
+
+    public static Result<Void, Error> validateCreateUserParams(CreateUserParams params) {
+        if (params.nickname == null || params.nickname.isBlank()) {
+            return Result.err(Error.BAD_REQUEST, "nickname is required");
+        }
+        if (params.name == null || params.name.isBlank()) {
+            return Result.err(Error.BAD_REQUEST, "name is required");
+        }
+        if (params.password == null || params.password.isBlank()) {
+            return Result.err(Error.BAD_REQUEST, "password is required");
+        }
+        return Result.ok();
+    }
+
+    public static Result<Void, Error> validateUpdateUserOps(UpdateUserOps ops) {
+        if (!ops.shouldUpdateName() && !ops.shouldUpdatePassword() && !ops.shouldUpdateImage()) {
+            return Result.err(Error.BAD_REQUEST, "no update operations specified");
+        }
+        if (ops.shouldUpdateName()) {
+            if (ops.getName() == null || ops.getName().isBlank()) {
+                return Result.err(Error.BAD_REQUEST, "name is required");
+            }
+        }
+        if (ops.shouldUpdatePassword()) {
+            if (ops.getPassword() == null || ops.getPassword().isBlank()) {
+                return Result.err(Error.BAD_REQUEST, "password is required");
+            }
+        }
+        return Result.ok();
+    }
 }

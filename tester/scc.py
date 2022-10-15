@@ -1,8 +1,12 @@
-from dataclasses import dataclass
+from __future__ import annotations
+from dataclasses import Field, dataclass, replace
+from typing import Callable, Generic, Tuple, TypeVar
 import requests
 from faker import Faker
 import base64
 import random
+
+T = TypeVar("T")
 
 
 class Endpoints:
@@ -18,6 +22,28 @@ class Endpoints:
         self.auction = base + "/rest/auction"
 
 
+class Invalidator(Generic[T]):
+    def __init__(self, field: str, desc: str, func: Callable[[T], T]):
+        self.field = field
+        self.desc = desc
+        self.func = func
+
+    def __str__(self) -> str:
+        return f"{self.field}: {self.desc}"
+
+
+class InvalidRequest(Generic[T]):
+    def __init__(self, data: T, reason: str):
+        self.data = data
+        self.reason = reason
+
+    def __repr__(self) -> str:
+        return self.data.__repr__()
+
+    def __str__(self) -> str:
+        return f"{self.reason} = {self.data}"
+
+
 @dataclass
 class UserCreateRequest:
     nickname: str
@@ -26,14 +52,71 @@ class UserCreateRequest:
     imageBase64: str
 
     @staticmethod
-    def random():
+    def invalid_requests() -> list[InvalidRequest[UserCreateRequest]]:
+        invalidators = UserCreateRequest._invalidators()
+        invalid_requests = []
+        for invalidator in invalidators:
+            rand = UserCreateRequest.random()
+            invalid_requests.append(
+                InvalidRequest(
+                    data=invalidator.func(rand),
+                    reason=f"{invalidator.field} {invalidator.desc}",
+                )
+            )
+        return invalid_requests
+
+    @staticmethod
+    def random(**kwargs):
         faker = Faker()
-        return UserCreateRequest(
+        request = UserCreateRequest(
             nickname=faker.user_name(),
             name=faker.name(),
             password=faker.password(),
-            imageBase64=_random_image_base64(),
+            imageBase64=random_image_base64(),
         )
+        return _patch_dataclass_with_kwargs(request, **kwargs)
+
+    @staticmethod
+    def _invalidators() -> list[Invalidator[UserCreateRequest]]:
+        return [
+            Invalidator(
+                "nickname",
+                "empty",
+                lambda req: _patch_dataclass_with_kwargs(req, nickname=""),
+            ),
+            Invalidator(
+                "nickname",
+                "null",
+                lambda req: _patch_dataclass_with_kwargs(req, nickname=None),
+            ),
+            Invalidator(
+                "name",
+                "empty",
+                lambda req: _patch_dataclass_with_kwargs(req, name=""),
+            ),
+            Invalidator(
+                "name",
+                "null",
+                lambda req: _patch_dataclass_with_kwargs(req, name=None),
+            ),
+            Invalidator(
+                "password",
+                "empty",
+                lambda req: _patch_dataclass_with_kwargs(req, password=""),
+            ),
+            Invalidator(
+                "password",
+                "null",
+                lambda req: _patch_dataclass_with_kwargs(req, password=None),
+            ),
+            Invalidator(
+                "imageBase64",
+                "invalid",
+                lambda req: _patch_dataclass_with_kwargs(
+                    req, imageBase64=invalid_image_base64()
+                ),
+            ),
+        ]
 
 
 @dataclass
@@ -43,13 +126,14 @@ class UserUpdateRequest:
     imageBase64: str
 
     @staticmethod
-    def random():
+    def random(**kwargs):
         faker = Faker()
-        return UserUpdateRequest(
+        request = UserUpdateRequest(
             name=faker.name(),
             password=faker.password(),
-            imageBase64=_random_image_base64(),
+            imageBase64=random_image_base64(),
         )
+        return _patch_dataclass_with_kwargs(request, **kwargs)
 
 
 @dataclass
@@ -62,16 +146,17 @@ class AuctionCreateRequest:
     imageBase64: str
 
     @staticmethod
-    def random():
+    def random(**kwargs):
         faker = Faker()
-        return AuctionCreateRequest(
+        request = AuctionCreateRequest(
             title=faker.sentence(),
             description=faker.paragraph(),
             userId=faker.uuid4(),
             endTime=faker.date_time(),
             minimumPrice=faker.pyfloat(),
-            imageBase64=_random_image_base64(),
+            imageBase64=random_image_base64(),
         )
+        return _patch_dataclass_with_kwargs(request, **kwargs)
 
 
 @dataclass
@@ -155,5 +240,15 @@ def random_image() -> bytes:
     return random.randbytes(64)
 
 
-def _random_image_base64() -> str:
+def random_image_base64() -> str:
     return base64.b64encode(random_image()).decode("utf-8")
+
+
+def invalid_image_base64() -> str:
+    return "&??????"
+
+
+def _patch_dataclass_with_kwargs(data, **kwargs):
+    for key, value in kwargs.items():
+        data = replace(data, **{key: value})
+    return data

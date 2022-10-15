@@ -9,6 +9,7 @@ def group(endpoints: scc.Endpoints):
             create_duplicate_user(endpoints),
             delete_user(endpoints),
             delete_missing_user(endpoints),
+            *invalid_create_test_cases(endpoints),
         ]
     )
 
@@ -53,3 +54,24 @@ def delete_missing_user(endpoints: scc.Endpoints):
     response = rclient.delete_user("missing")
     with recon.validate(response) as validator:
         validator.status_code(404)
+
+
+def invalid_create_test_cases(endpoints: scc.Endpoints) -> list[recon.TestCase]:
+    def test_case(ep: scc.Endpoints, req: scc.UserCreateRequest):
+        rclient = scc.RawClient(ep)
+        response = rclient.create_user(req)
+        with recon.validate(response) as validator:
+            validator.status_code(400)
+
+    requests = scc.UserCreateRequest.invalid_requests()
+    test_cases = []
+    # https://docs.python.org/3/faq/programming.html#why-do-lambdas-defined-in-a-loop-with-different-values-all-return-the-same-result
+    for request in requests:
+        test_cases.append(
+            recon.TestCase(
+                "user",
+                f"create invalid user: {request.reason}",
+                lambda req=request.data: test_case(endpoints, req),
+            )
+        )
+    return test_cases

@@ -1,8 +1,6 @@
 package scc.resources;
 
-import java.util.Base64;
 import java.util.List;
-import java.util.Optional;
 
 import org.apache.commons.lang3.NotImplementedException;
 
@@ -46,7 +44,7 @@ public class AuctionResource {
      * Posts a new auction
      * 
      * @param request JSON which contains the necessary information to create an
-     *                    auction
+     *                auction
      * @return Auction's generated identifier
      */
     @POST
@@ -57,19 +55,15 @@ public class AuctionResource {
         System.out.println("Received create auction request");
         System.out.println(request);
 
-        Optional<byte[]> image = Optional.empty();
-        if (request.imageBase64 != null)
-            image = Optional.of(Base64.getDecoder().decode(request.imageBase64));
-
         var result = this.service.createAuction(new AuctionService.CreateAuctionParams(
                 request.title(),
                 request.description(),
                 request.userId(),
                 request.initialPrice().longValue(),
-                image));
+                ResourceUtils.decodeBase64Nullable(request.imageBase64())));
 
         if (result.isErr())
-            this.throwAuctionError(result.unwrapErr());
+            this.throwAuctionError(result.error());
 
         return result.value();
     }
@@ -83,8 +77,8 @@ public class AuctionResource {
     /**
      * Updates an existing auction
      * 
-     * @param auctionId   Identifier of the auction
-     * @param request JSON which contains the info that wants to be changed
+     * @param auctionId Identifier of the auction
+     * @param request   JSON which contains the info that wants to be changed
      */
     @PATCH
     @Path("/{" + AUCTION_ID + "}")
@@ -93,9 +87,7 @@ public class AuctionResource {
         System.out.println("Received update auction request");
         System.out.println(request);
 
-        Optional<byte[]> image = Optional.empty();
-        if (request.imageBase64 != null)
-            image = Optional.of(Base64.getDecoder().decode(request.imageBase64));
+        var image = ResourceUtils.decodeBase64Nullable(request.imageBase64);
 
         var updateOps = new AuctionService.UpdateAuctionOps();
         if (request.title() != null)
@@ -108,7 +100,7 @@ public class AuctionResource {
         var result = this.service.updateAuction(auctionId, updateOps);
 
         if (result.isErr())
-            this.throwAuctionError(result.unwrapErr());
+            this.throwAuctionError(result.error());
     }
 
     public static record CreateBidRequest(
@@ -120,7 +112,7 @@ public class AuctionResource {
      * Creates a bid on an auction
      * 
      * @param auctionId Identifier of the auction
-     * @param request      Arguments necessary to create a bid on the auction
+     * @param request   Arguments necessary to create a bid on the auction
      * @return Bid's generated identifier
      */
     @POST
@@ -137,7 +129,7 @@ public class AuctionResource {
                 request.bid().longValue()));
 
         if (result.isErr())
-            this.throwAuctionError(result.unwrapErr());
+            this.throwAuctionError(result.error());
 
         return result.value();
     }
@@ -157,7 +149,7 @@ public class AuctionResource {
         var result = this.service.listBids(auctionId);
 
         if (result.isErr())
-            this.throwAuctionError(result.unwrapErr());
+            this.throwAuctionError(result.error());
 
         return result.value().stream().map(BidDTO::from).toList();
     }
@@ -171,7 +163,7 @@ public class AuctionResource {
      * Creates a question on an auction
      * 
      * @param auctionId Identifier of the auction
-     * @param request      Arguments necessary to create a question in the auction
+     * @param request   Arguments necessary to create a question in the auction
      * @return Question's generated identifier
      */
     @POST
@@ -188,7 +180,7 @@ public class AuctionResource {
                 request.question()));
 
         if (result.isErr())
-            this.throwAuctionError(result.unwrapErr());
+            this.throwAuctionError(result.error());
 
         return result.value();
     }
@@ -203,7 +195,7 @@ public class AuctionResource {
      * 
      * @param auctionId  Identifier of the auction
      * @param questionId Identifier of the question
-     * @param request       Arguments necessary for the execution of creating a reply
+     * @param request    Arguments necessary for the execution of creating a reply
      * @return
      */
     @POST
@@ -221,7 +213,7 @@ public class AuctionResource {
                 request.reply()));
 
         if (result.isErr())
-            this.throwAuctionError(result.unwrapErr());
+            this.throwAuctionError(result.error());
     }
 
     /**
@@ -239,7 +231,7 @@ public class AuctionResource {
         var result = this.service.listQuestions(auctionId);
 
         if (result.isErr())
-            this.throwAuctionError(result.unwrapErr());
+            this.throwAuctionError(result.error());
 
         return result.value().stream().map(QuestionDTO::from).toList();
     }

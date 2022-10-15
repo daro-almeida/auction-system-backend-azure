@@ -31,23 +31,31 @@ public interface Result<T, E> {
     T value();
 
     /**
-     * obtains the payload value of this result
-     * 
-     * @return the value of this result.
-     */
-    T unwrap();
-
-    /**
      *
      * obtains the error code of this result
      * 
      * @return the error code
      * 
      */
-    E unwrapErr();
+    E error();
+
+    /**
+     * obtains the error message of this result
+     * 
+     * @return
+     */
+    String errorMessage();
 
     <F> Result<F, E> andThen(Function<T, Result<F, E>> fn);
 
+    /**
+     * Maps a Result<T, E> to Result<U, E> by applying a function to a contained
+     * Ok value, leaving an Err value untouched.
+     * 
+     * @param <U>    the type of the value contained in the result
+     * @param mapper the function to apply to the value
+     * @return the result of the function
+     */
     <F> Result<F, E> map(Function<T, F> fn);
 
     /**
@@ -74,13 +82,22 @@ public interface Result<T, E> {
      * 
      * @return
      */
-    static <T, E> ErrorResult<T, E> error(E error) {
+    static <T, E> ErrorResult<T, E> err(E error) {
         return new ErrorResult<>(error);
+    }
+
+    /**
+     * Convenience method used to return an error
+     * 
+     * @return
+     */
+    static <T, E> ErrorResult<T, E> err(E error, String message) {
+        return new ErrorResult<>(error, message);
     }
 
     static <T, E> Result<T, E> flatten(Result<Result<T, E>, E> result) {
         if (result.isErr())
-            return Result.error(result.unwrapErr());
+            return Result.err(result.error());
         return result.value();
     }
 }
@@ -107,7 +124,12 @@ class OkResult<T, E> implements Result<T, E> {
     }
 
     @Override
-    public E unwrapErr() {
+    public E error() {
+        throw new IllegalStateException("Cannot unwrap error from Ok result");
+    }
+
+    @Override
+    public String errorMessage() {
         throw new IllegalStateException("Cannot unwrap error from Ok result");
     }
 
@@ -130,18 +152,21 @@ class OkResult<T, E> implements Result<T, E> {
         return Result.ok(fn.apply(this.result));
     }
 
-    @Override
-    public T unwrap() {
-        return this.value();
-    }
 }
 
 class ErrorResult<T, E> implements Result<T, E> {
 
     final E error;
+    final String message;
 
     ErrorResult(E error) {
         this.error = error;
+        this.message = null;
+    }
+
+    ErrorResult(E error, String message) {
+        this.error = error;
+        this.message = message;
     }
 
     @Override
@@ -155,8 +180,13 @@ class ErrorResult<T, E> implements Result<T, E> {
     }
 
     @Override
-    public E unwrapErr() {
+    public E error() {
         return error;
+    }
+
+    @Override
+    public String errorMessage() {
+        return message;
     }
 
     public String toString() {
@@ -170,16 +200,12 @@ class ErrorResult<T, E> implements Result<T, E> {
 
     @Override
     public <F> Result<F, E> andThen(Function<T, Result<F, E>> fn) {
-        return Result.error(this.error);
+        return Result.err(this.error);
     }
 
     @Override
     public <F> Result<F, E> map(Function<T, F> fn) {
-        return Result.error(this.error);
+        return Result.err(this.error);
     }
 
-    @Override
-    public T unwrap() {
-        return this.value();
-    }
 }

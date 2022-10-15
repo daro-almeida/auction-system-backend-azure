@@ -57,7 +57,7 @@ class UserDB {
             var response = this.container.createItem(user);
             return Result.ok(response.getItem());
         } catch (CosmosException e) {
-            return Result.error(UserService.Error.USER_ALREADY_EXISTS);
+            return Result.err(UserService.Error.USER_ALREADY_EXISTS);
         }
     }
 
@@ -74,7 +74,7 @@ class UserDB {
             return Result.ok();
         } catch (CosmosException e) {
             if (e.getStatusCode() == 404)
-                return Result.error(UserService.Error.USER_NOT_FOUND);
+                return Result.err(UserService.Error.USER_NOT_FOUND);
             throw e;
         }
     }
@@ -92,7 +92,7 @@ class UserDB {
             return Result.ok();
         } catch (CosmosException e) {
             if (e.getStatusCode() == 404)
-                return Result.error(UserService.Error.USER_NOT_FOUND);
+                return Result.err(UserService.Error.USER_NOT_FOUND);
             throw e;
         }
     }

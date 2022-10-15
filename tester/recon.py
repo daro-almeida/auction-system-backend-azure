@@ -11,6 +11,11 @@ class TestCase:
     name: str
     runnable: Callable
 
+    def __init__(self, group: str, name: str, runnable: Callable):
+        self.group = group
+        self.name = name
+        self.runnable = runnable
+
 
 class TestGroup:
     _tests: List[TestCase]

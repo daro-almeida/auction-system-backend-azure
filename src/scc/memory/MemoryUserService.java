@@ -32,8 +32,12 @@ public class MemoryUserService implements UserService {
 
     @Override
     public synchronized Result<String, Error> createUser(CreateUserParams params) {
+        var validateResult = UserService.validateCreateUserParams(params);
+        if (validateResult.isErr())
+            return Result.err(validateResult.error());
+
         if (this.users.containsKey(params.nickname())) {
-            return Result.error(Error.USER_ALREADY_EXISTS);
+            return Result.err(Error.USER_ALREADY_EXISTS);
         }
 
         var imageId = params.image().map(img -> this.media.uploadUserProfilePicture(params.nickname(), img));
@@ -46,7 +50,7 @@ public class MemoryUserService implements UserService {
     public synchronized Result<Void, Error> deleteUser(String userId) {
         var user = this.users.remove(userId);
         if (user == null) {
-            return Result.error(Error.USER_NOT_FOUND);
+            return Result.err(Error.USER_NOT_FOUND);
         }
 
         user.imageId.ifPresent(this.media::deleteMedia);
@@ -55,9 +59,13 @@ public class MemoryUserService implements UserService {
 
     @Override
     public synchronized Result<Void, Error> updateUser(String userId, UpdateUserOps ops) {
+        var validateResult = UserService.validateUpdateUserOps(ops);
+        if (validateResult.isErr())
+            return Result.err(validateResult.error());
+
         var user = this.users.get(userId);
         if (user == null) {
-            return Result.error(Error.USER_NOT_FOUND);
+            return Result.err(Error.USER_NOT_FOUND);
         }
 
         if (ops.shouldUpdateName()) {
