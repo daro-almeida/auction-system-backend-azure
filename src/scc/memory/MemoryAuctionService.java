@@ -87,7 +87,7 @@ public class MemoryAuctionService implements AuctionService {
             this.mediaService.deleteMedia(auction.imageId.get());
         }
 
-        return Result.ok(null);
+        return Result.ok();
     }
 
     @Override
@@ -112,7 +112,7 @@ public class MemoryAuctionService implements AuctionService {
             auction.imageId = Optional.of(this.mediaService.uploadMedia(ops.getImage()));
         }
 
-        return Result.ok(null);
+        return Result.ok();
     }
 
     @Override
@@ -197,7 +197,7 @@ public class MemoryAuctionService implements AuctionService {
         reply.content = params.reply();
         question.reply = Optional.of(reply);
 
-        return Result.ok(null);
+        return Result.ok();
     }
 
     @Override

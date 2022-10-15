@@ -11,7 +11,7 @@ public class AuctionDAO {
 
     private String _rid;
     private String _ts;
-    private final String id;
+    private String id;
     private String title;
     private String description;
     private String pictureId;
@@ -55,6 +55,8 @@ public class AuctionDAO {
         this.winnerBidId = winnerBidId;
         this.status = status;
     }
+
+    public AuctionDAO() { }
 
     public String get_rid() {
         return _rid;

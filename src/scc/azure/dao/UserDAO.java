@@ -14,12 +14,13 @@ public class UserDAO {
     private String photoId;
 
     public UserDAO(String id, String name, String hashedPwd, String photoId) {
-        super();
         this.id = id;
         this.name = name;
         this.hashedPwd = hashedPwd;
         this.photoId = photoId;
     }
+
+    public UserDAO() { }
 
     public String get_rid() {
         return _rid;

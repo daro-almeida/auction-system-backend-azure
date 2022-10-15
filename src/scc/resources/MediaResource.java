@@ -1,7 +1,5 @@
 package scc.resources;
 
-import static scc.srv.BuildConstants.MEDIA_ID;
-
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
@@ -17,6 +15,7 @@ import scc.services.MediaService;
  */
 @Path("/media")
 public class MediaResource {
+    private static final String MEDIA_ID = "media";
     private final MediaService service;
 
     public MediaResource(MediaService service) {

@@ -26,11 +26,11 @@ public class QuestionDAO {
 
     private String _rid;
     private String _ts;
-    private final String questionId;
-    private final String auctionId;
-    private final String userId;
-    private final String question;
-    private final Reply reply;
+    private String questionId;
+    private String auctionId;
+    private String userId;
+    private String question;
+    private Reply reply;
 
     public QuestionDAO(String auctionId, String userId, String question) {
         this._rid = null;
@@ -49,6 +49,8 @@ public class QuestionDAO {
         this.question = question;
         this.reply = reply;
     }
+
+    public QuestionDAO() { }
 
     public String getQuestionId() {
         return questionId;

@@ -83,8 +83,9 @@ public class MainApplication extends Application {
                                 azureCosmosDbKey,
                                 azureCosmosDbUrl,
                                 azureCosmosDbDatabase,
+                                azureCosmosDbAuctionContainerName,
                                 azureCosmosDbUserContainerName,
-                                azureCosmosDbAuctionContainerName, azureCosmosDbBidContainerName,
+                                azureCosmosDbBidContainerName,
                                 azureCosmosDbQuestionContainerName));
 
                 var azureEnableCaching = getEnvVar(ENV_AZURE_ENABLE_CACHING, ENV_AZURE_ENABLE_CACHING_NO);
@@ -92,9 +93,6 @@ public class MainApplication extends Application {
                     case ENV_AZURE_ENABLE_CACHING_YES:
                         var azureRedisKey = getEnvVar(ENV_AZURE_REDIS_KEY);
                         var azureRedisUrl = getEnvVar(ENV_AZURE_REDIS_URL);
-                        if (azureRedisKey == null || azureRedisUrl == null) {
-                            throw new RuntimeException("Missing environment variables for Azure caching");
-                        }
                         config.enableCaching(azureRedisKey, azureRedisUrl);
                         break;
                     case ENV_AZURE_ENABLE_CACHING_NO:

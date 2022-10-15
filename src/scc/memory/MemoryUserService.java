@@ -50,7 +50,7 @@ public class MemoryUserService implements UserService {
         }
 
         user.imageId.ifPresent(this.media::deleteMedia);
-        return Result.ok(null);
+        return Result.ok();
     }
 
     @Override
@@ -73,7 +73,7 @@ public class MemoryUserService implements UserService {
             user.imageId = Optional.of(this.media.uploadUserProfilePicture(userId, ops.getImage()));
         }
 
-        return Result.ok(null);
+        return Result.ok();
     }
 
     public synchronized boolean userExists(String userId) {

@@ -134,7 +134,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         if (response.isErr())
             return Result.error(response.unwrapErr());
 
-        return Result.ok(null);
+        return Result.ok();
     }
 
     @Override

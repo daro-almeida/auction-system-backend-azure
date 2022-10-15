@@ -13,6 +13,7 @@ import com.azure.cosmos.models.PartitionKey;
 import scc.azure.config.CosmosDbConfig;
 import scc.azure.dao.AuctionDAO;
 import scc.services.AuctionService;
+import scc.services.UserService;
 import scc.utils.Result;
 
 class AuctionDB {
@@ -46,12 +47,13 @@ class AuctionDB {
     public Result<Void, AuctionService.Error> deleteAuction(String auctionId) {
         var options = this.createRequestOptions(auctionId);
         var partitionKey = this.createPartitionKey(auctionId);
-        var response = this.container.deleteItem(auctionId, partitionKey, options);
-        // TODO: Is this error checking correct?
-        if (response.getStatusCode() == 204) {
+        try {
+            var response = this.container.deleteItem(auctionId, partitionKey, options);
             return Result.ok();
-        } else {
-            return Result.error(AuctionService.Error.AUCTION_NOT_FOUND);
+        } catch (CosmosException e) {
+            if (e.getStatusCode() == 404)
+                return Result.error(AuctionService.Error.USER_NOT_FOUND);
+            throw e;
         }
     }
 
@@ -59,7 +61,7 @@ class AuctionDB {
         var partitionKey = this.createPartitionKey(auctionId);
         try {
             this.container.patchItem(auctionId, partitionKey, ops, AuctionDAO.class);
-            return Result.ok(null);
+            return Result.ok();
         } catch (CosmosException e) {
             return Result.error(AuctionService.Error.AUCTION_NOT_FOUND);
         }

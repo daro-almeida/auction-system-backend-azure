@@ -42,3 +42,4 @@ __pycache__/
 
 # macos cringe
 .DS_Store
+/azure.env

@@ -49,12 +49,13 @@ class UserDB {
     public Result<Void, UserService.Error> deleteUser(String userId) {
         var options = this.createRequestOptions(userId);
         var partitionKey = this.createPartitionKey(userId);
-        var response = this.container.deleteItem(userId, partitionKey, options);
-        // TODO: Is this error checking correct?
-        if (response.getStatusCode() == 204) {
+        try {
+            var response = this.container.deleteItem(userId, partitionKey, options);
             return Result.ok();
-        } else {
-            return Result.error(UserService.Error.USER_NOT_FOUND);
+        } catch (CosmosException e) {
+            if (e.getStatusCode() == 404)
+                return Result.error(UserService.Error.USER_NOT_FOUND);
+            throw e;
         }
     }
 
@@ -62,9 +63,11 @@ class UserDB {
         var partitionKey = this.createPartitionKey(userId);
         try {
             this.container.patchItem(userId, partitionKey, ops, UserDAO.class);
-            return Result.ok(null);
+            return Result.ok();
         } catch (CosmosException e) {
-            return Result.error(UserService.Error.USER_NOT_FOUND);
+            if (e.getStatusCode() == 404)
+                return Result.error(UserService.Error.USER_NOT_FOUND);
+            throw e;
         }
     }
 

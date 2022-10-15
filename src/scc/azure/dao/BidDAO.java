@@ -3,10 +3,10 @@ package scc.azure.dao;
 public class BidDAO {
     private String _rid;
     private String _ts;
-    private final String bidId;
-    private final String auctionId;
-    private final String userId;
-    private final long amount;
+    private String bidId;
+    private String auctionId;
+    private String userId;
+    private long amount;
 
     public BidDAO(String auctionId, String userId, long amount) {
         this._rid = null;
@@ -25,6 +25,8 @@ public class BidDAO {
         this.userId = userId;
         this.amount = amount;
     }
+
+    public BidDAO() { }
 
     public String getBidId() {
         return bidId;
