@@ -44,7 +44,7 @@ def delete_user(endpoints: scc.Endpoints):
 
     response = rclient.delete_user(user_id)
     with recon.validate(response) as validator:
-        validator.status_code(200)
+        validator.status_code(204)
 
 
 @recon.test_case("user", "delete missing user")

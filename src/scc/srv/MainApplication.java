@@ -3,9 +3,6 @@ package scc.srv;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.azure.cosmos.ConsistencyLevel;
-import com.azure.cosmos.CosmosClient;
-import com.azure.cosmos.CosmosClientBuilder;
 import jakarta.ws.rs.core.Application;
 import scc.srv.mediaStorage.AzureMediaStorage;
 import scc.srv.resources.AuctionsResource;

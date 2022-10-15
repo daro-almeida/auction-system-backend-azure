@@ -152,7 +152,7 @@ class Client:
 
 
 def random_image() -> bytes:
-    return random.randbytes(64 * 1024)
+    return random.randbytes(64)
 
 
 def _random_image_base64() -> str:
