@@ -33,14 +33,14 @@ public class UsersResource {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	public String createUser(UserJSON u) {
-		if (u.name == null || u.nickname == null || u.password == null || u.imageBase64 == null)
+		if (u.name() == null || u.nickname() == null || u.password() == null || u.imageBase64() == null)
 			throw new BadRequestException();
 
-		var photo = Base64.getDecoder().decode(u.imageBase64);
+		var photo = Base64.getDecoder().decode(u.imageBase64());
 		var photoId = Hash.of(photo);
 		mediaStorage.upload(photo);
 
-		var user = new User(u.nickname, u.name, u.password, photoId);
+		var user = new User(u.nickname(), u.name(), u.password(), photoId);
 		db.putUser(new UserDAO(user));
 
 		return user.getId();
@@ -59,14 +59,14 @@ public class UsersResource {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public void updateUser(@PathParam(USER_ID) String id, UserJSON u) {
 		var operations = CosmosPatchOperations.create();
-		if (u.name != null)
-			operations.replace("/name", u.name);
-		if (u.nickname != null)
-			operations.replace("/nickname", u.nickname);
-		if (u.password != null)
-			operations.replace("/hashedPwd", Hash.of(u.password));
-		if (u.imageBase64 != null) {
-			var photo = Base64.getDecoder().decode(u.imageBase64);
+		if (u.name() != null)
+			operations.replace("/name", u.name());
+		if (u.nickname() != null)
+			operations.replace("/nickname", u.nickname());
+		if (u.password() != null)
+			operations.replace("/hashedPwd", Hash.of(u.password()));
+		if (u.imageBase64() != null) {
+			var photo = Base64.getDecoder().decode(u.imageBase64());
 			var photoId = Hash.of(photo);
 			operations.replace("/photoId", photoId);
 			mediaStorage.upload(photo);
