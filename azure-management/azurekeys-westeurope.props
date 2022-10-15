@@ -1,0 +1,7 @@
+# Date : 15/10/22, 15:20
+AZURE_REDIS_KEY=mo6XmiVmJqKFaIfxVTKGhSWQFmuvNjJTUAzCaEcnI9c=
+AZURE_REDIS_URL=rediswesteuropebdd.redis.cache.windows.net
+AZURE_BLOB_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=sccstwesteuropebdd;AccountKey=ne4FTKQlHky5bOay1hff9dMYlSRHQtL2bMd6s4yyJJRB7+SV2d8+KJcWo5ZB8x/VoHywvOiVrsYg+AStBT9PtQ==;EndpointSuffix=core.windows.net
+AZURE_COSMOS_DB_KEY=MG1oKll9CIzlTsbrGzTdIRlwsKGJV8m75VE8tw8XgodbXb2wq41862cPmBIXyFG1k3dTPmeAQObGKAeN6bTAbg==
+AZURE_COSMOS_DB_URL=https://scc2223bdd.documents.azure.com:443/
+AZURE_COSMOS_DB_DATABASE=scc2223dbbdd
