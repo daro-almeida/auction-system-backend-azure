@@ -66,12 +66,12 @@ class UserDB {
      * @param userId nickname of the user to be deleted
      * @return 204 if successful, respective error otherwise
      */
-    public Result<Void, UserService.Error> deleteUser(String userId) {
+    public Result<UserDAO, UserService.Error> deleteUser(String userId) {
         var options = this.createRequestOptions(userId);
         var partitionKey = this.createPartitionKey(userId);
         try {
             var response = this.container.deleteItem(userId, partitionKey, options);
-            return Result.ok();
+            return Result.ok((UserDAO) response.getItem());
         } catch (CosmosException e) {
             if (e.getStatusCode() == 404)
                 return Result.err(UserService.Error.USER_NOT_FOUND);
@@ -97,6 +97,17 @@ class UserDB {
         }
     }
 
+    public boolean userWithPhoto(String photoId) {
+        Optional<Integer> numUsers = this.container
+                .queryItems(
+                        "SELECT VALUE COUNT(1) FROM users WHERE users.photoId=\"" + photoId + "\"",
+                        new CosmosQueryRequestOptions(),
+                        int.class)
+                .stream()
+                .findFirst();
+        return numUsers.filter(num -> num > 0).isPresent();
+    }
+
     /**
      * Creates a partition key with given nickaname to be used on database operations
      * @param userId nickname of the user
@@ -112,8 +123,7 @@ class UserDB {
      * @return CosmosItemRequestOptions object with user's nickname
      */
     private CosmosItemRequestOptions createRequestOptions(String userId) {
-        var options = new CosmosItemRequestOptions();
-        return options;
+        return new CosmosItemRequestOptions();
     }
 
     /**

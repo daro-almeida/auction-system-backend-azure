@@ -35,7 +35,7 @@ public class MediaStorage {
         var key = this.createAuctionMediaID(contents);
         var blob = this.auctionClient.getBlobClient(key);
         if (!blob.exists())
-            blob.upload(BinaryData.fromBytes(contents), true);
+            blob.upload(BinaryData.fromBytes(contents), false);
         return key;
     }
 
@@ -48,7 +48,7 @@ public class MediaStorage {
         var key = this.createUserMediaID(contents);
         var blob = this.userClient.getBlobClient(key);
         if (!blob.exists())
-            blob.upload(BinaryData.fromBytes(contents), true);
+            blob.upload(BinaryData.fromBytes(contents), false);
         return key;
     }
 
@@ -93,7 +93,7 @@ public class MediaStorage {
      * @param data contents of the media resource
      * @return media resource's generated identifier
      */
-    private String createAuctionMediaID(byte[] data) {
+    public String createAuctionMediaID(byte[] data) {
         return AUCTION_PREFIX + Hash.of(data);
     }
 
@@ -102,7 +102,7 @@ public class MediaStorage {
      * @param data contents of the media resource
      * @return media resource's generated identifier
      */
-    private String createUserMediaID(byte[] data) {
+    public String createUserMediaID(byte[] data) {
         return USER_PREFIX + Hash.of(data);
     }
 
