@@ -20,6 +20,7 @@ public interface AuctionService {
             String description,
             String userId,
             long initialPrice,
+            String endTime,
             Optional<byte[]> image) {
     }
 

@@ -31,12 +31,12 @@ public class AuctionResource {
         this.service = service;
     }
 
-    // TODO: Missing endTime
     public static record CreateAuctionRequest(
             @JsonProperty(required = true) String title,
             @JsonProperty(required = true) String description,
             @JsonProperty(required = true) String userId,
             @JsonProperty(required = true) Long initialPrice,
+            @JsonProperty(required = true) String endTime,
             String imageBase64) {
     }
 
@@ -60,6 +60,7 @@ public class AuctionResource {
                 request.description(),
                 request.userId(),
                 request.initialPrice().longValue(),
+                request.endTime(),
                 ResourceUtils.decodeBase64Nullable(request.imageBase64())));
 
         if (result.isErr())

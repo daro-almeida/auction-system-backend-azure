@@ -60,7 +60,7 @@ class AuctionDB {
     }
 
     /**
-     * Deletes an auction from the database with given identifier
+     * Deletes an auction which just changes the status to deleted
      * @param auctionId identifier of the auction
      * @return 204 if successful, 404 otherwise
      */
@@ -68,8 +68,10 @@ class AuctionDB {
         var options = this.createRequestOptions(auctionId);
         var partitionKey = this.createPartitionKey(auctionId);
         try {
-            var response = this.container.deleteItem(auctionId, partitionKey, options);
-            return Result.ok();
+            var deleteOps = CosmosPatchOperations.create();
+            deleteOps.set("/status", AuctionDAO.Status.DELETED);
+            var response = updateAuction(auctionId, deleteOps);
+            return Result.ok(response.value());
         } catch (CosmosException e) {
             if (e.getStatusCode() == 404)
                 return Result.err(AuctionService.Error.USER_NOT_FOUND);

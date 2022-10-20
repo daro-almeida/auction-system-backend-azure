@@ -51,7 +51,6 @@ public class QuestionDTO {
     }
 
     public static QuestionDTO from(scc.services.data.QuestionItem questionItem) {
-        // TODO: fixme
-        return new QuestionDTO("fixme", "content fixme");
+        return new QuestionDTO(questionItem.getAuthorId(), questionItem.getQuestion());
     }
 }

@@ -64,7 +64,7 @@ class UserDB {
     /**
      * Deletes the user with given nickname from the database
      * @param userId nickname of the user to be deleted
-     * @return 204 if sucessfuly, respective error otherwise
+     * @return 204 if successful, respective error otherwise
      */
     public Result<Void, UserService.Error> deleteUser(String userId) {
         var options = this.createRequestOptions(userId);
@@ -83,7 +83,7 @@ class UserDB {
      * Updates the values in the user with given nickname with new given values
      * @param userId nickname of the user to be updated
      * @param ops operations to be executed on the user's database entry
-     * @return 204 if sucessful, respective error otherwise
+     * @return 204 if successful, respective error otherwise
      */
     public Result<Void, UserService.Error> updateUser(String userId, CosmosPatchOperations ops) {
         var partitionKey = this.createPartitionKey(userId);
