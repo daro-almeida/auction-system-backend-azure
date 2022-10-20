@@ -95,8 +95,7 @@ public class AuctionResource {
             updateOps.updateTitle(request.title());
         if (request.description() != null)
             updateOps.updateDescription(request.description());
-        if (image.isPresent())
-            updateOps.updateImage(image.get());
+        image.ifPresent(updateOps::updateImage);
 
         var result = this.service.updateAuction(auctionId, updateOps);
 

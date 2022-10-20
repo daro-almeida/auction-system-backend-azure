@@ -87,11 +87,15 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         if (ops.shouldUpdateDescription())
             patchOps.set("/description", ops.getDescription());
         if (ops.shouldUpdateImage()) {
-            String pictureId = uploadMedia(ops.getImage());
+            String pictureId = this.mediaStorage.createUserMediaID(ops.getImage());
             patchOps.set("/pictureId", pictureId);
         }
+        var result = this.auctionDB.updateAuction(auctionId, patchOps);
 
-        return this.auctionDB.updateAuction(auctionId, patchOps);
+        if (result.isOk())
+            uploadMedia(ops.getImage());
+
+        return result;
     }
 
     @Override
@@ -189,6 +193,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         return result.map(UserDAO::getId);
     }
 
+
     @Override
     public Result<Void, UserService.Error> deleteUser(String userId) {
         var result = this.userDB.deleteUser(userId);
@@ -197,22 +202,32 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         String photoId = result.value().getPhotoId();
         if (!userDB.userWithPhoto(photoId))
             deleteMedia(photoId);
+
+        auctionDB.deleteUserAuctions(userId);
+        bidDB.deleteUserBids(userId);
+
+        // TODO Delete the question/reply entries from this user
+
         return Result.ok();
     }
 
     @Override
     public Result<Void, UserService.Error> updateUser(String userId, UpdateUserOps ops) {
-        var cosmosOps = CosmosPatchOperations.create();
+        var patchOps = CosmosPatchOperations.create();
         if (ops.shouldUpdateName())
-            cosmosOps.set("/name", ops.getName());
+            patchOps.set("/name", ops.getName());
         if (ops.shouldUpdatePassword())
-            cosmosOps.set("/password", Hash.of(ops.getPassword()));
+            patchOps.set("/password", Hash.of(ops.getPassword()));
         if (ops.shouldUpdateImage()) {
-            String photoId = uploadMedia(ops.getImage());
-            cosmosOps.set("/photoId", photoId);
+            String photoId = this.mediaStorage.createUserMediaID(ops.getImage());
+            patchOps.set("/photoId", photoId);
         }
+        var result = this.userDB.updateUser(userId, patchOps);
 
-        return this.userDB.updateUser(userId, cosmosOps);
+        if (result.isOk())
+            uploadMedia(ops.getImage());
+
+        return result;
     }
 
 }

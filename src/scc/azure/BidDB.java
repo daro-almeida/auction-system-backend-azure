@@ -6,10 +6,13 @@ import java.util.stream.Collectors;
 
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosDatabase;
+import com.azure.cosmos.models.CosmosItemRequestOptions;
+import com.azure.cosmos.models.CosmosPatchOperations;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.PartitionKey;
 
 import scc.azure.config.CosmosDbConfig;
+import scc.azure.dao.AuctionDAO;
 import scc.azure.dao.BidDAO;
 import scc.services.AuctionService;
 import scc.utils.Result;
@@ -72,6 +75,31 @@ class BidDB {
                 .stream().collect(Collectors.toList());
     }
 
+    /**
+     * Delete bids from user with the given userId
+     * @param userId identifier of the user
+     * @return 204
+     */
+    public Result<Void, AuctionService.Error> deleteUserBids(String userId) {
+        for(BidDAO bid : userBids(userId)) {
+            var partitionKey = createPartitionKey(bid.getBidId());
+            var options = this.createRequestOptions(bid.getBidId());
+            this.container.deleteItem(bid.getBidId(), partitionKey, options);
+        }
+        return Result.ok();
+    }
+
+
+
+    private List<BidDAO> userBids(String userId) {
+        return this.container
+                .queryItems(
+                        "SELECT * FROM bids WHERE bids.userId=\"" + userId + "\"",
+                        new CosmosQueryRequestOptions(),
+                        BidDAO.class)
+                .stream().toList();
+    }
+
     private PartitionKey createPartitionKey(String bidId) {
         return new PartitionKey(bidId);
     }
@@ -80,6 +108,10 @@ class BidDB {
         var options = new CosmosQueryRequestOptions();
         options.setPartitionKey(this.createPartitionKey(bidId));
         return options;
+    }
+
+    private CosmosItemRequestOptions createRequestOptions(String bidId) {
+        return new CosmosItemRequestOptions();
     }
 
 }

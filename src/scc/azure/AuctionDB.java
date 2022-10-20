@@ -1,5 +1,6 @@
 package scc.azure;
 
+import java.util.List;
 import java.util.Optional;
 
 import com.azure.cosmos.CosmosContainer;
@@ -65,8 +66,6 @@ class AuctionDB {
      * @return 204 if successful, 404 otherwise
      */
     public Result<Void, AuctionService.Error> deleteAuction(String auctionId) {
-        var options = this.createRequestOptions(auctionId);
-        var partitionKey = this.createPartitionKey(auctionId);
         try {
             var deleteOps = CosmosPatchOperations.create();
             deleteOps.set("/status", AuctionDAO.Status.DELETED);
@@ -74,7 +73,7 @@ class AuctionDB {
             return Result.ok(response.value());
         } catch (CosmosException e) {
             if (e.getStatusCode() == 404)
-                return Result.err(AuctionService.Error.USER_NOT_FOUND);
+                return Result.err(AuctionService.Error.AUCTION_NOT_FOUND);
             throw e;
         }
     }
@@ -95,13 +94,35 @@ class AuctionDB {
         }
     }
 
+    /**
+     * Set auctions of user with the given userId to status DELETED
+     * @param userId identifier of the user
+     * @return 204
+     */
+    public Result<Void, AuctionService.Error> deleteUserAuctions(String userId) {
+        for(AuctionDAO auction : userAuctions(userId)) {
+            var result = deleteAuction(auction.getId());
+            if (!result.isOk())
+                System.out.printf("deleteUserAuctions: auction %s not found\n", auction.getId());
+        }
+        return Result.ok();
+    }
+
+    private List<AuctionDAO> userAuctions(String userId) {
+        return this.container
+                .queryItems(
+                        "SELECT * FROM auctions WHERE auctions.userId=\"" + userId + "\"",
+                        new CosmosQueryRequestOptions(),
+                        AuctionDAO.class)
+                .stream().toList();
+    }
+
     private PartitionKey createPartitionKey(String auctionId) {
         return new PartitionKey(auctionId);
     }
 
     private CosmosItemRequestOptions createRequestOptions(String auctionId) {
-        var options = new CosmosItemRequestOptions();
-        return options;
+        return new CosmosItemRequestOptions();
     }
 
     private CosmosQueryRequestOptions createQueryOptions(String auctionId) {
