@@ -245,17 +245,14 @@ public class AuctionResource {
     @Path("/")
     @Produces(MediaType.TEXT_PLAIN)
     public String listAuctionsAboutToClose() {
+        //TODO
         throw new NotImplementedException();
     }
 
     private void throwAuctionError(AuctionService.Error error) {
         switch (error) {
-            case AUCTION_NOT_FOUND:
-                throw new NotFoundException();
-            case USER_NOT_FOUND:
-                throw new NotFoundException();
-            default:
-                throw new InternalServerErrorException();
+            case AUCTION_NOT_FOUND, USER_NOT_FOUND -> throw new NotFoundException();
+            default -> throw new InternalServerErrorException();
         }
     }
 }

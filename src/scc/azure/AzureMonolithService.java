@@ -204,8 +204,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
             deleteMedia(photoId);
 
         auctionDB.deleteUserAuctions(userId);
-        bidDB.deleteUserBids(userId);
-
+        // TODO set user in user bids as DELETED USER
         // TODO Delete the question/reply entries from this user
 
         return Result.ok();

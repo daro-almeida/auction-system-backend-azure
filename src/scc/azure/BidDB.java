@@ -75,31 +75,6 @@ class BidDB {
                 .stream().collect(Collectors.toList());
     }
 
-    /**
-     * Delete bids from user with the given userId
-     * @param userId identifier of the user
-     * @return 204
-     */
-    public Result<Void, AuctionService.Error> deleteUserBids(String userId) {
-        for(BidDAO bid : userBids(userId)) {
-            var partitionKey = createPartitionKey(bid.getBidId());
-            var options = this.createRequestOptions(bid.getBidId());
-            this.container.deleteItem(bid.getBidId(), partitionKey, options);
-        }
-        return Result.ok();
-    }
-
-
-
-    private List<BidDAO> userBids(String userId) {
-        return this.container
-                .queryItems(
-                        "SELECT * FROM bids WHERE bids.userId=\"" + userId + "\"",
-                        new CosmosQueryRequestOptions(),
-                        BidDAO.class)
-                .stream().toList();
-    }
-
     private PartitionKey createPartitionKey(String bidId) {
         return new PartitionKey(bidId);
     }
