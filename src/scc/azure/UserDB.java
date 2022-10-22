@@ -72,11 +72,17 @@ class UserDB {
      * @return 204 if successful, respective error otherwise
      */
     public Result<UserDAO, UserService.Error> deleteUser(String userId) {
+        // TODO: how get delete item from deleteItem call?
+        var userOpt = this.getUser(userId);
+        if (userOpt.isEmpty())
+            return Result.err(UserService.Error.USER_NOT_FOUND);
+        var user = userOpt.get();
+
         var options = this.createRequestOptions(userId);
         var partitionKey = this.createPartitionKey(userId);
         try {
-            var response = this.container.deleteItem(userId, partitionKey, options);
-            return Result.ok((UserDAO) response.getItem());
+            this.container.deleteItem(userId, partitionKey, options);
+            return Result.ok(user);
         } catch (CosmosException e) {
             if (e.getStatusCode() == 404)
                 return Result.err(UserService.Error.USER_NOT_FOUND);

@@ -72,6 +72,8 @@ public interface UserService {
 
     Result<Void, Error> updateUser(String userId, UpdateUserOps ops);
 
+    // TODO: maybe make abstract class or wrapper class that already checks the
+    // parameters instead of calling this functions on every service
     public static Result<Void, Error> validateCreateUserParams(CreateUserParams params) {
         if (params.nickname == null || params.nickname.isBlank()) {
             return Result.err(Error.BAD_REQUEST, "nickname is required");

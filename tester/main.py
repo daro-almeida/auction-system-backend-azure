@@ -1,9 +1,12 @@
-import scc
-import recon
 import argparse
 
 import tests.user
 import tests.media
+import tests.auction
+import tests.question
+
+import recon
+import scc
 
 
 def main():
@@ -21,6 +24,8 @@ def main():
         groups=[
             tests.user.group(endpoints),
             tests.media.group(endpoints),
+            tests.auction.group(endpoints),
+            tests.question.group(endpoints),
         ],
         filters=args.groups,
     )

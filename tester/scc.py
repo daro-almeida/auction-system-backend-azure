@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import Field, dataclass, replace
-from typing import Callable, Generic, Tuple, TypeVar
+import math
+from typing import Callable, Generic, Tuple, TypeVar, Union
 import requests
 from faker import Faker
 import base64
@@ -30,6 +31,18 @@ class Invalidator(Generic[T]):
 
     def __str__(self) -> str:
         return f"{self.field}: {self.desc}"
+
+    @staticmethod
+    def null(field: str) -> Invalidator:
+        return Invalidator(
+            field, "null", lambda x: _patch_dataclass_with_kwargs(x, **{field: None})
+        )
+
+    @staticmethod
+    def empty(field: str) -> Invalidator:
+        return Invalidator(
+            field, "empty", lambda x: _patch_dataclass_with_kwargs(x, **{field: ""})
+        )
 
 
 class InvalidRequest(Generic[T]):
@@ -141,22 +154,50 @@ class AuctionCreateRequest:
     title: str
     description: str
     userId: str
+    initialPrice: float
     endTime: str
-    minimumPrice: float
     imageBase64: str
 
     @staticmethod
-    def random(**kwargs):
+    def random(user_id: str, **kwargs):
         faker = Faker()
         request = AuctionCreateRequest(
             title=faker.sentence(),
             description=faker.paragraph(),
-            userId=faker.uuid4(),
-            endTime=faker.date_time(),
-            minimumPrice=faker.pyfloat(),
+            userId=user_id,
+            endTime=faker.future_date().isoformat(),
+            initialPrice=math.fabs(faker.pyfloat()),
             imageBase64=random_image_base64(),
         )
         return _patch_dataclass_with_kwargs(request, **kwargs)
+
+    @staticmethod
+    def invalid_requests(user_id: str) -> list[InvalidRequest[AuctionCreateRequest]]:
+        invalidators = AuctionCreateRequest._invalidators()
+        invalid_requests = []
+        for invalidator in invalidators:
+            rand = AuctionCreateRequest.random(user_id)
+            invalid_requests.append(
+                InvalidRequest(
+                    data=invalidator.func(rand),
+                    reason=f"{invalidator.field} {invalidator.desc}",
+                )
+            )
+        return invalid_requests
+
+    @staticmethod
+    def _invalidators() -> list[Invalidator[AuctionCreateRequest]]:
+        return [
+            Invalidator.empty("title"),
+            Invalidator.null("title"),
+            Invalidator.empty("description"),
+            Invalidator.null("description"),
+            Invalidator(
+                "initialPrice", "negative", lambda req: replace(req, initialPrice=-1)
+            ),
+            Invalidator.empty("endTime"),
+            Invalidator.null("endTime"),
+        ]
 
 
 @dataclass
@@ -164,6 +205,36 @@ class AuctionUpdateRequest:
     title: str
     description: str
     imageBase64: str
+
+
+@dataclass
+class QuestionCreateRequest:
+    userId: str
+    question: str
+
+    @staticmethod
+    def random(user_id: str, **kwargs):
+        faker = Faker()
+        request = QuestionCreateRequest(
+            userId=user_id,
+            question=faker.sentence(),
+        )
+        return _patch_dataclass_with_kwargs(request, **kwargs)
+
+
+@dataclass
+class ReplyCreateRequest:
+    userId: str
+    reply: str
+
+    @staticmethod
+    def random(user_id: str, **kwargs):
+        faker = Faker()
+        request = ReplyCreateRequest(
+            userId=user_id,
+            reply=faker.sentence(),
+        )
+        return _patch_dataclass_with_kwargs(request, **kwargs)
 
 
 class RawClient:
@@ -189,13 +260,27 @@ class RawClient:
 
     # Auction API
     def create_auction(self, params: AuctionCreateRequest) -> requests.Response:
-        pass
-
-    def delete_auction(self, auction_id: str) -> requests.Response:
-        pass
+        return requests.post(self.endpoints.auction, json=params.__dict__)
 
     def update_auction(self, params: AuctionUpdateRequest) -> requests.Response:
         pass
+
+    # Question API
+    def create_question(
+        self, auction_id: str, params: QuestionCreateRequest
+    ) -> requests.Response:
+        return requests.post(
+            self.endpoints.auction + "/" + auction_id + "/question",
+            json=params.__dict__,
+        )
+
+    def create_reply(
+        self, auction_id: str, question_id: str, params: ReplyCreateRequest
+    ) -> requests.Response:
+        return requests.post(
+            self.endpoints.auction + "/" + auction_id + "/question/" + question_id,
+            json=params.__dict__,
+        )
 
 
 class Client:
@@ -215,25 +300,46 @@ class Client:
         return response.content
 
     # User API
-    def create_user(self, params: UserCreateRequest) -> str:
-        response = self.rclient.create_user(params)
+    def create_user(self, params: Union[UserCreateRequest, None] = None) -> str:
+        response = self.rclient.create_user(params or UserCreateRequest.random())
+        assert response.status_code == 200
         return response.text
 
     def delete_user(self, user_id: str) -> None:
         response = self.rclient.delete_user(user_id)
+        assert response.status_code == 204
 
     def update_user(self, params: UserUpdateRequest) -> None:
         pass
 
     # Auction API
-    def create_auction(self, params: AuctionCreateRequest) -> str:
-        pass
+    def create_auction(self, params: Union[AuctionCreateRequest, None] = None) -> str:
+        if params == None:
+            user_id = self.create_user()
+            params = AuctionCreateRequest.random(user_id)
+        response = self.rclient.create_auction(params)
+        assert response.status_code == 200
+        return response.text
 
-    def delete_auction(self, auction_id: str) -> None:
-        pass
+    def create_user_and_auction(self) -> tuple[str, str]:
+        user_id = self.create_user()
+        auction_id = self.create_auction(AuctionCreateRequest.random(user_id))
+        return user_id, auction_id
 
     def update_auction(self, params: AuctionUpdateRequest) -> None:
         pass
+
+    # Question API
+    def create_question(self, auction_id: str, params: QuestionCreateRequest) -> str:
+        response = self.rclient.create_question(auction_id, params)
+        assert response.status_code == 200
+        return response.text
+
+    def create_reply(
+        self, auction_id: str, question_id: str, params: ReplyCreateRequest
+    ) -> None:
+        response = self.rclient.create_reply(auction_id, question_id, params)
+        assert response.status_code == 204
 
 
 def random_image() -> bytes:

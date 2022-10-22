@@ -2,6 +2,7 @@ package scc.azure;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.azure.cosmos.CosmosContainer;
@@ -56,7 +57,8 @@ class QuestionDB {
      * @return 200 with question's identifier
      */
     public Result<QuestionDAO, AuctionService.Error> createQuestion(QuestionDAO question) {
-        assert question.getQuestionId() == null; // Auto-generated
+        if (question.getId() == null)
+            question.setId(UUID.randomUUID().toString());
         var response = this.container.createItem(question);
         return Result.ok(response.getItem());
     }

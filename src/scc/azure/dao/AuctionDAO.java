@@ -111,6 +111,10 @@ public class AuctionDAO {
         this._ts = _ts;
     }
 
+    public void setId(String id) {
+        this.id = id;
+    }
+
     public void setTitle(String title) {
         this.title = title;
     }

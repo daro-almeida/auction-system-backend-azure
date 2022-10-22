@@ -9,6 +9,7 @@ import scc.utils.Result;
 
 public interface AuctionService {
     public static enum Error {
+        BAD_REQUEST,
         USER_NOT_FOUND,
         AUCTION_NOT_FOUND,
         QUESTION_NOT_FOUND,
@@ -108,4 +109,23 @@ public interface AuctionService {
     Result<Void, Error> createReply(CreateReplyParams params);
 
     Result<List<QuestionItem>, Error> listQuestions(String auctionId);
+
+    public static Result<Void, Error> validateCreateAuctionParams(CreateAuctionParams params) {
+        if (params.title == null || params.title.isEmpty()) {
+            return Result.err(Error.BAD_REQUEST);
+        }
+        if (params.description == null || params.description.isEmpty()) {
+            return Result.err(Error.BAD_REQUEST);
+        }
+        if (params.userId == null || params.userId.isEmpty()) {
+            return Result.err(Error.BAD_REQUEST);
+        }
+        if (params.initialPrice <= 0) {
+            return Result.err(Error.BAD_REQUEST);
+        }
+        if (params.endTime == null || params.endTime.isEmpty()) {
+            return Result.err(Error.BAD_REQUEST);
+        }
+        return Result.ok();
+    }
 }

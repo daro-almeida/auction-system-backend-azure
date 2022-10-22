@@ -21,7 +21,7 @@ public interface Result<T, E> {
     /**
      * Tests if the result is Err.
      */
-    boolean isErr();
+    boolean isError();
 
     /**
      * obtains the payload value of this result
@@ -96,7 +96,7 @@ public interface Result<T, E> {
     }
 
     static <T, E> Result<T, E> flatten(Result<Result<T, E>, E> result) {
-        if (result.isErr())
+        if (result.isError())
             return Result.err(result.error());
         return result.value();
     }
@@ -138,7 +138,7 @@ class OkResult<T, E> implements Result<T, E> {
     }
 
     @Override
-    public boolean isErr() {
+    public boolean isError() {
         return false;
     }
 
@@ -194,7 +194,7 @@ class ErrorResult<T, E> implements Result<T, E> {
     }
 
     @Override
-    public boolean isErr() {
+    public boolean isError() {
         return true;
     }
 

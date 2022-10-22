@@ -127,6 +127,11 @@ def run(**kwargs):
                 print(e.response.headers)
                 print(e.response.text)
                 print("-------------------------------------------------")
+            except Exception as e:
+                print(
+                    f"[{Fore.RED}FAIL{Style.RESET_ALL}] {test_case.group}/{test_case.name}"
+                )
+                raise e
 
 
 def validate(response: requests.Response) -> Validator:

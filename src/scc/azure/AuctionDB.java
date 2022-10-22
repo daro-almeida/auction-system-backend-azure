@@ -2,6 +2,7 @@ package scc.azure;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosDatabase;
@@ -57,7 +58,8 @@ class AuctionDB {
      * @return 200 with new auction's generated identifier
      */
     public Result<AuctionDAO, AuctionService.Error> createAuction(AuctionDAO auction) {
-        assert auction.getId() == null; // ID should be auto generated
+        if (auction.getId() == null)
+            auction.setId(UUID.randomUUID().toString());
         var response = this.container.createItem(auction);
         return Result.ok(response.getItem());
     }

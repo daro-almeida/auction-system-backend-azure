@@ -60,6 +60,10 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      */
     @Override
     public Result<String, scc.services.AuctionService.Error> createAuction(CreateAuctionParams params) {
+        var validateResult = AuctionService.validateCreateAuctionParams(params);
+        if (validateResult.isError())
+            return Result.err(validateResult.error());
+
         if (!this.userDB.userExists(params.userId()))
             return Result.err(scc.services.AuctionService.Error.USER_NOT_FOUND);
 
@@ -67,8 +71,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         params.image().ifPresent(img -> pictureId.set(this.mediaStorage.createAuctionMediaID(img)));
 
         var auctionDao = new AuctionDAO(params.title(), params.description(), pictureId.get(), params.userId(),
-                new Date(),
-                params.initialPrice());
+                new Date(), params.initialPrice());
         var response = this.auctionDB.createAuction(auctionDao);
 
         if (response.isOk() && params.image().isPresent())
@@ -118,7 +121,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         var bidDao = new BidDAO(params.auctionId(), params.userId(), params.price());
         var response = this.bidDB.createBid(bidDao);
 
-        return response.map(BidDAO::getBidId);
+        return response.map(BidDAO::getId);
     }
 
     @Override
@@ -127,7 +130,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
             return Result.err(scc.services.AuctionService.Error.AUCTION_NOT_FOUND);
 
         return this.bidDB.listBids(auctionId).stream()
-                .map(bid -> new BidItem(bid.getBidId(), bid.getUserId(), bid.getAmount()))
+                .map(bid -> new BidItem(bid.getId(), bid.getUserId(), bid.getAmount()))
                 .collect(Collectors.collectingAndThen(Collectors.toList(), Result::ok));
     }
 
@@ -141,7 +144,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         var questionDao = new QuestionDAO(params.auctionId(), params.userId(), params.question());
         var response = this.questionDB.createQuestion(questionDao);
 
-        return response.map(QuestionDAO::getQuestionId);
+        return response.map(QuestionDAO::getId);
     }
 
     @Override
@@ -152,7 +155,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         var response = this.questionDB.createReply(params.questionId(),
                 new QuestionDAO.Reply(params.userId(), params.reply()));
 
-        if (response.isErr())
+        if (response.isError())
             return Result.err(response.error());
 
         return Result.ok();
@@ -164,7 +167,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
             return Result.err(scc.services.AuctionService.Error.AUCTION_NOT_FOUND);
 
         return this.questionDB.listQuestions(auctionId).stream()
-                .map(question -> new QuestionItem(question.getQuestionId(), question.getUserId(),
+                .map(question -> new QuestionItem(question.getId(), question.getUserId(),
                         question.getQuestion(),
                         Optional.ofNullable(question.getReply())
                                 .map(reply -> new ReplyItem(reply.getUserId(), reply.getReply()))))
@@ -193,9 +196,12 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
 
     @Override
     public Result<String, UserService.Error> createUser(CreateUserParams params) {
-        AtomicReference<String> photoId = new AtomicReference<>(null);
-        params.image().ifPresent(img -> photoId.set(this.mediaStorage.createUserMediaID(img)));
-        var userDao = new UserDAO(params.nickname(), params.name(), Hash.of(params.password()), photoId.get());
+        var validateResult = UserService.validateCreateUserParams(params);
+        if (validateResult.isError())
+            return Result.err(validateResult.error());
+
+        var photoId = params.image().map(img -> this.mediaStorage.createUserMediaID(img));
+        var userDao = new UserDAO(params.nickname(), params.name(), Hash.of(params.password()), photoId.orElse(null));
         var result = this.userDB.createUser(userDao);
         if (result.isOk() && params.image().isPresent())
             uploadMedia(params.image().get());
@@ -207,6 +213,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         var result = this.userDB.deleteUser(userId);
         if (!result.isOk())
             return Result.err(result.error());
+
         String photoId = result.value().getPhotoId();
         if (!userDB.userWithPhoto(photoId))
             deleteMedia(photoId);
@@ -220,6 +227,10 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
 
     @Override
     public Result<Void, UserService.Error> updateUser(String userId, UpdateUserOps ops) {
+        var validateResult = UserService.validateUpdateUserOps(ops);
+        if (validateResult.isError())
+            return Result.err(validateResult.error());
+
         var patchOps = CosmosPatchOperations.create();
         if (ops.shouldUpdateName())
             patchOps.set("/name", ops.getName());

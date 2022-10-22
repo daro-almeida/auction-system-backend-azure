@@ -2,12 +2,15 @@ package scc.azure.dao;
 
 public class QuestionDAO {
     public static class Reply {
-        private final String userId;
-        private final String reply;
+        private String userId;
+        private String reply;
 
         public Reply(String userId, String reply) {
             this.userId = userId;
             this.reply = reply;
+        }
+
+        public Reply() {
         }
 
         public String getUserId() {
@@ -18,6 +21,14 @@ public class QuestionDAO {
             return reply;
         }
 
+        public void setUserId(String userId) {
+            this.userId = userId;
+        }
+
+        public void setReply(String reply) {
+            this.reply = reply;
+        }
+
         @Override
         public String toString() {
             return "Reply [userId=" + userId + ", reply=" + reply + "]";
@@ -26,7 +37,7 @@ public class QuestionDAO {
 
     private String _rid;
     private String _ts;
-    private String questionId;
+    private String id;
     private String auctionId;
     private String userId;
     private String question;
@@ -35,15 +46,15 @@ public class QuestionDAO {
     public QuestionDAO(String auctionId, String userId, String question) {
         this._rid = null;
         this._ts = null;
-        this.questionId = null;
+        this.id = null;
         this.auctionId = auctionId;
         this.userId = userId;
         this.question = question;
         this.reply = null;
     }
 
-    public QuestionDAO(String questionId, String auctionId, String userId, String question, Reply reply) {
-        this.questionId = questionId;
+    public QuestionDAO(String id, String auctionId, String userId, String question, Reply reply) {
+        this.id = id;
         this.auctionId = auctionId;
         this.userId = userId;
         this.question = question;
@@ -53,36 +64,66 @@ public class QuestionDAO {
     public QuestionDAO() {
     }
 
-    public String getQuestionId() {
-        return questionId;
+    public String get_rid() {
+        return _rid;
+    }
+
+    public void set_rid(String _rid) {
+        this._rid = _rid;
+    }
+
+    public String get_ts() {
+        return _ts;
+    }
+
+    public void set_ts(String _ts) {
+        this._ts = _ts;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getAuctionId() {
         return auctionId;
     }
 
+    public void setAuctionId(String auctionId) {
+        this.auctionId = auctionId;
+    }
+
     public String getUserId() {
         return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public String getQuestion() {
         return question;
     }
 
+    public void setQuestion(String question) {
+        this.question = question;
+    }
+
     public Reply getReply() {
         return reply;
     }
 
+    public void setReply(Reply reply) {
+        this.reply = reply;
+    }
+
     @Override
     public String toString() {
-        return "QuestionDAO:{" +
-                "_rid='" + _rid + '\'' +
-                ", _ts='" + _ts + '\'' +
-                ", id='" + questionId + '\'' +
-                ", userId='" + auctionId + '\'' +
-                ", userId='" + userId + '\'' +
-                ", description='" + question + '\'' +
-                ", reply='" + reply + '\'' +
-                '}';
+        return "QuestionDAO [_rid=" + _rid + ", _ts=" + _ts + ", id=" + id + ", auctionId=" + auctionId + ", userId="
+                + userId + ", question=" + question + ", reply=" + reply + "]";
     }
+
 }

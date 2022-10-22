@@ -62,7 +62,7 @@ public class UserResource {
                 request.password(),
                 ResourceUtils.decodeBase64Nullable(request.imageBase64)));
 
-        if (result.isErr())
+        if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
 
         return result.value();
@@ -77,7 +77,7 @@ public class UserResource {
 
         var result = this.auctionService.listAuctionsOfUser(userId);
 
-        if (result.isErr())
+        if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
 
         return result.value();
@@ -93,7 +93,7 @@ public class UserResource {
     public void deleteUser(@PathParam(USER_ID) String id) {
         System.out.println("Received delete user request for id " + id);
         var result = this.service.deleteUser(id);
-        if (result.isErr())
+        if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
     }
 
@@ -131,7 +131,7 @@ public class UserResource {
 
         var result = this.service.updateUser(id, updateOps);
 
-        if (result.isErr())
+        if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
     }
 }

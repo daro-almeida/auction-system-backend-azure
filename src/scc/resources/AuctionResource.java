@@ -61,7 +61,7 @@ public class AuctionResource {
                 request.endTime(),
                 ResourceUtils.decodeBase64Nullable(request.imageBase64())));
 
-        if (result.isErr())
+        if (result.isError())
             ResourceUtils.throwError(result.error());
 
         return result.value();
@@ -97,7 +97,7 @@ public class AuctionResource {
 
         var result = this.service.updateAuction(auctionId, updateOps);
 
-        if (result.isErr())
+        if (result.isError())
             ResourceUtils.throwError(result.error());
     }
 
@@ -126,7 +126,7 @@ public class AuctionResource {
                 request.userId(),
                 request.bid().longValue()));
 
-        if (result.isErr())
+        if (result.isError())
             ResourceUtils.throwError(result.error());
 
         return result.value();
@@ -146,7 +146,7 @@ public class AuctionResource {
 
         var result = this.service.listBids(auctionId);
 
-        if (result.isErr())
+        if (result.isError())
             ResourceUtils.throwError(result.error());
 
         return result.value().stream().map(BidDTO::from).toList();
@@ -177,7 +177,7 @@ public class AuctionResource {
                 request.userId(),
                 request.question()));
 
-        if (result.isErr())
+        if (result.isError())
             ResourceUtils.throwError(result.error());
 
         return result.value();
@@ -210,7 +210,7 @@ public class AuctionResource {
                 request.userId(),
                 request.reply()));
 
-        if (result.isErr())
+        if (result.isError())
             ResourceUtils.throwError(result.error());
     }
 
@@ -228,7 +228,7 @@ public class AuctionResource {
 
         var result = this.service.listQuestions(auctionId);
 
-        if (result.isErr())
+        if (result.isError())
             ResourceUtils.throwError(result.error());
 
         return result.value().stream().map(QuestionDTO::from).toList();

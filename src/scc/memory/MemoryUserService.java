@@ -33,7 +33,7 @@ public class MemoryUserService implements UserService {
     @Override
     public synchronized Result<String, Error> createUser(CreateUserParams params) {
         var validateResult = UserService.validateCreateUserParams(params);
-        if (validateResult.isErr())
+        if (validateResult.isError())
             return Result.err(validateResult.error());
 
         if (this.users.containsKey(params.nickname())) {
@@ -60,7 +60,7 @@ public class MemoryUserService implements UserService {
     @Override
     public synchronized Result<Void, Error> updateUser(String userId, UpdateUserOps ops) {
         var validateResult = UserService.validateUpdateUserOps(ops);
-        if (validateResult.isErr())
+        if (validateResult.isError())
             return Result.err(validateResult.error());
 
         var user = this.users.get(userId);

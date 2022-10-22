@@ -4,7 +4,6 @@ import java.util.Base64;
 import java.util.Optional;
 
 import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
 import scc.services.AuctionService;
@@ -38,8 +37,6 @@ class ResourceUtils {
                 throw new WebApplicationException(409);
             case BAD_REQUEST:
                 throw new BadRequestException(message);
-            default:
-                throw new InternalServerErrorException();
         }
     }
 
@@ -49,8 +46,10 @@ class ResourceUtils {
 
     public static void throwError(AuctionService.Error error, String message) {
         switch (error) {
-            case AUCTION_NOT_FOUND, USER_NOT_FOUND -> throw new NotFoundException();
-            default -> throw new InternalServerErrorException();
+            case AUCTION_NOT_FOUND, USER_NOT_FOUND, QUESTION_NOT_FOUND ->
+                throw new NotFoundException();
+            case QUESTION_ALREADY_REPLIED -> throw new WebApplicationException(409);
+            case BAD_REQUEST -> throw new BadRequestException(message);
         }
     }
 }

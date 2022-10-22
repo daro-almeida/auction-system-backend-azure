@@ -2,6 +2,7 @@ package scc.azure;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.azure.cosmos.CosmosContainer;
@@ -56,7 +57,8 @@ class BidDB {
      * @return 200 with bid's generated identifier
      */
     public Result<BidDAO, AuctionService.Error> createBid(BidDAO bid) {
-        assert bid.getBidId() == null; // Auto-generated
+        if (bid.getId() == null)
+            bid.setId(UUID.randomUUID().toString());
         var response = this.container.createItem(bid);
         return Result.ok(response.getItem());
     }
