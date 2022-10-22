@@ -24,6 +24,7 @@ class UserDB {
 
     /**
      * Returns the user with given identifier from the database
+     * 
      * @param userId Identifier of the user requested
      * @return Object which represents the user in the database
      */
@@ -40,6 +41,7 @@ class UserDB {
 
     /**
      * Checks if a user with given identifier exists in the database
+     * 
      * @param userId Identifier of the user requested
      * @return True if exists in the database, false otherwise
      */
@@ -49,8 +51,10 @@ class UserDB {
 
     /**
      * Saves the user in object form into the database
+     * 
      * @param user Object that represents the user
-     * @return 200 with created user's nickname or error if it already exists in the database
+     * @return 200 with created user's nickname or error if it already exists in the
+     *         database
      */
     public Result<UserDAO, UserService.Error> createUser(UserDAO user) {
         try {
@@ -63,6 +67,7 @@ class UserDB {
 
     /**
      * Deletes the user with given nickname from the database
+     * 
      * @param userId nickname of the user to be deleted
      * @return 204 if successful, respective error otherwise
      */
@@ -81,8 +86,9 @@ class UserDB {
 
     /**
      * Updates the values in the user with given nickname with new given values
+     * 
      * @param userId nickname of the user to be updated
-     * @param ops operations to be executed on the user's database entry
+     * @param ops    operations to be executed on the user's database entry
      * @return 204 if successful, respective error otherwise
      */
     public Result<Void, UserService.Error> updateUser(String userId, CosmosPatchOperations ops) {
@@ -109,7 +115,9 @@ class UserDB {
     }
 
     /**
-     * Creates a partition key with given nickaname to be used on database operations
+     * Creates a partition key with given nickaname to be used on database
+     * operations
+     * 
      * @param userId nickname of the user
      * @return PartitionKey object with user's nickname
      */
@@ -118,7 +126,9 @@ class UserDB {
     }
 
     /**
-     * Creates an ItemRequestOptions object with given nickname to be used on database operations
+     * Creates an ItemRequestOptions object with given nickname to be used on
+     * database operations
+     * 
      * @param userId nickname of the user
      * @return CosmosItemRequestOptions object with user's nickname
      */
@@ -127,7 +137,9 @@ class UserDB {
     }
 
     /**
-     * Creates a QueryRequestOptions object with given nickname to be used on database operations
+     * Creates a QueryRequestOptions object with given nickname to be used on
+     * database operations
+     * 
      * @param userId nickname of the user
      * @return CosmosQueryRequestOptions object with user's nickname
      */

@@ -20,7 +20,8 @@ public class UserDAO {
         this.photoId = photoId;
     }
 
-    public UserDAO() { }
+    public UserDAO() {
+    }
 
     public String get_rid() {
         return _rid;

@@ -25,6 +25,7 @@ class AuctionDB {
 
     /**
      * Gets the auction saved in the database with given identifier
+     * 
      * @param auctionId identifier of the auction
      * @return Object that represents the auction
      */
@@ -41,6 +42,7 @@ class AuctionDB {
 
     /**
      * Checks if the database contains an auction with given identifier
+     * 
      * @param auctionId identifier of the auction
      * @return true if exists, false otherwise
      */
@@ -50,6 +52,7 @@ class AuctionDB {
 
     /**
      * Creates an entry in the database that represents an auction
+     * 
      * @param auction Object that represents an auction
      * @return 200 with new auction's generated identifier
      */
@@ -61,6 +64,7 @@ class AuctionDB {
 
     /**
      * Deletes an auction which just changes the status to deleted
+     * 
      * @param auctionId identifier of the auction
      * @return 204 if successful, 404 otherwise
      */
@@ -90,8 +94,9 @@ class AuctionDB {
 
     /**
      * Updates the values in the database for an auction with given identifier
+     * 
      * @param auctionId identifier of the auction
-     * @param ops operations to be executed on the entry
+     * @param ops       operations to be executed on the entry
      * @return 204 if successful, 404 otherwise
      */
     public Result<Void, AuctionService.Error> updateAuction(String auctionId, CosmosPatchOperations ops) {
@@ -106,11 +111,12 @@ class AuctionDB {
 
     /**
      * Set auctions of user with the given userId to status DELETED
+     * 
      * @param userId identifier of the user
      * @return 204
      */
     public Result<Void, AuctionService.Error> deleteUserAuctions(String userId) {
-        for(AuctionDAO auction : userAuctions(userId)) {
+        for (AuctionDAO auction : userAuctions(userId)) {
             var result = deleteAuction(auction.getId());
             if (!result.isOk())
                 System.out.printf("deleteUserAuctions: auction %s not found\n", auction.getId());

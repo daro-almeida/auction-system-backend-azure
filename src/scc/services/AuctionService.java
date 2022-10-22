@@ -28,6 +28,8 @@ public interface AuctionService {
 
     Result<Void, Error> deleteAuction(String auctionId);
 
+    Result<List<String>, Error> listAuctionsOfUser(String userId);
+
     public static class UpdateAuctionOps {
         private String title;
         private String description;

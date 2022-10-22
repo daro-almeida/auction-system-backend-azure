@@ -53,8 +53,10 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
 
     /**
      * Creates an auction
-     * @param params JSON that contains the necessary information to create an auction
-     * @return 200 with auction's identifier if successful, 
+     * 
+     * @param params JSON that contains the necessary information to create an
+     *               auction
+     * @return 200 with auction's identifier if successful,
      */
     @Override
     public Result<String, scc.services.AuctionService.Error> createAuction(CreateAuctionParams params) {
@@ -64,11 +66,12 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         AtomicReference<String> pictureId = new AtomicReference<>(null);
         params.image().ifPresent(img -> pictureId.set(this.mediaStorage.createAuctionMediaID(img)));
 
-        var auctionDao = new AuctionDAO(params.title(), params.description(), pictureId.get(), params.userId(), new Date(),
+        var auctionDao = new AuctionDAO(params.title(), params.description(), pictureId.get(), params.userId(),
+                new Date(),
                 params.initialPrice());
         var response = this.auctionDB.createAuction(auctionDao);
 
-        if(response.isOk() && params.image().isPresent())
+        if (response.isOk() && params.image().isPresent())
             uploadMedia(params.image().get());
 
         return response.map(AuctionDAO::getId);
@@ -198,7 +201,6 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
             uploadMedia(params.image().get());
         return result.map(UserDAO::getId);
     }
-
 
     @Override
     public Result<Void, UserService.Error> deleteUser(String userId) {

@@ -50,7 +50,8 @@ public class QuestionDAO {
         this.reply = reply;
     }
 
-    public QuestionDAO() { }
+    public QuestionDAO() {
+    }
 
     public String getQuestionId() {
         return questionId;

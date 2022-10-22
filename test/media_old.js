@@ -22,7 +22,7 @@ var statsPrefix = [
 ]
 
 // Function used to compress statistics
-global.myProcessEndpoint = function(str, method) {
+global.myProcessEndpoint = function (str, method) {
 	var i = 0;
 	for (i = 0; i < statsPrefix.length; i++) {
 		if (str.startsWith(statsPrefix[i][0]) && method == statsPrefix[i][1])
@@ -32,7 +32,7 @@ global.myProcessEndpoint = function(str, method) {
 }
 
 // Auxiliary function to select an element from an array
-Array.prototype.sample = function() {
+Array.prototype.sample = function () {
 	return this[Math.floor(Math.random() * this.length)]
 }
 

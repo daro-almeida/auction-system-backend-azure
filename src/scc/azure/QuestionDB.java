@@ -24,6 +24,7 @@ class QuestionDB {
 
     /**
      * Returns the question present in the database with given identifier
+     * 
      * @param questionId identifier of the question
      * @return Object that represents the question
      */
@@ -40,6 +41,7 @@ class QuestionDB {
 
     /**
      * Checks if the question with given identifier exists in the database
+     * 
      * @param questionId identifier of the question
      * @return true if it exists, false otherwise
      */
@@ -49,6 +51,7 @@ class QuestionDB {
 
     /**
      * Inserts an entry in the database that represents a question in an auction
+     * 
      * @param question Object that represents a question
      * @return 200 with question's identifier
      */
@@ -60,8 +63,9 @@ class QuestionDB {
 
     /**
      * Updates the question with a reply to it in the database
+     * 
      * @param questionId identifier of the question
-     * @param reply Object that represents a reply to the question
+     * @param reply      Object that represents a reply to the question
      * @return 200 with reply's identifier
      */
     public Result<QuestionDAO, AuctionService.Error> createReply(String questionId, QuestionDAO.Reply reply) {
@@ -81,6 +85,7 @@ class QuestionDB {
 
     /**
      * Gathers all questions that are saved in an auction with given identifier
+     * 
      * @param auctionId identifier of the auction
      * @return List of questions present in the auction
      */
@@ -96,6 +101,7 @@ class QuestionDB {
 
     /**
      * Creates a partition key with given identifier of a question
+     * 
      * @param questionId identifier of the question
      * @return PartitionKey with identifier of the question
      */
@@ -104,7 +110,9 @@ class QuestionDB {
     }
 
     /**
-     * Creates a QueryOptions object with a partition key of the identifier of the question
+     * Creates a QueryOptions object with a partition key of the identifier of the
+     * question
+     * 
      * @param questionId identifier of the question
      * @return QueryOptions object with mentioned partition key
      */

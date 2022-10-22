@@ -56,7 +56,8 @@ public class AuctionDAO {
         this.status = status;
     }
 
-    public AuctionDAO() { }
+    public AuctionDAO() {
+    }
 
     public String get_rid() {
         return _rid;

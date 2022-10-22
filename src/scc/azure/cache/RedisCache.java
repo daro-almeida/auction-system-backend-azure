@@ -19,7 +19,7 @@ public class RedisCache implements Cache {
         poolConfig.setTestWhileIdle(true);
         poolConfig.setNumTestsPerEvictionRun(3);
         poolConfig.setBlockWhenExhausted(true);
-        try(JedisPool pool = new JedisPool(poolConfig, config.url, 6380, 1000, config.key, true)) {
+        try (JedisPool pool = new JedisPool(poolConfig, config.url, 6380, 1000, config.key, true)) {
             jedis = pool.getResource();
         }
     }

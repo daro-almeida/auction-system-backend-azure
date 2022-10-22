@@ -28,6 +28,7 @@ public class MediaStorage {
 
     /**
      * Upload an image into the blob storage container for auctions
+     * 
      * @param contents byte array of an image
      * @return Uploaded image's generated identifier
      */
@@ -41,6 +42,7 @@ public class MediaStorage {
 
     /**
      * Upload an image into the blob storage container for users
+     * 
      * @param contents byte array of an image
      * @return Uploaded image's generated identifier
      */
@@ -54,6 +56,7 @@ public class MediaStorage {
 
     /**
      * Downloads the contents of an image with given identifier
+     * 
      * @param mediaID identifier of the media resource
      * @return byte content of the image
      */
@@ -71,6 +74,7 @@ public class MediaStorage {
 
     /**
      * Deletes the contents of an image with given identifier
+     * 
      * @param mediaID identifier of the media resource
      * @return true if it was deleted, false otherwise
      */
@@ -89,7 +93,9 @@ public class MediaStorage {
     }
 
     /**
-     * Generates an identifier with prefix of "auction" to determine which blob storage container it goes to
+     * Generates an identifier with prefix of "auction" to determine which blob
+     * storage container it goes to
+     * 
      * @param data contents of the media resource
      * @return media resource's generated identifier
      */
@@ -98,7 +104,9 @@ public class MediaStorage {
     }
 
     /**
-     * Generates an identifier with prefix of "users" to determine which blob storage container it goes to
+     * Generates an identifier with prefix of "users" to determine which blob
+     * storage container it goes to
+     * 
      * @param data contents of the media resource
      * @return media resource's generated identifier
      */
@@ -108,6 +116,7 @@ public class MediaStorage {
 
     /**
      * Get the client to the respective blob storage container with given identifier
+     * 
      * @param mediaID identifier of the media resource
      * @return client to the blob storage container or null if invalid
      */

@@ -26,7 +26,8 @@ public class BidDAO {
         this.amount = amount;
     }
 
-    public BidDAO() { }
+    public BidDAO() {
+    }
 
     public String getBidId() {
         return bidId;

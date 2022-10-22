@@ -7,12 +7,10 @@ import java.util.stream.Collectors;
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosDatabase;
 import com.azure.cosmos.models.CosmosItemRequestOptions;
-import com.azure.cosmos.models.CosmosPatchOperations;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.PartitionKey;
 
 import scc.azure.config.CosmosDbConfig;
-import scc.azure.dao.AuctionDAO;
 import scc.azure.dao.BidDAO;
 import scc.services.AuctionService;
 import scc.utils.Result;
@@ -26,6 +24,7 @@ class BidDB {
 
     /**
      * Returns the bid saved in the database with given identifier
+     * 
      * @param bidId identifier of the bid
      * @return Object that represents a bid
      */
@@ -42,6 +41,7 @@ class BidDB {
 
     /**
      * Checks if a bid with given identifier exists in the database
+     * 
      * @param bidId identifier of the bid
      * @return True if exists in the database, false otherwise
      */
@@ -51,6 +51,7 @@ class BidDB {
 
     /**
      * Creates an entry in the database that represents a bid
+     * 
      * @param bid Object that represents a bid
      * @return 200 with bid's generated identifier
      */
@@ -62,6 +63,7 @@ class BidDB {
 
     /**
      * Lists all the bids present in an auction with a given identifier
+     * 
      * @param auctionId identifier of the auction
      * @return List of bids made in the auction
      */
