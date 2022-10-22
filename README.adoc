@@ -1,7 +1,7 @@
 == Autores
-Bruno Cabrita nº57833 bm.cabrita@campus.fct.unl.pt\
-Diogo Fona nº57940 d.fona@campus.fct.unl.pt\
-Diogo Almeida nº58369 daro.almeida@campus.fct.unl.pt
+Bruno Cabrita nº57833 bm.cabrita@campus.fct.unl.pt +
+Diogo Fona nº57940 d.fona@campus.fct.unl.pt +
+Diogo Almeida nº58369 daro.almeida@campus.fct.unl.pt +
 
 == DEPLOY
 Azure::
