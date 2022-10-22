@@ -14,7 +14,6 @@ import com.azure.cosmos.models.PartitionKey;
 import scc.azure.config.CosmosDbConfig;
 import scc.azure.dao.AuctionDAO;
 import scc.services.AuctionService;
-import scc.services.UserService;
 import scc.utils.Result;
 
 class AuctionDB {
@@ -78,6 +77,17 @@ class AuctionDB {
         }
     }
 
+    public Result<List<AuctionDAO>, AuctionService.Error> listAuctionsOfUser(String userId) {
+        var options = this.createQueryOptions();
+        var auctions = this.container
+                .queryItems(
+                        "SELECT * FROM auctions WHERE auctions.userId=\"" + userId + "\"",
+                        options,
+                        AuctionDAO.class)
+                .stream().toList();
+        return Result.ok(auctions);
+    }
+
     /**
      * Updates the values in the database for an auction with given identifier
      * @param auctionId identifier of the auction
@@ -125,7 +135,12 @@ class AuctionDB {
         return new CosmosItemRequestOptions();
     }
 
+    private CosmosQueryRequestOptions createQueryOptions() {
+        return new CosmosQueryRequestOptions();
+
+    }
+
     private CosmosQueryRequestOptions createQueryOptions(String auctionId) {
-        return new CosmosQueryRequestOptions().setPartitionKey(this.createPartitionKey(auctionId));
+        return createQueryOptions().setPartitionKey(this.createPartitionKey(auctionId));
     }
 }

@@ -56,7 +56,7 @@ public class MainApplication extends Application {
                 var userService = new MemoryUserService(mediaService);
                 var auctionService = new MemoryAuctionService(userService, mediaService);
                 singletons.add(new MediaResource(mediaService));
-                singletons.add(new UserResource(userService));
+                singletons.add(new UserResource(userService, auctionService));
                 singletons.add(new AuctionResource(auctionService));
                 break;
             case ENV_BACKEND_KIND_AZURE:
@@ -104,7 +104,7 @@ public class MainApplication extends Application {
 
                 var service = new AzureMonolithService(config);
                 singletons.add(new MediaResource(service));
-                singletons.add(new UserResource(service));
+                singletons.add(new UserResource(service, service));
                 singletons.add(new AuctionResource(service));
                 break;
             default:

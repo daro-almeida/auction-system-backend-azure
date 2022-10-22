@@ -91,6 +91,14 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
+    public synchronized Result<List<String>, Error> listAuctionsOfUser(String userId) {
+        return Result.ok(this.auctions.entrySet().stream()
+                .filter(entry -> entry.getValue().userId.equals(userId))
+                .map(entry -> entry.getKey())
+                .collect(Collectors.toList()));
+    }
+
+    @Override
     public synchronized Result<Void, Error> updateAuction(String auctionId, UpdateAuctionOps ops) {
         var auction = this.auctions.get(auctionId);
         if (auction == null) {

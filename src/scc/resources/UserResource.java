@@ -1,10 +1,13 @@
 package scc.resources;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.PATCH;
@@ -14,6 +17,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
+import scc.services.AuctionService;
 import scc.services.UserService;
 
 /**
@@ -25,9 +29,11 @@ public class UserResource {
     private static final String USER_ID = "userId";
 
     private final UserService service;
+    private final AuctionService auctionService;
 
-    public UserResource(UserService service) {
+    public UserResource(UserService service, AuctionService auctionService) {
         this.service = service;
+        this.auctionService = auctionService;
     }
 
     /**
@@ -61,7 +67,22 @@ public class UserResource {
                 ResourceUtils.decodeBase64Nullable(request.imageBase64)));
 
         if (result.isErr())
-            this.throwUserError(result.error(), result.errorMessage());
+            ResourceUtils.throwError(result.error(), result.errorMessage());
+
+        return result.value();
+    }
+
+    @GET
+    @Path("/{" + USER_ID + "}/auctions")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<String> getUserAuctions(@PathParam(USER_ID) String userId) {
+        System.out.println("Received get user auctions request");
+        System.out.println("User ID: " + userId);
+
+        var result = this.auctionService.listAuctionsOfUser(userId);
+
+        if (result.isErr())
+            ResourceUtils.throwError(result.error(), result.errorMessage());
 
         return result.value();
     }
@@ -77,7 +98,7 @@ public class UserResource {
         System.out.println("Received delete user request for id " + id);
         var result = this.service.deleteUser(id);
         if (result.isErr())
-            this.throwUserError(result.error(), result.errorMessage());
+            ResourceUtils.throwError(result.error(), result.errorMessage());
     }
 
     /**
@@ -115,24 +136,6 @@ public class UserResource {
         var result = this.service.updateUser(id, updateOps);
 
         if (result.isErr())
-            this.throwUserError(result.error(), result.errorMessage());
-    }
-
-    /**
-     * Throws an exception that corresponds to the error given
-     * 
-     * @param error Error code of the response
-     */
-    private void throwUserError(UserService.Error error, String message) {
-        switch (error) {
-            case USER_NOT_FOUND:
-                throw new NotFoundException();
-            case USER_ALREADY_EXISTS:
-                throw new WebApplicationException(409);
-            case BAD_REQUEST:
-                throw new BadRequestException(message);
-            default:
-                throw new InternalServerErrorException();
-        }
+            ResourceUtils.throwError(result.error(), result.errorMessage());
     }
 }

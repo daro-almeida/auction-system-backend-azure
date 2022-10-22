@@ -80,6 +80,12 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
     }
 
     @Override
+    public Result<List<String>, scc.services.AuctionService.Error> listAuctionsOfUser(String userId) {
+        return this.auctionDB.listAuctionsOfUser(userId)
+                .map(auctions -> auctions.stream().map(AuctionDAO::getId).collect(Collectors.toList()));
+    }
+
+    @Override
     public Result<Void, scc.services.AuctionService.Error> updateAuction(String auctionId, UpdateAuctionOps ops) {
         var patchOps = CosmosPatchOperations.create();
         if (ops.shouldUpdateTitle())

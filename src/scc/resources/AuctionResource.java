@@ -8,8 +8,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.InternalServerErrorException;
-import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -64,7 +62,7 @@ public class AuctionResource {
                 ResourceUtils.decodeBase64Nullable(request.imageBase64())));
 
         if (result.isErr())
-            this.throwAuctionError(result.error());
+            ResourceUtils.throwError(result.error());
 
         return result.value();
     }
@@ -100,7 +98,7 @@ public class AuctionResource {
         var result = this.service.updateAuction(auctionId, updateOps);
 
         if (result.isErr())
-            this.throwAuctionError(result.error());
+            ResourceUtils.throwError(result.error());
     }
 
     public static record CreateBidRequest(
@@ -129,7 +127,7 @@ public class AuctionResource {
                 request.bid().longValue()));
 
         if (result.isErr())
-            this.throwAuctionError(result.error());
+            ResourceUtils.throwError(result.error());
 
         return result.value();
     }
@@ -149,7 +147,7 @@ public class AuctionResource {
         var result = this.service.listBids(auctionId);
 
         if (result.isErr())
-            this.throwAuctionError(result.error());
+            ResourceUtils.throwError(result.error());
 
         return result.value().stream().map(BidDTO::from).toList();
     }
@@ -180,7 +178,7 @@ public class AuctionResource {
                 request.question()));
 
         if (result.isErr())
-            this.throwAuctionError(result.error());
+            ResourceUtils.throwError(result.error());
 
         return result.value();
     }
@@ -213,7 +211,7 @@ public class AuctionResource {
                 request.reply()));
 
         if (result.isErr())
-            this.throwAuctionError(result.error());
+            ResourceUtils.throwError(result.error());
     }
 
     /**
@@ -231,7 +229,7 @@ public class AuctionResource {
         var result = this.service.listQuestions(auctionId);
 
         if (result.isErr())
-            this.throwAuctionError(result.error());
+            ResourceUtils.throwError(result.error());
 
         return result.value().stream().map(QuestionDTO::from).toList();
     }
@@ -245,14 +243,8 @@ public class AuctionResource {
     @Path("/")
     @Produces(MediaType.TEXT_PLAIN)
     public String listAuctionsAboutToClose() {
-        //TODO
+        // TODO
         throw new NotImplementedException();
     }
 
-    private void throwAuctionError(AuctionService.Error error) {
-        switch (error) {
-            case AUCTION_NOT_FOUND, USER_NOT_FOUND -> throw new NotFoundException();
-            default -> throw new InternalServerErrorException();
-        }
-    }
 }
