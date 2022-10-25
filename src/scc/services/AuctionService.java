@@ -8,14 +8,6 @@ import scc.services.data.QuestionItem;
 import scc.utils.Result;
 
 public interface AuctionService {
-    public static enum Error {
-        BAD_REQUEST,
-        USER_NOT_FOUND,
-        AUCTION_NOT_FOUND,
-        QUESTION_NOT_FOUND,
-        QUESTION_ALREADY_REPLIED,
-    }
-
     public static record CreateAuctionParams(
             String title,
             String description,
@@ -25,11 +17,11 @@ public interface AuctionService {
             Optional<byte[]> image) {
     }
 
-    Result<String, Error> createAuction(CreateAuctionParams params);
+    Result<String, ServiceError> createAuction(CreateAuctionParams params);
 
-    Result<Void, Error> deleteAuction(String auctionId);
+    Result<Void, ServiceError> deleteAuction(String auctionId);
 
-    Result<List<String>, Error> listAuctionsOfUser(String userId);
+    Result<List<String>, ServiceError> listAuctionsOfUser(String userId);
 
     public static class UpdateAuctionOps {
         private String title;
@@ -79,7 +71,7 @@ public interface AuctionService {
         }
     }
 
-    Result<Void, Error> updateAuction(String auctionId, UpdateAuctionOps ops);
+    Result<Void, ServiceError> updateAuction(String auctionId, UpdateAuctionOps ops);
 
     public static record CreateBidParams(
             String auctionId,
@@ -87,9 +79,9 @@ public interface AuctionService {
             long price) {
     }
 
-    Result<String, Error> createBid(CreateBidParams params);
+    Result<String, ServiceError> createBid(CreateBidParams params);
 
-    Result<List<BidItem>, Error> listBids(String auctionId);
+    Result<List<BidItem>, ServiceError> listBids(String auctionId);
 
     public static record CreateQuestionParams(
             String auctionId,
@@ -97,7 +89,7 @@ public interface AuctionService {
             String question) {
     }
 
-    Result<String, Error> createQuestion(CreateQuestionParams params);
+    Result<String, ServiceError> createQuestion(CreateQuestionParams params);
 
     public static record CreateReplyParams(
             String auctionId,
@@ -106,25 +98,25 @@ public interface AuctionService {
             String reply) {
     }
 
-    Result<Void, Error> createReply(CreateReplyParams params);
+    Result<Void, ServiceError> createReply(CreateReplyParams params);
 
-    Result<List<QuestionItem>, Error> listQuestions(String auctionId);
+    Result<List<QuestionItem>, ServiceError> listQuestions(String auctionId);
 
-    public static Result<Void, Error> validateCreateAuctionParams(CreateAuctionParams params) {
+    public static Result<Void, ServiceError> validateCreateAuctionParams(CreateAuctionParams params) {
         if (params.title == null || params.title.isEmpty()) {
-            return Result.err(Error.BAD_REQUEST);
+            return Result.err(ServiceError.BAD_REQUEST);
         }
         if (params.description == null || params.description.isEmpty()) {
-            return Result.err(Error.BAD_REQUEST);
+            return Result.err(ServiceError.BAD_REQUEST);
         }
         if (params.userId == null || params.userId.isEmpty()) {
-            return Result.err(Error.BAD_REQUEST);
+            return Result.err(ServiceError.BAD_REQUEST);
         }
         if (params.initialPrice <= 0) {
-            return Result.err(Error.BAD_REQUEST);
+            return Result.err(ServiceError.BAD_REQUEST);
         }
         if (params.endTime == null || params.endTime.isEmpty()) {
-            return Result.err(Error.BAD_REQUEST);
+            return Result.err(ServiceError.BAD_REQUEST);
         }
         return Result.ok();
     }

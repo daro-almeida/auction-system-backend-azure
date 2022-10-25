@@ -6,10 +6,23 @@ import java.util.Optional;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
-import scc.services.AuctionService;
-import scc.services.UserService;
+import jakarta.ws.rs.core.NewCookie;
+import scc.services.ServiceError;
 
 class ResourceUtils {
+    public static final String SESSION_COOKIE = "scc:session";
+
+    public static NewCookie createSessionCookie(String sessionToken) {
+        return new NewCookie.Builder(SESSION_COOKIE)
+                .value(sessionToken)
+                .comment("Session cookie for SCC")
+                .maxAge(30 * 60)
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .build();
+    }
+
     public static Optional<byte[]> decodeBase64Nullable(String base64) {
         if (base64 == null)
             return Optional.empty();
@@ -24,32 +37,15 @@ class ResourceUtils {
         }
     }
 
-    /**
-     * Throws an exception that corresponds to the error given
-     * 
-     * @param error Error code of the response
-     */
-    public static void throwError(UserService.Error error, String message) {
+    public static void throwError(ServiceError error, String message) {
         switch (error) {
-            case USER_NOT_FOUND:
-                throw new NotFoundException();
-            case USER_ALREADY_EXISTS:
-                throw new WebApplicationException(409);
-            case BAD_REQUEST:
-                throw new BadRequestException(message);
-        }
-    }
-
-    public static void throwError(AuctionService.Error error) {
-        throwError(error, "");
-    }
-
-    public static void throwError(AuctionService.Error error, String message) {
-        switch (error) {
-            case AUCTION_NOT_FOUND, USER_NOT_FOUND, QUESTION_NOT_FOUND ->
-                throw new NotFoundException();
-            case QUESTION_ALREADY_REPLIED -> throw new WebApplicationException(409);
+            case AUCTION_NOT_FOUND -> throw new NotFoundException(message);
             case BAD_REQUEST -> throw new BadRequestException(message);
+            case INVALID_CREDENTIALS -> throw new WebApplicationException(message, 401);
+            case QUESTION_ALREADY_REPLIED -> throw new WebApplicationException(message, 409);
+            case QUESTION_NOT_FOUND -> throw new NotFoundException(message);
+            case USER_ALREADY_EXISTS -> throw new WebApplicationException(message, 409);
+            case USER_NOT_FOUND -> throw new NotFoundException(message);
         }
     }
 }

@@ -13,7 +13,7 @@ import com.azure.cosmos.models.PartitionKey;
 
 import scc.azure.config.CosmosDbConfig;
 import scc.azure.dao.BidDAO;
-import scc.services.AuctionService;
+import scc.services.ServiceError;
 import scc.utils.Result;
 
 class BidDB {
@@ -56,7 +56,7 @@ class BidDB {
      * @param bid Object that represents a bid
      * @return 200 with bid's generated identifier
      */
-    public Result<BidDAO, AuctionService.Error> createBid(BidDAO bid) {
+    public Result<BidDAO, ServiceError> createBid(BidDAO bid) {
         if (bid.getId() == null)
             bid.setId(UUID.randomUUID().toString());
         var response = this.container.createItem(bid);

@@ -3,7 +3,10 @@ package scc.memory;
 import java.util.HashMap;
 import java.util.Optional;
 
+import org.apache.commons.lang3.NotImplementedException;
+
 import scc.services.MediaService;
+import scc.services.ServiceError;
 import scc.services.UserService;
 import scc.utils.Result;
 
@@ -31,13 +34,13 @@ public class MemoryUserService implements UserService {
     }
 
     @Override
-    public synchronized Result<String, Error> createUser(CreateUserParams params) {
+    public synchronized Result<String, ServiceError> createUser(CreateUserParams params) {
         var validateResult = UserService.validateCreateUserParams(params);
         if (validateResult.isError())
             return Result.err(validateResult.error());
 
         if (this.users.containsKey(params.nickname())) {
-            return Result.err(Error.USER_ALREADY_EXISTS);
+            return Result.err(ServiceError.USER_ALREADY_EXISTS);
         }
 
         var imageId = params.image().map(img -> this.media.uploadUserProfilePicture(params.nickname(), img));
@@ -47,10 +50,10 @@ public class MemoryUserService implements UserService {
     }
 
     @Override
-    public synchronized Result<Void, Error> deleteUser(String userId) {
+    public synchronized Result<Void, ServiceError> deleteUser(String userId) {
         var user = this.users.remove(userId);
         if (user == null) {
-            return Result.err(Error.USER_NOT_FOUND);
+            return Result.err(ServiceError.USER_NOT_FOUND);
         }
 
         user.imageId.ifPresent(this.media::deleteMedia);
@@ -58,14 +61,14 @@ public class MemoryUserService implements UserService {
     }
 
     @Override
-    public synchronized Result<Void, Error> updateUser(String userId, UpdateUserOps ops) {
+    public synchronized Result<Void, ServiceError> updateUser(String userId, UpdateUserOps ops) {
         var validateResult = UserService.validateUpdateUserOps(ops);
         if (validateResult.isError())
             return Result.err(validateResult.error());
 
         var user = this.users.get(userId);
         if (user == null) {
-            return Result.err(Error.USER_NOT_FOUND);
+            return Result.err(ServiceError.USER_NOT_FOUND);
         }
 
         if (ops.shouldUpdateName()) {
@@ -86,6 +89,11 @@ public class MemoryUserService implements UserService {
 
     public synchronized boolean userExists(String userId) {
         return this.users.containsKey(userId);
+    }
+
+    @Override
+    public Result<String, ServiceError> authenticateUser(String userId, String password) {
+        throw new NotImplementedException();
     }
 
 }

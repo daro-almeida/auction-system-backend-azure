@@ -12,6 +12,7 @@ import com.azure.cosmos.models.PartitionKey;
 
 import scc.azure.config.CosmosDbConfig;
 import scc.azure.dao.UserDAO;
+import scc.services.ServiceError;
 import scc.services.UserService;
 import scc.utils.Result;
 
@@ -56,12 +57,12 @@ class UserDB {
      * @return 200 with created user's nickname or error if it already exists in the
      *         database
      */
-    public Result<UserDAO, UserService.Error> createUser(UserDAO user) {
+    public Result<UserDAO, ServiceError> createUser(UserDAO user) {
         try {
             var response = this.container.createItem(user);
             return Result.ok(response.getItem());
         } catch (CosmosException e) {
-            return Result.err(UserService.Error.USER_ALREADY_EXISTS);
+            return Result.err(ServiceError.USER_ALREADY_EXISTS);
         }
     }
 
@@ -71,11 +72,11 @@ class UserDB {
      * @param userId nickname of the user to be deleted
      * @return 204 if successful, respective error otherwise
      */
-    public Result<UserDAO, UserService.Error> deleteUser(String userId) {
+    public Result<UserDAO, ServiceError> deleteUser(String userId) {
         // TODO: how get delete item from deleteItem call?
         var userOpt = this.getUser(userId);
         if (userOpt.isEmpty())
-            return Result.err(UserService.Error.USER_NOT_FOUND);
+            return Result.err(ServiceError.USER_NOT_FOUND);
         var user = userOpt.get();
 
         var options = this.createRequestOptions(userId);
@@ -85,7 +86,7 @@ class UserDB {
             return Result.ok(user);
         } catch (CosmosException e) {
             if (e.getStatusCode() == 404)
-                return Result.err(UserService.Error.USER_NOT_FOUND);
+                return Result.err(ServiceError.USER_NOT_FOUND);
             throw e;
         }
     }
@@ -97,14 +98,14 @@ class UserDB {
      * @param ops    operations to be executed on the user's database entry
      * @return 204 if successful, respective error otherwise
      */
-    public Result<Void, UserService.Error> updateUser(String userId, CosmosPatchOperations ops) {
+    public Result<Void, ServiceError> updateUser(String userId, CosmosPatchOperations ops) {
         var partitionKey = this.createPartitionKey(userId);
         try {
             this.container.patchItem(userId, partitionKey, ops, UserDAO.class);
             return Result.ok();
         } catch (CosmosException e) {
             if (e.getStatusCode() == 404)
-                return Result.err(UserService.Error.USER_NOT_FOUND);
+                return Result.err(ServiceError.USER_NOT_FOUND);
             throw e;
         }
     }

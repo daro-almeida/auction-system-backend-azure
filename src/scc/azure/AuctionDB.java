@@ -14,7 +14,7 @@ import com.azure.cosmos.models.PartitionKey;
 
 import scc.azure.config.CosmosDbConfig;
 import scc.azure.dao.AuctionDAO;
-import scc.services.AuctionService;
+import scc.services.ServiceError;
 import scc.utils.Result;
 
 class AuctionDB {
@@ -57,7 +57,7 @@ class AuctionDB {
      * @param auction Object that represents an auction
      * @return 200 with new auction's generated identifier
      */
-    public Result<AuctionDAO, AuctionService.Error> createAuction(AuctionDAO auction) {
+    public Result<AuctionDAO, ServiceError> createAuction(AuctionDAO auction) {
         if (auction.getId() == null)
             auction.setId(UUID.randomUUID().toString());
         var response = this.container.createItem(auction);
@@ -70,7 +70,7 @@ class AuctionDB {
      * @param auctionId identifier of the auction
      * @return 204 if successful, 404 otherwise
      */
-    public Result<Void, AuctionService.Error> deleteAuction(String auctionId) {
+    public Result<Void, ServiceError> deleteAuction(String auctionId) {
         try {
             var deleteOps = CosmosPatchOperations.create();
             deleteOps.set("/status", AuctionDAO.Status.DELETED);
@@ -78,12 +78,12 @@ class AuctionDB {
             return Result.ok(response.value());
         } catch (CosmosException e) {
             if (e.getStatusCode() == 404)
-                return Result.err(AuctionService.Error.AUCTION_NOT_FOUND);
+                return Result.err(ServiceError.AUCTION_NOT_FOUND);
             throw e;
         }
     }
 
-    public Result<List<AuctionDAO>, AuctionService.Error> listAuctionsOfUser(String userId) {
+    public Result<List<AuctionDAO>, ServiceError> listAuctionsOfUser(String userId) {
         var options = this.createQueryOptions();
         var auctions = this.container
                 .queryItems(
@@ -101,13 +101,13 @@ class AuctionDB {
      * @param ops       operations to be executed on the entry
      * @return 204 if successful, 404 otherwise
      */
-    public Result<Void, AuctionService.Error> updateAuction(String auctionId, CosmosPatchOperations ops) {
+    public Result<Void, ServiceError> updateAuction(String auctionId, CosmosPatchOperations ops) {
         var partitionKey = this.createPartitionKey(auctionId);
         try {
             this.container.patchItem(auctionId, partitionKey, ops, AuctionDAO.class);
             return Result.ok();
         } catch (CosmosException e) {
-            return Result.err(AuctionService.Error.AUCTION_NOT_FOUND);
+            return Result.err(ServiceError.AUCTION_NOT_FOUND);
         }
     }
 
@@ -117,7 +117,7 @@ class AuctionDB {
      * @param userId identifier of the user
      * @return 204
      */
-    public Result<Void, AuctionService.Error> deleteUserAuctions(String userId) {
+    public Result<Void, ServiceError> deleteUserAuctions(String userId) {
         for (AuctionDAO auction : userAuctions(userId)) {
             var result = deleteAuction(auction.getId());
             if (!result.isOk())

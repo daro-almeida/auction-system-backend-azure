@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import scc.services.AuctionService;
+import scc.services.ServiceError;
 import scc.services.data.BidItem;
 import scc.services.data.QuestionItem;
 import scc.services.data.ReplyItem;
@@ -57,9 +58,9 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public synchronized Result<String, Error> createAuction(CreateAuctionParams params) {
+    public synchronized Result<String, ServiceError> createAuction(CreateAuctionParams params) {
         if (!this.userService.userExists(params.userId())) {
-            return Result.err(Error.USER_NOT_FOUND);
+            return Result.err(ServiceError.USER_NOT_FOUND);
         }
 
         var auction = new Auction();
@@ -77,10 +78,10 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public synchronized Result<Void, Error> deleteAuction(String auctionId) {
+    public synchronized Result<Void, ServiceError> deleteAuction(String auctionId) {
         var auction = this.auctions.remove(auctionId);
         if (auction == null) {
-            return Result.err(Error.AUCTION_NOT_FOUND);
+            return Result.err(ServiceError.AUCTION_NOT_FOUND);
         }
 
         if (auction.imageId.isPresent()) {
@@ -91,7 +92,7 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public synchronized Result<List<String>, Error> listAuctionsOfUser(String userId) {
+    public synchronized Result<List<String>, ServiceError> listAuctionsOfUser(String userId) {
         return Result.ok(this.auctions.entrySet().stream()
                 .filter(entry -> entry.getValue().userId.equals(userId))
                 .map(entry -> entry.getKey())
@@ -99,10 +100,10 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public synchronized Result<Void, Error> updateAuction(String auctionId, UpdateAuctionOps ops) {
+    public synchronized Result<Void, ServiceError> updateAuction(String auctionId, UpdateAuctionOps ops) {
         var auction = this.auctions.get(auctionId);
         if (auction == null) {
-            return Result.err(Error.AUCTION_NOT_FOUND);
+            return Result.err(ServiceError.AUCTION_NOT_FOUND);
         }
 
         if (ops.shouldUpdateTitle()) {
@@ -124,14 +125,14 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public synchronized Result<String, Error> createBid(CreateBidParams params) {
+    public synchronized Result<String, ServiceError> createBid(CreateBidParams params) {
         var auction = this.auctions.get(params.auctionId());
         if (auction == null) {
-            return Result.err(Error.AUCTION_NOT_FOUND);
+            return Result.err(ServiceError.AUCTION_NOT_FOUND);
         }
 
         if (!this.userService.userExists(params.userId())) {
-            return Result.err(Error.USER_NOT_FOUND);
+            return Result.err(ServiceError.USER_NOT_FOUND);
         }
 
         var bid = new Bid();
@@ -145,10 +146,10 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public synchronized Result<List<BidItem>, Error> listBids(String auctionId) {
+    public synchronized Result<List<BidItem>, ServiceError> listBids(String auctionId) {
         var auction = this.auctions.get(auctionId);
         if (auction == null) {
-            return Result.err(Error.AUCTION_NOT_FOUND);
+            return Result.err(ServiceError.AUCTION_NOT_FOUND);
         }
 
         var bids = auction.bids.stream().map(id -> {
@@ -160,14 +161,14 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public synchronized Result<String, Error> createQuestion(CreateQuestionParams params) {
+    public synchronized Result<String, ServiceError> createQuestion(CreateQuestionParams params) {
         var auction = this.auctions.get(params.auctionId());
         if (auction == null) {
-            return Result.err(Error.AUCTION_NOT_FOUND);
+            return Result.err(ServiceError.AUCTION_NOT_FOUND);
         }
 
         if (!this.userService.userExists(params.userId())) {
-            return Result.err(Error.USER_NOT_FOUND);
+            return Result.err(ServiceError.USER_NOT_FOUND);
         }
 
         var question = new Question();
@@ -181,23 +182,23 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public synchronized Result<Void, Error> createReply(CreateReplyParams params) {
+    public synchronized Result<Void, ServiceError> createReply(CreateReplyParams params) {
         var auction = this.auctions.get(params.auctionId());
         if (auction == null) {
-            return Result.err(Error.AUCTION_NOT_FOUND);
+            return Result.err(ServiceError.AUCTION_NOT_FOUND);
         }
 
         if (!this.userService.userExists(params.userId())) {
-            return Result.err(Error.USER_NOT_FOUND);
+            return Result.err(ServiceError.USER_NOT_FOUND);
         }
 
         if (!auction.questions.contains(params.questionId())) {
-            return Result.err(Error.QUESTION_NOT_FOUND);
+            return Result.err(ServiceError.QUESTION_NOT_FOUND);
         }
 
         var question = this.questions.get(params.questionId());
         if (question.reply.isPresent()) {
-            return Result.err(Error.QUESTION_ALREADY_REPLIED);
+            return Result.err(ServiceError.QUESTION_ALREADY_REPLIED);
         }
 
         var reply = new Reply();
@@ -209,10 +210,10 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public synchronized Result<List<QuestionItem>, Error> listQuestions(String auctionId) {
+    public synchronized Result<List<QuestionItem>, ServiceError> listQuestions(String auctionId) {
         var auction = this.auctions.get(auctionId);
         if (auction == null) {
-            return Result.err(Error.AUCTION_NOT_FOUND);
+            return Result.err(ServiceError.AUCTION_NOT_FOUND);
         }
 
         var questions = auction.questions.stream().map(id -> {

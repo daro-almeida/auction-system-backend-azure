@@ -14,6 +14,7 @@ import com.azure.cosmos.models.PartitionKey;
 import scc.azure.config.CosmosDbConfig;
 import scc.azure.dao.QuestionDAO;
 import scc.services.AuctionService;
+import scc.services.ServiceError;
 import scc.utils.Result;
 
 class QuestionDB {
@@ -56,7 +57,7 @@ class QuestionDB {
      * @param question Object that represents a question
      * @return 200 with question's identifier
      */
-    public Result<QuestionDAO, AuctionService.Error> createQuestion(QuestionDAO question) {
+    public Result<QuestionDAO, ServiceError> createQuestion(QuestionDAO question) {
         if (question.getId() == null)
             question.setId(UUID.randomUUID().toString());
         var response = this.container.createItem(question);
@@ -70,12 +71,12 @@ class QuestionDB {
      * @param reply      Object that represents a reply to the question
      * @return 200 with reply's identifier
      */
-    public Result<QuestionDAO, AuctionService.Error> createReply(String questionId, QuestionDAO.Reply reply) {
+    public Result<QuestionDAO, ServiceError> createReply(String questionId, QuestionDAO.Reply reply) {
         var question = this.getQuestion(questionId);
         if (question.isEmpty())
-            return Result.err(AuctionService.Error.QUESTION_NOT_FOUND);
+            return Result.err(ServiceError.QUESTION_NOT_FOUND);
         if (question.get().getReply() != null)
-            return Result.err(AuctionService.Error.QUESTION_ALREADY_REPLIED);
+            return Result.err(ServiceError.QUESTION_ALREADY_REPLIED);
 
         var partitionKey = this.createPartitionKey(questionId);
         var patch = CosmosPatchOperations.create();

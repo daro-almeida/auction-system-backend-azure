@@ -62,7 +62,7 @@ public class AuctionResource {
                 ResourceUtils.decodeBase64Nullable(request.imageBase64())));
 
         if (result.isError())
-            ResourceUtils.throwError(result.error());
+            ResourceUtils.throwError(result.error(), result.errorMessage());
 
         return result.value();
     }
@@ -98,7 +98,7 @@ public class AuctionResource {
         var result = this.service.updateAuction(auctionId, updateOps);
 
         if (result.isError())
-            ResourceUtils.throwError(result.error());
+            ResourceUtils.throwError(result.error(), result.errorMessage());
     }
 
     public static record CreateBidRequest(
@@ -127,7 +127,7 @@ public class AuctionResource {
                 request.bid().longValue()));
 
         if (result.isError())
-            ResourceUtils.throwError(result.error());
+            ResourceUtils.throwError(result.error(), result.errorMessage());
 
         return result.value();
     }
@@ -147,7 +147,7 @@ public class AuctionResource {
         var result = this.service.listBids(auctionId);
 
         if (result.isError())
-            ResourceUtils.throwError(result.error());
+            ResourceUtils.throwError(result.error(), result.errorMessage());
 
         return result.value().stream().map(BidDTO::from).toList();
     }
@@ -178,7 +178,7 @@ public class AuctionResource {
                 request.question()));
 
         if (result.isError())
-            ResourceUtils.throwError(result.error());
+            ResourceUtils.throwError(result.error(), result.errorMessage());
 
         return result.value();
     }
@@ -211,7 +211,7 @@ public class AuctionResource {
                 request.reply()));
 
         if (result.isError())
-            ResourceUtils.throwError(result.error());
+            ResourceUtils.throwError(result.error(), result.errorMessage());
     }
 
     /**
@@ -229,7 +229,7 @@ public class AuctionResource {
         var result = this.service.listQuestions(auctionId);
 
         if (result.isError())
-            ResourceUtils.throwError(result.error());
+            ResourceUtils.throwError(result.error(), result.errorMessage());
 
         return result.value().stream().map(QuestionDTO::from).toList();
     }

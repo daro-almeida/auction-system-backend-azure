@@ -13,6 +13,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import scc.services.AuctionService;
 import scc.services.UserService;
 
@@ -133,5 +134,28 @@ public class UserResource {
 
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
+    }
+
+    public static record AuthenticateUserRequest(
+            @JsonProperty(required = true) String nickname,
+            @JsonProperty(required = true) String password) {
+    }
+
+    @POST
+    @Path("/auth")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response authenticateUser(AuthenticateUserRequest request) {
+        System.out.println("Received authenticate user request");
+        System.out.println(request);
+
+        var result = this.service.authenticateUser(request.nickname(), request.password());
+
+        if (result.isError())
+            ResourceUtils.throwError(result.error(), result.errorMessage());
+
+        var sessionToken = result.value();
+        var cookie = ResourceUtils.createSessionCookie(sessionToken);
+
+        return Response.ok().cookie(cookie).build();
     }
 }

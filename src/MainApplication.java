@@ -6,6 +6,7 @@ import scc.azure.AzureMonolithService;
 import scc.azure.config.AzureMonolithConfig;
 import scc.azure.config.BlobStoreConfig;
 import scc.azure.config.CosmosDbConfig;
+import scc.azure.config.RedisConfig;
 import scc.memory.MemoryAuctionService;
 import scc.memory.MemoryMediaService;
 import scc.memory.MemoryUserService;
@@ -73,6 +74,8 @@ public class MainApplication extends Application {
                 var azureCosmosDbAuctionContainerName = getEnvVar(ENV_AZURE_COSMOS_DB_AUCTION_CONTAINER_NAME);
                 var azureCosmosDbBidContainerName = getEnvVar(ENV_AZURE_COSMOS_DB_BID_CONTAINER_NAME);
                 var azureCosmosDbQuestionContainerName = getEnvVar(ENV_AZURE_COSMOS_DB_QUESTION_CONTAINER_NAME);
+                var azureRedisKey = getEnvVar(ENV_AZURE_REDIS_KEY);
+                var azureRedisUrl = getEnvVar(ENV_AZURE_REDIS_URL);
 
                 var config = new AzureMonolithConfig(
                         new BlobStoreConfig(
@@ -86,14 +89,13 @@ public class MainApplication extends Application {
                                 azureCosmosDbAuctionContainerName,
                                 azureCosmosDbUserContainerName,
                                 azureCosmosDbBidContainerName,
-                                azureCosmosDbQuestionContainerName));
+                                azureCosmosDbQuestionContainerName),
+                        new RedisConfig(azureRedisKey, azureRedisUrl));
 
                 var azureEnableCaching = getEnvVar(ENV_AZURE_ENABLE_CACHING, ENV_AZURE_ENABLE_CACHING_NO);
                 switch (azureEnableCaching) {
                     case ENV_AZURE_ENABLE_CACHING_YES:
-                        var azureRedisKey = getEnvVar(ENV_AZURE_REDIS_KEY);
-                        var azureRedisUrl = getEnvVar(ENV_AZURE_REDIS_URL);
-                        config.enableCaching(azureRedisKey, azureRedisUrl);
+                        config.enableCaching();
                         break;
                     case ENV_AZURE_ENABLE_CACHING_NO:
                         break;

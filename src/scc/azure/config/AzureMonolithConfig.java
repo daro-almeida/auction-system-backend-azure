@@ -1,20 +1,21 @@
 package scc.azure.config;
 
-import java.util.Optional;
-
 public class AzureMonolithConfig {
     private final BlobStoreConfig blobStoreConfig;
     private final CosmosDbConfig cosmosDbConfig;
-    private Optional<RedisConfig> redisConfig;
+    private final RedisConfig redisConfig;
+    private boolean isCachingEnabled;
 
-    public AzureMonolithConfig(BlobStoreConfig blobStoreConfig, CosmosDbConfig cosmosDbConfig) {
+    public AzureMonolithConfig(BlobStoreConfig blobStoreConfig, CosmosDbConfig cosmosDbConfig,
+            RedisConfig redisConfig) {
         this.blobStoreConfig = blobStoreConfig;
         this.cosmosDbConfig = cosmosDbConfig;
-        this.redisConfig = Optional.empty();
+        this.redisConfig = redisConfig;
+        this.isCachingEnabled = false;
     }
 
-    public AzureMonolithConfig enableCaching(String redisKey, String redisUrl) {
-        this.redisConfig = Optional.of(new RedisConfig(redisKey, redisUrl));
+    public AzureMonolithConfig enableCaching() {
+        this.isCachingEnabled = true;
         return this;
     }
 
@@ -26,11 +27,11 @@ public class AzureMonolithConfig {
         return cosmosDbConfig;
     }
 
-    public Optional<RedisConfig> getRedisConfig() {
+    public RedisConfig getRedisConfig() {
         return redisConfig;
     }
 
     public boolean isCachingEnabled() {
-        return redisConfig.isPresent();
+        return this.isCachingEnabled;
     }
 }

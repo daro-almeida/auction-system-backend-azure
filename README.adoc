@@ -101,7 +101,7 @@ AZURE_REDIS_URL=
 | The name of the container to store question documents.
 
 | `AZURE_ENABLE_CACHING`
-| Whether to enable caching. Can be `1` or `0`. Defaults to `0`. Variables prefixed with `AZURE_REDIS_` are only used if `AZURE_ENABLE_CACHING` is `1`.
+| Whether to enable caching. Can be `1` or `0`. Defaults to `0`.
 
 | `AZURE_REDIS_KEY`
 | The key to the Azure Redis Cache account.

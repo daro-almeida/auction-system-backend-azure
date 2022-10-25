@@ -1,7 +1,5 @@
 package scc.azure.dao;
 
-import scc.utils.Hash;
-
 /**
  * Represents a User, as stored in the database
  */
@@ -63,10 +61,6 @@ public class UserDAO {
         this.name = name;
     }
 
-    public void setPwd(String pwd) {
-        this.hashedPwd = Hash.of(pwd);
-    }
-
     public void setPhotoId(String photoId) {
         this.photoId = photoId;
     }
@@ -81,5 +75,9 @@ public class UserDAO {
                 ", hashedPwd='" + hashedPwd + '\'' +
                 ", photoId='" + photoId + '\'' +
                 '}';
+    }
+
+    public void setHashedPwd(String hashedPwd) {
+        this.hashedPwd = hashedPwd;
     }
 }
