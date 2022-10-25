@@ -60,6 +60,10 @@ class Validator:
                 f"Expected content {expected}, got {self.response.content}",
             )
 
+    def cookie_exists(self, name: str):
+        if name not in self.response.cookies:
+            raise AssertionError(self.response, f"Expected cookie {name} to exist")
+
     def equals(self, actual, expected, message: Union[str, None]):
         if actual != expected:
             raise AssertionError(

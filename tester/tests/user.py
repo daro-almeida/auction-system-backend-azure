@@ -9,6 +9,9 @@ def group(endpoints: scc.Endpoints):
             create_duplicate_user(endpoints),
             delete_user(endpoints),
             delete_missing_user(endpoints),
+            authenticate(endpoints),
+            authenticate_with_invalid_nickname(endpoints),
+            authenticate_with_invalid_password(endpoints),
             *invalid_create_test_cases(endpoints),
         ]
     )
@@ -54,6 +57,46 @@ def delete_missing_user(endpoints: scc.Endpoints):
     response = rclient.delete_user("missing")
     with recon.validate(response) as validator:
         validator.status_code(404)
+
+
+@recon.test_case("user", "authenticate")
+def authenticate(endpoints: scc.Endpoints):
+    client = scc.Client(endpoints)
+    user_create_request = scc.UserCreateRequest.random()
+    user_id = client.create_user(user_create_request)
+    response = client.raw.authenticate_user(
+        scc.UserAuthenticateRequest(
+            user_create_request.nickname, user_create_request.password
+        )
+    )
+
+    with recon.validate(response) as validator:
+        validator.status_code(200)
+        validator.cookie_exists("scc:session")
+
+
+@recon.test_case("user", "authenticate with invalid nickname")
+def authenticate_with_invalid_nickname(endpoints: scc.Endpoints):
+    client = scc.Client(endpoints)
+    response = client.raw.authenticate_user(
+        scc.UserAuthenticateRequest("invalid", "password")
+    )
+
+    with recon.validate(response) as validator:
+        validator.status_code(404)
+
+
+@recon.test_case("user", "authenticate with invalid password")
+def authenticate_with_invalid_password(endpoints: scc.Endpoints):
+    client = scc.Client(endpoints)
+    user_create_request = scc.UserCreateRequest.random()
+    user_id = client.create_user(user_create_request)
+    response = client.raw.authenticate_user(
+        scc.UserAuthenticateRequest(user_create_request.nickname, "invalid")
+    )
+
+    with recon.validate(response) as validator:
+        validator.status_code(401)
 
 
 def invalid_create_test_cases(endpoints: scc.Endpoints) -> list[recon.TestCase]:

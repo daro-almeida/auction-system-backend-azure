@@ -13,12 +13,14 @@ T = TypeVar("T")
 class Endpoints:
     base: str
     user: str
+    user_auth: str
     media: str
     auction: str
 
     def __init__(self, base="http://localhost:8080"):
         self.base = base
         self.user = base + "/rest/user"
+        self.user_auth = base + "/rest/user/auth"
         self.media = base + "/rest/media"
         self.auction = base + "/rest/auction"
 
@@ -150,6 +152,20 @@ class UserUpdateRequest:
 
 
 @dataclass
+class UserAuthenticateRequest:
+    nickname: str
+    password: str
+
+    @staticmethod
+    def random(**kwargs):
+        faker = Faker()
+        request = UserAuthenticateRequest(
+            nickname=faker.user_name(), password=faker.password()
+        )
+        return _patch_dataclass_with_kwargs
+
+
+@dataclass
 class AuctionCreateRequest:
     title: str
     description: str
@@ -239,28 +255,32 @@ class ReplyCreateRequest:
 
 class RawClient:
     def __init__(self, endpoints: Endpoints):
+        self.session = requests.Session()
         self.endpoints = endpoints
 
     # Media API
     def upload_media(self, content: bytes) -> requests.Response:
-        return requests.post(self.endpoints.media, data=content)
+        return self.session.post(self.endpoints.media, data=content)
 
     def download_media(self, media_id: str) -> requests.Response:
-        return requests.get(self.endpoints.media + "/" + media_id)
+        return self.session.get(self.endpoints.media + "/" + media_id)
 
     # User API
     def create_user(self, params: UserCreateRequest) -> requests.Response:
-        return requests.post(self.endpoints.user, json=params.__dict__)
+        return self.session.post(self.endpoints.user, json=params.__dict__)
 
     def delete_user(self, user_id: str) -> requests.Response:
-        return requests.delete(self.endpoints.user + "/" + user_id)
+        return self.session.delete(self.endpoints.user + "/" + user_id)
 
     def update_user(self, params: UserUpdateRequest) -> requests.Response:
         pass
 
+    def authenticate_user(self, params: UserAuthenticateRequest) -> requests.Response:
+        return self.session.post(self.endpoints.user_auth, json=params.__dict__)
+
     # Auction API
     def create_auction(self, params: AuctionCreateRequest) -> requests.Response:
-        return requests.post(self.endpoints.auction, json=params.__dict__)
+        return self.session.post(self.endpoints.auction, json=params.__dict__)
 
     def update_auction(self, params: AuctionUpdateRequest) -> requests.Response:
         pass
@@ -284,40 +304,49 @@ class RawClient:
 
 
 class Client:
-    def __init__(self, endpoints: Endpoints):
-        self.rclient = RawClient(endpoints)
-        self.endpoints = endpoints
+    def __init__(self, rawclient_or_endpoints: Union[Endpoints, RawClient]):
+        if isinstance(rawclient_or_endpoints, RawClient):
+            self.raw = rawclient_or_endpoints
+            self._endpoints = rawclient_or_endpoints.endpoints
+        else:
+            self.raw = RawClient(rawclient_or_endpoints)
+            self._endpoints = rawclient_or_endpoints
 
     # Media API
     def upload_media(self, content: bytes) -> str:
-        response = self.rclient.upload_media(content)
+        response = self.raw.upload_media(content)
         assert response.status_code == 200
         return response.text
 
     def download_media(self, media_id: str) -> bytes:
-        response = self.rclient.download_media(media_id)
+        response = self.raw.download_media(media_id)
         assert response.status_code == 200
         return response.content
 
     # User API
     def create_user(self, params: Union[UserCreateRequest, None] = None) -> str:
-        response = self.rclient.create_user(params or UserCreateRequest.random())
+        response = self.raw.create_user(params or UserCreateRequest.random())
         assert response.status_code == 200
         return response.text
 
     def delete_user(self, user_id: str) -> None:
-        response = self.rclient.delete_user(user_id)
+        response = self.raw.delete_user(user_id)
         assert response.status_code == 204
 
     def update_user(self, params: UserUpdateRequest) -> None:
         pass
+
+    def authenticate_user(self, params: UserAuthenticateRequest) -> str:
+        response = self.raw.authenticate_user(params)
+        assert response.status_code == 200
+        return response.text
 
     # Auction API
     def create_auction(self, params: Union[AuctionCreateRequest, None] = None) -> str:
         if params == None:
             user_id = self.create_user()
             params = AuctionCreateRequest.random(user_id)
-        response = self.rclient.create_auction(params)
+        response = self.raw.create_auction(params)
         assert response.status_code == 200
         return response.text
 
@@ -331,14 +360,14 @@ class Client:
 
     # Question API
     def create_question(self, auction_id: str, params: QuestionCreateRequest) -> str:
-        response = self.rclient.create_question(auction_id, params)
+        response = self.raw.create_question(auction_id, params)
         assert response.status_code == 200
         return response.text
 
     def create_reply(
         self, auction_id: str, question_id: str, params: ReplyCreateRequest
     ) -> None:
-        response = self.rclient.create_reply(auction_id, question_id, params)
+        response = self.raw.create_reply(auction_id, question_id, params)
         assert response.status_code == 204
 
 
