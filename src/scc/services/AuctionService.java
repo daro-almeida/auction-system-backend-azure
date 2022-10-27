@@ -3,6 +3,7 @@ package scc.services;
 import java.util.List;
 import java.util.Optional;
 
+import jakarta.ws.rs.core.Cookie;
 import scc.services.data.BidItem;
 import scc.services.data.QuestionItem;
 import scc.utils.Result;
@@ -17,7 +18,7 @@ public interface AuctionService {
             Optional<byte[]> image) {
     }
 
-    Result<String, ServiceError> createAuction(CreateAuctionParams params);
+    Result<String, ServiceError> createAuction(CreateAuctionParams params, Cookie auth);
 
     Result<Void, ServiceError> deleteAuction(String auctionId);
 
@@ -71,7 +72,7 @@ public interface AuctionService {
         }
     }
 
-    Result<Void, ServiceError> updateAuction(String auctionId, UpdateAuctionOps ops);
+    Result<Void, ServiceError> updateAuction(String auctionId, UpdateAuctionOps ops, Cookie auth);
 
     public static record CreateBidParams(
             String auctionId,
@@ -79,7 +80,7 @@ public interface AuctionService {
             long price) {
     }
 
-    Result<String, ServiceError> createBid(CreateBidParams params);
+    Result<String, ServiceError> createBid(CreateBidParams params, Cookie auth);
 
     Result<List<BidItem>, ServiceError> listBids(String auctionId);
 
@@ -89,7 +90,7 @@ public interface AuctionService {
             String question) {
     }
 
-    Result<String, ServiceError> createQuestion(CreateQuestionParams params);
+    Result<String, ServiceError> createQuestion(CreateQuestionParams params, Cookie auth);
 
     public static record CreateReplyParams(
             String auctionId,
@@ -98,7 +99,7 @@ public interface AuctionService {
             String reply) {
     }
 
-    Result<Void, ServiceError> createReply(CreateReplyParams params);
+    Result<Void, ServiceError> createReply(CreateReplyParams params, Cookie auth);
 
     Result<List<QuestionItem>, ServiceError> listQuestions(String auctionId);
 

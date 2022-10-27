@@ -2,6 +2,7 @@ package scc.services;
 
 import java.util.Optional;
 
+import jakarta.ws.rs.core.Cookie;
 import scc.utils.Result;
 
 public interface UserService {
@@ -14,7 +15,7 @@ public interface UserService {
 
     Result<String, ServiceError> createUser(CreateUserParams params);
 
-    Result<Void, ServiceError> deleteUser(String userId);
+    Result<Void, ServiceError> deleteUser(String userId, Cookie auth);
 
     public static class UpdateUserOps {
         private String name;
@@ -64,7 +65,7 @@ public interface UserService {
         }
     }
 
-    Result<Void, ServiceError> updateUser(String userId, UpdateUserOps ops);
+    Result<Void, ServiceError> updateUser(String userId, UpdateUserOps ops, Cookie auth);
 
     Result<String, ServiceError> authenticateUser(String userId, String password);
 

@@ -4,18 +4,14 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.PATCH;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Cookie;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import scc.services.AuctionService;
 import scc.services.UserService;
+
+import static scc.resources.ResourceUtils.SESSION_COOKIE;
 
 /**
  * Resource for managing users.
@@ -88,12 +84,14 @@ public class UserResource {
      * Deletes a user from the database
      * 
      * @param id nickname of the user wished to be deleted
+     * @param authentication Cookie related to the user being "logged" in the application
      */
     @DELETE
     @Path("/{" + USER_ID + "}")
-    public void deleteUser(@PathParam(USER_ID) String id) {
+    public void deleteUser(@PathParam(USER_ID) String id,
+                           @CookieParam(SESSION_COOKIE) Cookie authentication) {
         System.out.println("Received delete user request for id " + id);
-        var result = this.service.deleteUser(id);
+        var result = this.service.deleteUser(id, authentication);
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
     }
@@ -110,11 +108,14 @@ public class UserResource {
      * 
      * @param id      nickname of the user to be updated
      * @param request Request that has the new parameters
+     * @param authentication Cookie related to the user being "logged" in the application
      */
     @PATCH
     @Path("/{" + USER_ID + "}")
     @Consumes(MediaType.APPLICATION_JSON)
-    public void updateUser(@PathParam(USER_ID) String id, UpdateUserRequest request) {
+    public void updateUser(@PathParam(USER_ID) String id,
+                           UpdateUserRequest request,
+                           @CookieParam(SESSION_COOKIE) Cookie authentication) {
         System.out.println("Received update user request for id " + id);
         System.out.println(request);
 
@@ -130,7 +131,7 @@ public class UserResource {
         if (photo.isPresent())
             updateOps = updateOps.updateImage(photo.get());
 
-        var result = this.service.updateUser(id, updateOps);
+        var result = this.service.updateUser(id, updateOps, authentication);
 
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());

@@ -19,7 +19,7 @@ public class ControlResource {
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     public String hello() {
-        return "v: 1.1.7";
+        return "v: 1.2.1";
     }
 
 }

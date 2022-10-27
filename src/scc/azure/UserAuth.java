@@ -66,6 +66,17 @@ public class UserAuth {
         }
     }
 
+    /**
+     * Deletes the entry from the cache associated to the given session token.
+     * @param sessionToken Session token from the logged in user
+     */
+    public void deleteSessionToken(String sessionToken) {
+        var cacheKey = this.cacheKeyFromToken(sessionToken);
+        try (var client = this.jedisPool.getResource()){
+            client.del(cacheKey);
+        }
+    }
+
     private String cacheKeyFromToken(String sessionToken) {
         return "session:" + sessionToken;
     }

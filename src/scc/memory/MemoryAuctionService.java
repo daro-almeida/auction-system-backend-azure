@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import jakarta.ws.rs.core.Cookie;
 import scc.services.AuctionService;
 import scc.services.ServiceError;
 import scc.services.data.BidItem;
@@ -58,7 +59,7 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public synchronized Result<String, ServiceError> createAuction(CreateAuctionParams params) {
+    public synchronized Result<String, ServiceError> createAuction(CreateAuctionParams params, Cookie auth) {
         if (!this.userService.userExists(params.userId())) {
             return Result.err(ServiceError.USER_NOT_FOUND);
         }
@@ -100,7 +101,7 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public synchronized Result<Void, ServiceError> updateAuction(String auctionId, UpdateAuctionOps ops) {
+    public synchronized Result<Void, ServiceError> updateAuction(String auctionId, UpdateAuctionOps ops, Cookie auth) {
         var auction = this.auctions.get(auctionId);
         if (auction == null) {
             return Result.err(ServiceError.AUCTION_NOT_FOUND);
@@ -125,7 +126,7 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public synchronized Result<String, ServiceError> createBid(CreateBidParams params) {
+    public synchronized Result<String, ServiceError> createBid(CreateBidParams params, Cookie auth) {
         var auction = this.auctions.get(params.auctionId());
         if (auction == null) {
             return Result.err(ServiceError.AUCTION_NOT_FOUND);
@@ -161,7 +162,7 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public synchronized Result<String, ServiceError> createQuestion(CreateQuestionParams params) {
+    public synchronized Result<String, ServiceError> createQuestion(CreateQuestionParams params, Cookie auth) {
         var auction = this.auctions.get(params.auctionId());
         if (auction == null) {
             return Result.err(ServiceError.AUCTION_NOT_FOUND);
@@ -182,7 +183,7 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public synchronized Result<Void, ServiceError> createReply(CreateReplyParams params) {
+    public synchronized Result<Void, ServiceError> createReply(CreateReplyParams params, Cookie auth) {
         var auction = this.auctions.get(params.auctionId());
         if (auction == null) {
             return Result.err(ServiceError.AUCTION_NOT_FOUND);

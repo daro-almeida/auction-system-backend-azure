@@ -2,21 +2,18 @@ package scc.resources;
 
 import java.util.List;
 
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Cookie;
 import org.apache.commons.lang3.NotImplementedException;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.PATCH;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import scc.resources.data.BidDTO;
 import scc.resources.data.QuestionDTO;
 import scc.services.AuctionService;
+
+import static scc.resources.ResourceUtils.SESSION_COOKIE;
 
 @Path("/auction")
 public class AuctionResource {
@@ -43,23 +40,25 @@ public class AuctionResource {
      * 
      * @param request JSON which contains the necessary information to create an
      *                auction
+     * @param authentication Cookie related to the user being "logged" in the application
      * @return Auction's generated identifier
      */
     @POST
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String createAuction(CreateAuctionRequest request) {
+    public String createAuction(CreateAuctionRequest request,
+                                @CookieParam(SESSION_COOKIE) Cookie authentication) {
         System.out.println("Received create auction request");
         System.out.println(request);
-
         var result = this.service.createAuction(new AuctionService.CreateAuctionParams(
                 request.title(),
                 request.description(),
                 request.userId(),
                 request.initialPrice().longValue(),
                 request.endTime(),
-                ResourceUtils.decodeBase64Nullable(request.imageBase64())));
+                ResourceUtils.decodeBase64Nullable(request.imageBase64())),
+                authentication);
 
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
@@ -78,11 +77,14 @@ public class AuctionResource {
      * 
      * @param auctionId Identifier of the auction
      * @param request   JSON which contains the info that wants to be changed
+     * @param authentication Cookie related to the user being "logged" in the application
      */
     @PATCH
     @Path("/{" + AUCTION_ID + "}")
     @Consumes(MediaType.APPLICATION_JSON)
-    public void updateAuction(@PathParam(AUCTION_ID) String auctionId, UpdateAuctionRequest request) {
+    public void updateAuction(@PathParam(AUCTION_ID) String auctionId,
+                              UpdateAuctionRequest request,
+                              @CookieParam(SESSION_COOKIE) Cookie authentication) {
         System.out.println("Received update auction request");
         System.out.println(request);
 
@@ -95,7 +97,7 @@ public class AuctionResource {
             updateOps.updateDescription(request.description());
         image.ifPresent(updateOps::updateImage);
 
-        var result = this.service.updateAuction(auctionId, updateOps);
+        var result = this.service.updateAuction(auctionId, updateOps, authentication);
 
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
@@ -111,20 +113,24 @@ public class AuctionResource {
      * 
      * @param auctionId Identifier of the auction
      * @param request   Arguments necessary to create a bid on the auction
+     * @param authentication Cookie related to the user being "logged" in the application
      * @return Bid's generated identifier
      */
     @POST
     @Path("/{" + AUCTION_ID + "}/bid")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String createBid(@PathParam(AUCTION_ID) String auctionId, CreateBidRequest request) {
+    public String createBid(@PathParam(AUCTION_ID) String auctionId,
+                            CreateBidRequest request,
+                            @CookieParam(SESSION_COOKIE) Cookie authentication) {
         System.out.println("Received create bid request");
         System.out.println(request);
 
         var result = this.service.createBid(new AuctionService.CreateBidParams(
                 auctionId,
                 request.userId(),
-                request.bid().longValue()));
+                request.bid().longValue()),
+                authentication);
 
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
@@ -162,20 +168,25 @@ public class AuctionResource {
      * 
      * @param auctionId Identifier of the auction
      * @param request   Arguments necessary to create a question in the auction
+     * @param authentication Cookie related to the user being "logged" in the application
      * @return Question's generated identifier
      */
     @POST
     @Path("/{" + AUCTION_ID + "}/question")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String createQuestion(@PathParam(AUCTION_ID) String auctionId, CreateQuestionRequest request) {
+    public String createQuestion(@PathParam(AUCTION_ID) String auctionId,
+                                 CreateQuestionRequest request,
+                                 @CookieParam(SESSION_COOKIE) Cookie authentication) {
         System.out.println("Received create question request");
         System.out.println(request);
+
 
         var result = this.service.createQuestion(new AuctionService.CreateQuestionParams(
                 auctionId,
                 request.userId(),
-                request.question()));
+                request.question()),
+                authentication);
 
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
@@ -194,13 +205,16 @@ public class AuctionResource {
      * @param auctionId  Identifier of the auction
      * @param questionId Identifier of the question
      * @param request    Arguments necessary for the execution of creating a reply
+     * @param authentication Cookie related to the user being "logged" in the application
      * @return
      */
     @POST
     @Path("/{" + AUCTION_ID + "}/question/{" + QUESTION_ID + "}")
     @Consumes(MediaType.APPLICATION_JSON)
-    public void createReply(@PathParam(AUCTION_ID) String auctionId, @PathParam(QUESTION_ID) String questionId,
-            CreateReplyRequest request) {
+    public void createReply(@PathParam(AUCTION_ID) String auctionId,
+                            @PathParam(QUESTION_ID) String questionId,
+                            CreateReplyRequest request,
+                            @CookieParam(SESSION_COOKIE) Cookie authentication) {
         System.out.println("Received create reply request");
         System.out.println(request);
 
@@ -208,7 +222,8 @@ public class AuctionResource {
                 auctionId,
                 questionId,
                 request.userId(),
-                request.reply()));
+                request.reply()),
+                authentication);
 
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
