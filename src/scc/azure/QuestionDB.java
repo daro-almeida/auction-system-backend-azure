@@ -7,13 +7,14 @@ import java.util.stream.Collectors;
 
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosDatabase;
+import com.azure.cosmos.CosmosException;
+import com.azure.cosmos.models.CosmosItemRequestOptions;
 import com.azure.cosmos.models.CosmosPatchOperations;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.PartitionKey;
 
 import scc.azure.config.CosmosDbConfig;
 import scc.azure.dao.QuestionDAO;
-import scc.services.AuctionService;
 import scc.services.ServiceError;
 import scc.utils.Result;
 
@@ -123,5 +124,52 @@ class QuestionDB {
         var options = new CosmosQueryRequestOptions();
         options.setPartitionKey(this.createPartitionKey(questionId));
         return options;
+    }
+
+    /**
+     * Delete all questions made by the user with given identifier
+     * @param userId identifier of the user
+     * @return 204 if successful
+     */
+    public Result<Void, ServiceError> deleteQuestionFromUser(String userId) {
+        for (QuestionDAO question : userQuestions(userId)) {
+            var result = deleteQuestion(question.getId());
+            if (!result.isOk())
+                System.out.printf("deleteUserQuestions: question %s not found\n", question.getId());
+        }
+        return Result.ok();
+    }
+
+    /**
+     * Delete a question with given identifier from the database
+     * @param questionId identifier of the question
+     * @return 204 if successful,
+     * 404 if it doesn't exist
+     */
+    private Result<String, ServiceError> deleteQuestion(String questionId) {
+        var options = new CosmosItemRequestOptions();
+        var partitionKey = this.createPartitionKey(questionId);
+        try {
+            this.container.deleteItem(questionId, partitionKey, options);
+            return Result.ok(questionId);
+        } catch (CosmosException e) {
+            if (e.getStatusCode() == 404)
+                return Result.err(ServiceError.QUESTION_NOT_FOUND);
+            throw e;
+        }
+    }
+
+    /**
+     * Gets all the questions made by the user with given identifier
+     * @param userId identifier of the user
+     * @return List of questions made by the user
+     */
+    private List<QuestionDAO> userQuestions(String userId){
+        return this.container
+                .queryItems(
+                        "SELECT * FROM questions WHERE questions.userId=\"" + userId + "\"",
+                        new CosmosQueryRequestOptions(),
+                        QuestionDAO.class)
+                .stream().toList();
     }
 }

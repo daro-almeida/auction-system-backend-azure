@@ -7,12 +7,14 @@ import java.util.stream.Collectors;
 
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosDatabase;
+import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.models.CosmosItemRequestOptions;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.PartitionKey;
 
 import scc.azure.config.CosmosDbConfig;
 import scc.azure.dao.BidDAO;
+import scc.azure.dao.QuestionDAO;
 import scc.services.ServiceError;
 import scc.utils.Result;
 
@@ -93,4 +95,49 @@ class BidDB {
         return new CosmosItemRequestOptions();
     }
 
+    /**
+     * Delete all the bids related to the user with given identifier
+     * @param userId identifier of the user
+     * @return 204
+     */
+    public Result<Void, ServiceError> deleteBidsFromUser(String userId) {
+        for (BidDAO bid : userBids(userId)) {
+            var result = deleteBid(bid.getId());
+            if (!result.isOk())
+                System.out.printf("deleteUserQuestions: question %s not found\n", bid.getId());
+        }
+        return Result.ok();
+    }
+
+    /**
+     * Delete a bid with given identifier from the database
+     * @param bidId identifier of the bid
+     * @return 200 with deleted bid's identifier, 404 if it doesn't exist
+     */
+    private Result<String, ServiceError> deleteBid(String bidId) {
+        var options = new CosmosItemRequestOptions();
+        var partitionKey = this.createPartitionKey(bidId);
+        try {
+            this.container.deleteItem(bidId, partitionKey, options);
+            return Result.ok(bidId);
+        } catch (CosmosException e) {
+            if (e.getStatusCode() == 404)
+                return Result.err(ServiceError.BID_NOT_FOUND);
+            throw e;
+        }
+    }
+
+    /**
+     * Gets the list of bids made by the user with given identifier
+     * @param userId identifier of the user
+     * @return List of bids from the user
+     */
+    private List<BidDAO> userBids(String userId) {
+        return this.container
+                .queryItems(
+                        "SELECT * FROM bids WHERE bids.userId=\"" + userId + "\"",
+                        new CosmosQueryRequestOptions(),
+                        BidDAO.class)
+                .stream().toList();
+    }
 }

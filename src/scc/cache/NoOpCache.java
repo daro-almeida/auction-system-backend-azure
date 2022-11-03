@@ -1,5 +1,7 @@
 package scc.cache;
 
+import java.util.Optional;
+
 public class NoOpCache implements Cache {
 
     @Override
@@ -8,7 +10,17 @@ public class NoOpCache implements Cache {
     }
 
     @Override
+    public Optional<byte[]> getBytes(String key) {
+        return Optional.empty();
+    }
+
+    @Override
     public String set(String key, String value) {
+        return null;
+    }
+
+    @Override
+    public String setBytes(String key, byte[] value) {
         return null;
     }
 
@@ -29,6 +41,16 @@ public class NoOpCache implements Cache {
 
     @Override
     public Long deleteQuestion(String questionId) {
+        return 0L;
+    }
+
+    @Override
+    public Long deleteUser(String userId) {
+        return 0L;
+    }
+
+    @Override
+    public Long deleteMedia(String id) {
         return 0L;
     }
 }

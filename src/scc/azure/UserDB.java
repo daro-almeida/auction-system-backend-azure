@@ -96,13 +96,14 @@ class UserDB {
      * 
      * @param userId nickname of the user to be updated
      * @param ops    operations to be executed on the user's database entry
-     * @return 204 if successful, respective error otherwise
+     * @return 200 with updated user, respective error otherwise
      */
-    public Result<Void, ServiceError> updateUser(String userId, CosmosPatchOperations ops) {
+    public Result<UserDAO, ServiceError> updateUser(String userId, CosmosPatchOperations ops) {
         var partitionKey = this.createPartitionKey(userId);
         try {
             this.container.patchItem(userId, partitionKey, ops, UserDAO.class);
-            return Result.ok();
+            var updatedUser = getUser(userId);
+            return Result.ok(updatedUser.get());
         } catch (CosmosException e) {
             if (e.getStatusCode() == 404)
                 return Result.err(ServiceError.USER_NOT_FOUND);

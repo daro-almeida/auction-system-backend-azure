@@ -8,6 +8,7 @@ public enum ServiceError {
     USER_ALREADY_EXISTS,
 
     AUCTION_NOT_FOUND,
+    BID_NOT_FOUND,
     QUESTION_NOT_FOUND,
     QUESTION_ALREADY_REPLIED,
 }

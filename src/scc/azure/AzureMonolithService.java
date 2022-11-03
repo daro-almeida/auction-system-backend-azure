@@ -28,6 +28,9 @@ import scc.services.data.ReplyItem;
 import scc.utils.Hash;
 import scc.utils.Result;
 
+import static scc.cache.Cache.AUCTION_PREFIX;
+import static scc.cache.Cache.USER_PREFIX;
+
 public class AzureMonolithService implements UserService, MediaService, AuctionService {
     private final MediaStorage mediaStorage;
     private final UserDB userDB;
@@ -91,8 +94,9 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         if (response.isOk() && params.image().isPresent())
             uploadMedia(params.image().get());
 
-        //TODO put auction in cache
-
+        // Store in cache
+        cache.set(AUCTION_PREFIX + auctionDao.getId(), auctionDao.toString());
+        // TODO Delete search entries from cache
         return response.map(AuctionDAO::getId);
     }
 
@@ -106,8 +110,10 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
     @Override
     public Result<Void, ServiceError> deleteAuction(String auctionId) {
         var result = this.auctionDB.deleteAuction(auctionId);
+        // Delete from cache
         if (result.isOk())
             cache.deleteAuction(auctionId);
+        // TODO Delete search entries from cache
         return this.auctionDB.deleteAuction(auctionId);
     }
 
@@ -121,7 +127,8 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      */
     @Override
     public Result<List<String>, ServiceError> listAuctionsOfUser(String userId) {
-        //TODO get user from cache then get auctions from cache?
+        // TODO Get search result from cache if it exists
+        // TODO If not, make the search in database and save in cache
         return this.auctionDB.listAuctionsOfUser(userId)
                 .map(auctions -> auctions.stream().map(AuctionDAO::getId).collect(Collectors.toList()));
     }
@@ -154,9 +161,12 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         var result = this.auctionDB.updateAuction(auctionId, patchOps);
 
         if (result.isOk()) {
-            //TODO maybe change to set auction on cache
-            cache.deleteAuction(auctionId);
+            var updatedAuction = this.auctionDB.getAuction(auctionId).get();
+            // Store in cache the updated value
+            cache.set(AUCTION_PREFIX + updatedAuction.getId(), updatedAuction.toString());
             uploadMedia(ops.getImage());
+            // TODO Delete searches entries from cache
+            // TODO Searching for lists in cache that contain this auction might be exhausting
         }
 
         return result;
@@ -187,8 +197,9 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         var bidDao = new BidDAO(params.auctionId(), params.userId(), params.price());
         var response = this.bidDB.createBid(bidDao);
 
-        //TODO put bid in cache
-
+        // Store in cache
+        cache.set(Cache.BID_PREFIX + bidDao.getId(), bidDao.toString());
+        // TODO Delete search entries from cache
         return response.map(BidDAO::getId);
     }
 
@@ -205,7 +216,9 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         if (!this.auctionDB.auctionExists(auctionId))
             return Result.err(ServiceError.AUCTION_NOT_FOUND);
 
-        //TODO get auction from cache then get bids from cache?
+        // TODO Get search result from cache if it exists
+        // TODO If not, make the search in database and save in cache
+
         return this.bidDB.listBids(auctionId).stream()
                 .map(bid -> new BidItem(bid.getId(), bid.getUserId(), bid.getAmount()))
                 .collect(Collectors.collectingAndThen(Collectors.toList(), Result::ok));
@@ -234,8 +247,9 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         var questionDao = new QuestionDAO(params.auctionId(), params.userId(), params.question());
         var response = this.questionDB.createQuestion(questionDao);
 
-        //TODO put question in cache
-
+        // Store in cache
+        cache.set(Cache.QUESTION_PREFIX + questionDao.getId(), questionDao.toString());
+        // TODO Delete search entries from cache
         return response.map(QuestionDAO::getId);
     }
 
@@ -263,9 +277,10 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         if (response.isError())
             return Result.err(response.error());
 
-        //TODO update question in cache instead maybe
-        cache.deleteQuestion(params.questionId());
-
+        var repliedQuestion = response.value();
+        // Store in cache
+        cache.set(Cache.QUESTION_PREFIX + repliedQuestion.getId(), repliedQuestion.toString());
+        // TODO Delete search entries from cache
         return Result.ok();
     }
 
@@ -280,6 +295,8 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         if (!this.auctionDB.auctionExists(auctionId))
             return Result.err(ServiceError.AUCTION_NOT_FOUND);
 
+        // TODO Get search result from cache if it exists
+        // TODO If not, make the search in database and save in cache
         return this.questionDB.listQuestions(auctionId).stream()
                 .map(question -> new QuestionItem(question.getId(), question.getUserId(),
                         question.getQuestion(),
@@ -295,8 +312,10 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      */
     @Override
     public String uploadMedia(byte[] contents) {
-        //TODO maybe put image in cache
-        return this.mediaStorage.uploadAuctionMedia(contents);
+        var res = this.mediaStorage.uploadAuctionMedia(contents);
+        // Store bytes in cache
+        cache.setBytes(Cache.AUCTION_MEDIA_PREFIX + AUCTION_PREFIX + Hash.of(contents), contents);
+        return res;
     }
 
     /**
@@ -307,8 +326,10 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      */
     @Override
     public String uploadUserProfilePicture(String userId, byte[] contents) {
-        //TODO maybe put image in cache
-        return this.mediaStorage.uploadUserMedia(contents);
+        var res = this.mediaStorage.uploadUserMedia(contents);
+        // Store bytes in cache
+        cache.setBytes(Cache.USER_MEDIA_PREFIX + USER_PREFIX + Hash.of(contents), contents);
+        return res;
     }
 
     /**
@@ -318,7 +339,9 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      */
     @Override
     public Optional<byte[]> downloadMedia(String id) {
-        //TODO maybe check image from cache
+        // Get media from cache if it exists
+        var cacheRes = this.cache.getBytes(id);
+        if(cacheRes.isPresent()) return cacheRes;
         return this.mediaStorage.downloadMedia(id);
     }
 
@@ -329,8 +352,10 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      */
     @Override
     public boolean deleteMedia(String id) {
-        //TODO delete media from cache
-        return this.mediaStorage.deleteMedia(id);
+        var res = this.mediaStorage.deleteMedia(id);
+        if(res)
+            cache.deleteMedia(id); // delete from cache
+        return res;
     }
 
     /**
@@ -353,7 +378,11 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         if (result.isOk() && params.image().isPresent())
             uploadMedia(params.image().get());
 
-        //TODO put user in cache
+        var createdUser = result.value();
+
+        // Store in cache
+        cache.set(Cache.USER_PREFIX + createdUser.getId(), createdUser.toString());
+
         return result.map(UserDAO::getId);
     }
 
@@ -383,15 +412,14 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
             deleteMedia(photoId);
 
         auctionDB.deleteUserAuctions(userId);
-        //TODO: So which one do we do ??? Doing both is redundant as the first's effects are cancelled by second's
 
-        // TODO set user in user bids as DELETED USER
-        // TODO Delete the question/reply entries from this user
+        questionDB.deleteQuestionFromUser(userId);
+        bidDB.deleteBidsFromUser(userId);
+        userAuth.deleteSessionToken(auth.getValue());
 
-        this.userAuth.deleteSessionToken(auth.getValue());
-
-        // TODO delete user from cache
-
+        // Delete from cache
+        cache.deleteUser(userId);
+        // TODO Delete search entries from cache
         return Result.ok();
     }
 
@@ -426,13 +454,14 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
             patchOps.set("/photoId", photoId);
         }
         var result = this.userDB.updateUser(userId, patchOps);
-
         if (result.isOk())
             uploadMedia(ops.getImage());
 
-        //TODO update user in cache or delete
+        var updatedUser = result.value();
+        // Store in cache
+        cache.set(Cache.USER_PREFIX + updatedUser.getId(), updatedUser.toString());
 
-        return result;
+        return Result.ok();
     }
 
     /**
