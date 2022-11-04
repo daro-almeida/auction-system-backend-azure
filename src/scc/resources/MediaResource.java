@@ -30,7 +30,7 @@ public class MediaResource {
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.APPLICATION_JSON)
     public String upload(byte[] contents) {
-        return this.service.uploadMedia(contents);
+        return this.service.uploadAuctionMedia(contents);
     }
 
     /**

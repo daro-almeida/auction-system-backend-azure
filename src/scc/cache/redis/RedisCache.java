@@ -1,17 +1,19 @@
-package scc.cache;
+package scc.cache.redis;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import scc.azure.config.RedisConfig;
+import scc.cache.Cache;
 
 import java.util.Optional;
 
 public class RedisCache implements Cache {
 
     private final JedisPool pool;
+    private static RedisCache instance;
 
-    public RedisCache(RedisConfig config) {
+    private RedisCache(RedisConfig config) {
         JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(128);
         poolConfig.setMaxIdle(128);
@@ -22,7 +24,12 @@ public class RedisCache implements Cache {
         poolConfig.setNumTestsPerEvictionRun(3);
         poolConfig.setBlockWhenExhausted(true);
         pool = new JedisPool(poolConfig, config.url, 6380, 1000, config.key, true);
+    }
 
+    public static RedisCache getInstance(RedisConfig config) {
+        if (instance == null)
+            instance = new RedisCache(config);
+        return instance;
     }
 
     @Override
@@ -49,20 +56,6 @@ public class RedisCache implements Cache {
         return jedis.del(keys);
     }
 
-    @Override
-    public Long deleteAuction(String auctionId) {
-        return del(AUCTION_PREFIX + auctionId);
-    }
-
-    @Override
-    public Long deleteQuestion(String questionId) {
-        return del(QUESTION_PREFIX + questionId);
-    }
-
-    @Override
-    public Long deleteUser(String userId) {
-        return del(USER_PREFIX + userId);
-    }
 
     @Override
     public String setBytes(String key, byte[] value){
@@ -74,13 +67,6 @@ public class RedisCache implements Cache {
     public Optional<byte[]> getBytes(String key){
         var jedis = getClient();
         return Optional.of(jedis.get(key.getBytes()));
-    }
-
-    @Override
-    public Long deleteMedia(String mediaId){
-        if(mediaId.startsWith(AUCTION_PREFIX))
-            return del(AUCTION_MEDIA_PREFIX + mediaId);
-        else return del(USER_MEDIA_PREFIX + mediaId);
     }
 
     private Jedis getClient() {

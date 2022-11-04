@@ -73,7 +73,6 @@ class UserDB {
      * @return 204 if successful, respective error otherwise
      */
     public Result<UserDAO, ServiceError> deleteUser(String userId) {
-        // TODO: how get delete item from deleteItem call?
         var userOpt = this.getUser(userId);
         if (userOpt.isEmpty())
             return Result.err(ServiceError.USER_NOT_FOUND);

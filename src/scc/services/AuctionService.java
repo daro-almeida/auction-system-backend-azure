@@ -9,7 +9,7 @@ import scc.services.data.QuestionItem;
 import scc.utils.Result;
 
 public interface AuctionService {
-    public static record CreateAuctionParams(
+    record CreateAuctionParams(
             String title,
             String description,
             String userId,
@@ -24,7 +24,7 @@ public interface AuctionService {
 
     Result<List<String>, ServiceError> listAuctionsOfUser(String userId);
 
-    public static class UpdateAuctionOps {
+    class UpdateAuctionOps {
         private String title;
         private String description;
         private byte[] image;
@@ -103,7 +103,7 @@ public interface AuctionService {
 
     Result<List<QuestionItem>, ServiceError> listQuestions(String auctionId);
 
-    public static Result<Void, ServiceError> validateCreateAuctionParams(CreateAuctionParams params) {
+    static Result<Void, ServiceError> validateCreateAuctionParams(CreateAuctionParams params) {
         if (params.title == null || params.title.isEmpty()) {
             return Result.err(ServiceError.BAD_REQUEST);
         }

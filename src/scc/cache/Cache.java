@@ -4,13 +4,6 @@ import java.util.Optional;
 
 public interface Cache {
 
-    String USER_PREFIX = "user:";
-    String AUCTION_PREFIX = "auction:";
-    String BID_PREFIX = "bid:";
-    String QUESTION_PREFIX = "question:";
-    String USER_MEDIA_PREFIX = "userMedia:";
-    String AUCTION_MEDIA_PREFIX = "auctionMedia:";
-
     /**
      * Returns the JSON string from cache with given key
      * @param key key for the value stored in cache
@@ -55,25 +48,4 @@ public interface Cache {
      * @return Result of the operation
      */
     Long del(String... keys);
-
-    /**
-     * Deletes an auction entry with given key from the cache
-     * @param auctionId identifier of the auction
-     * @return Result of the operation
-     */
-    Long deleteAuction(String auctionId);
-
-    /**
-     * Deletes a user entry with given key from the cache
-     * @param userId identifier of the user
-     * @return Result of the operation
-     */
-    Long deleteUser(String userId);
-
-    /**
-     * Deletes a media entry with given key from the cache
-     * @param id identifier of the media resource
-     * @return Result of the operation
-     */
-    Long deleteMedia(String id);
 }

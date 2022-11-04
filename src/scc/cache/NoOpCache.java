@@ -2,7 +2,7 @@ package scc.cache;
 
 import java.util.Optional;
 
-public class NoOpCache implements Cache {
+public class NoOpCache implements Cache, AuctionCache, BidCache, MediaCache, QuestionCache, UserCache {
 
     @Override
     public String get(String key) {
@@ -35,22 +35,8 @@ public class NoOpCache implements Cache {
     }
 
     @Override
-    public Long deleteAuction(String auctionId) {
-        return 0L;
-    }
+    public void deleteAuction(String auctionId) { }
 
     @Override
-    public Long deleteQuestion(String questionId) {
-        return 0L;
-    }
-
-    @Override
-    public Long deleteUser(String userId) {
-        return 0L;
-    }
-
-    @Override
-    public Long deleteMedia(String id) {
-        return 0L;
-    }
+    public void deleteUser(String userId) { }
 }

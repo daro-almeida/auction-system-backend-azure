@@ -69,7 +69,7 @@ public class MemoryAuctionService implements AuctionService {
         auction.description = params.description();
         auction.userId = params.userId();
         auction.initialPrice = params.initialPrice();
-        auction.imageId = params.image().map(this.mediaService::uploadMedia);
+        auction.imageId = params.image().map(this.mediaService::uploadAuctionMedia);
         auction.bids = new HashSet<>();
         auction.questions = new HashSet<>();
 
@@ -119,7 +119,7 @@ public class MemoryAuctionService implements AuctionService {
             if (auction.imageId.isPresent()) {
                 this.mediaService.deleteMedia(auction.imageId.get());
             }
-            auction.imageId = Optional.of(this.mediaService.uploadMedia(ops.getImage()));
+            auction.imageId = Optional.of(this.mediaService.uploadAuctionMedia(ops.getImage()));
         }
 
         return Result.ok();

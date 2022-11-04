@@ -11,7 +11,7 @@ public class MemoryMediaService implements MediaService {
     private int currentId = 0;
 
     @Override
-    public synchronized String uploadMedia(byte[] contents) {
+    public synchronized String uploadAuctionMedia(byte[] contents) {
         int id = this.currentId++;
         this.media.put(id, contents);
         return Integer.toString(id);
@@ -19,7 +19,7 @@ public class MemoryMediaService implements MediaService {
 
     @Override
     public synchronized String uploadUserProfilePicture(String userId, byte[] contents) {
-        return this.uploadMedia(contents);
+        return this.uploadAuctionMedia(contents);
     }
 
     @Override
