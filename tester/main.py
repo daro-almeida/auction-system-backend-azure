@@ -1,12 +1,7 @@
 import argparse
-
-import tests.user
-import tests.media
-import tests.auction
-import tests.question
-
 import recon
-import scc
+import tests
+from scc.endpoints import Endpoints
 
 
 def main():
@@ -19,14 +14,9 @@ def main():
     parser.add_argument("--groups", nargs="+", help="The groups to run")
     args = parser.parse_args()
 
-    endpoints = scc.Endpoints(args.host)
+    endpoints = Endpoints(args.host)
     recon.run(
-        groups=[
-            tests.user.group(endpoints),
-            tests.media.group(endpoints),
-            tests.auction.group(endpoints),
-            tests.question.group(endpoints),
-        ],
+        tests=tests.create_test_cases(endpoints),
         filters=args.groups,
     )
 

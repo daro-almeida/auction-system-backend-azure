@@ -3,7 +3,6 @@ package scc.memory;
 import java.util.HashMap;
 import java.util.Optional;
 
-import jakarta.ws.rs.core.Cookie;
 import org.apache.commons.lang3.NotImplementedException;
 
 import scc.services.MediaService;
@@ -51,7 +50,7 @@ public class MemoryUserService implements UserService {
     }
 
     @Override
-    public synchronized Result<Void, ServiceError> deleteUser(String userId, Cookie auth) {
+    public synchronized Result<Void, ServiceError> deleteUser(String userId, String sessionToken) {
         var user = this.users.remove(userId);
         if (user == null) {
             return Result.err(ServiceError.USER_NOT_FOUND);
@@ -62,7 +61,7 @@ public class MemoryUserService implements UserService {
     }
 
     @Override
-    public synchronized Result<Void, ServiceError> updateUser(String userId, UpdateUserOps ops, Cookie auth) {
+    public synchronized Result<Void, ServiceError> updateUser(String userId, UpdateUserOps ops, String sessionToken) {
         var validateResult = UserService.validateUpdateUserOps(ops);
         if (validateResult.isError())
             return Result.err(validateResult.error());

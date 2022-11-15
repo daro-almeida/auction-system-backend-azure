@@ -3,7 +3,6 @@ package scc.services;
 import java.util.List;
 import java.util.Optional;
 
-import jakarta.ws.rs.core.Cookie;
 import scc.services.data.BidItem;
 import scc.services.data.QuestionItem;
 import scc.utils.Result;
@@ -12,13 +11,12 @@ public interface AuctionService {
     record CreateAuctionParams(
             String title,
             String description,
-            String userId,
             long initialPrice,
             String endTime,
             Optional<byte[]> image) {
     }
 
-    Result<String, ServiceError> createAuction(CreateAuctionParams params, Cookie auth);
+    Result<String, ServiceError> createAuction(CreateAuctionParams params, String sessionToken);
 
     Result<Void, ServiceError> deleteAuction(String auctionId);
 
@@ -72,34 +70,31 @@ public interface AuctionService {
         }
     }
 
-    Result<Void, ServiceError> updateAuction(String auctionId, UpdateAuctionOps ops, Cookie auth);
+    Result<Void, ServiceError> updateAuction(String auctionId, UpdateAuctionOps ops, String sessionToken);
 
     public static record CreateBidParams(
             String auctionId,
-            String userId,
             long price) {
     }
 
-    Result<String, ServiceError> createBid(CreateBidParams params, Cookie auth);
+    Result<String, ServiceError> createBid(CreateBidParams params, String sessionToken);
 
     Result<List<BidItem>, ServiceError> listBids(String auctionId);
 
     public static record CreateQuestionParams(
             String auctionId,
-            String userId,
             String question) {
     }
 
-    Result<String, ServiceError> createQuestion(CreateQuestionParams params, Cookie auth);
+    Result<String, ServiceError> createQuestion(CreateQuestionParams params, String sessionToken);
 
     public static record CreateReplyParams(
             String auctionId,
             String questionId,
-            String userId,
             String reply) {
     }
 
-    Result<Void, ServiceError> createReply(CreateReplyParams params, Cookie auth);
+    Result<Void, ServiceError> createReply(CreateReplyParams params, String sessionToken);
 
     Result<List<QuestionItem>, ServiceError> listQuestions(String auctionId);
 
@@ -108,9 +103,6 @@ public interface AuctionService {
             return Result.err(ServiceError.BAD_REQUEST);
         }
         if (params.description == null || params.description.isEmpty()) {
-            return Result.err(ServiceError.BAD_REQUEST);
-        }
-        if (params.userId == null || params.userId.isEmpty()) {
             return Result.err(ServiceError.BAD_REQUEST);
         }
         if (params.initialPrice <= 0) {

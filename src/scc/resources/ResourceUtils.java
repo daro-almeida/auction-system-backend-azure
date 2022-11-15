@@ -6,6 +6,7 @@ import java.util.Optional;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Cookie;
 import jakarta.ws.rs.core.NewCookie;
 import scc.services.ServiceError;
 
@@ -21,6 +22,12 @@ class ResourceUtils {
                 .secure(false)
                 .path("/")
                 .build();
+    }
+
+    public static String sessionTokenOrFail(Cookie authCookie) {
+        if (authCookie == null)
+            throw new WebApplicationException("Missing authentication cookie", 401);
+        return authCookie.getValue();
     }
 
     public static Optional<byte[]> decodeBase64Nullable(String base64) {
@@ -46,6 +53,8 @@ class ResourceUtils {
             case QUESTION_NOT_FOUND -> throw new NotFoundException(message);
             case USER_ALREADY_EXISTS -> throw new WebApplicationException(message, 409);
             case USER_NOT_FOUND -> throw new NotFoundException(message);
+            case BID_NOT_FOUND -> throw new NotFoundException(message);
+            case INTERNAL_ERROR -> throw new InternalError(message);
         }
     }
 }

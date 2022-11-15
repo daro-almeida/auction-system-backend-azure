@@ -11,4 +11,6 @@ public enum ServiceError {
     BID_NOT_FOUND,
     QUESTION_NOT_FOUND,
     QUESTION_ALREADY_REPLIED,
+
+    INTERNAL_ERROR,
 }

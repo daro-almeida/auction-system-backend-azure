@@ -83,15 +83,17 @@ public class UserResource {
     /**
      * Deletes a user from the database
      * 
-     * @param id nickname of the user wished to be deleted
-     * @param authentication Cookie related to the user being "logged" in the application
+     * @param id             nickname of the user wished to be deleted
+     * @param authentication Cookie related to the user being "logged" in the
+     *                       application
      */
     @DELETE
     @Path("/{" + USER_ID + "}")
     public void deleteUser(@PathParam(USER_ID) String id,
-                           @CookieParam(SESSION_COOKIE) Cookie authentication) {
+            @CookieParam(SESSION_COOKIE) Cookie authentication) {
         System.out.println("Received delete user request for id " + id);
-        var result = this.service.deleteUser(id, authentication);
+        var sessionToken = ResourceUtils.sessionTokenOrFail(authentication);
+        var result = this.service.deleteUser(id, sessionToken);
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
     }
@@ -106,19 +108,21 @@ public class UserResource {
      * Updates the values saved in the user with given nickname to the new values
      * from the request
      * 
-     * @param id      nickname of the user to be updated
-     * @param request Request that has the new parameters
-     * @param authentication Cookie related to the user being "logged" in the application
+     * @param id             nickname of the user to be updated
+     * @param request        Request that has the new parameters
+     * @param authentication Cookie related to the user being "logged" in the
+     *                       application
      */
     @PATCH
     @Path("/{" + USER_ID + "}")
     @Consumes(MediaType.APPLICATION_JSON)
     public void updateUser(@PathParam(USER_ID) String id,
-                           UpdateUserRequest request,
-                           @CookieParam(SESSION_COOKIE) Cookie authentication) {
+            UpdateUserRequest request,
+            @CookieParam(SESSION_COOKIE) Cookie authentication) {
         System.out.println("Received update user request for id " + id);
         System.out.println(request);
 
+        var sessionToken = ResourceUtils.sessionTokenOrFail(authentication);
         var photo = ResourceUtils.decodeBase64Nullable(request.imageBase64());
 
         var updateOps = new UserService.UpdateUserOps();
@@ -131,7 +135,7 @@ public class UserResource {
         if (photo.isPresent())
             updateOps = updateOps.updateImage(photo.get());
 
-        var result = this.service.updateUser(id, updateOps, authentication);
+        var result = this.service.updateUser(id, updateOps, sessionToken);
 
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());

@@ -1,8 +1,13 @@
 package scc.azure;
 
+import java.util.Optional;
+
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import scc.azure.config.RedisConfig;
+import scc.azure.dao.QuestionDAO;
+import scc.services.data.QuestionItem;
+import scc.services.data.ReplyItem;
 import scc.utils.Hash;
 
 public interface AzureUtils {
@@ -21,5 +26,12 @@ public interface AzureUtils {
         poolConfig.setNumTestsPerEvictionRun(3);
         poolConfig.setBlockWhenExhausted(true);
         return new JedisPool(poolConfig, config.url, 6380, 1000, config.key, true);
+    }
+
+    public static QuestionItem questionDaoToItem(QuestionDAO question) {
+        return new QuestionItem(question.getId(), question.getUserId(),
+                question.getQuestion(),
+                Optional.ofNullable(question.getReply())
+                        .map(reply -> new ReplyItem(reply.getUserId(), reply.getReply())));
     }
 }

@@ -2,7 +2,6 @@ package scc.services;
 
 import java.util.Optional;
 
-import jakarta.ws.rs.core.Cookie;
 import scc.utils.Result;
 
 public interface UserService {
@@ -15,7 +14,7 @@ public interface UserService {
 
     Result<String, ServiceError> createUser(CreateUserParams params);
 
-    Result<Void, ServiceError> deleteUser(String userId, Cookie auth);
+    Result<Void, ServiceError> deleteUser(String userId, String sessionToken);
 
     public static class UpdateUserOps {
         private String name;
@@ -65,8 +64,16 @@ public interface UserService {
         }
     }
 
-    Result<Void, ServiceError> updateUser(String userId, UpdateUserOps ops, Cookie auth);
+    Result<Void, ServiceError> updateUser(String userId, UpdateUserOps ops, String sessionToken);
 
+    /**
+     * Authenticates a user.
+     * 
+     * @param userId   The user's id.
+     * @param password The user's password.
+     * @return A session token if the authentication was successful, or an error
+     *         otherwise.
+     */
     Result<String, ServiceError> authenticateUser(String userId, String password);
 
     // TODO: maybe make abstract class or wrapper class that already checks the

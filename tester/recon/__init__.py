@@ -96,9 +96,9 @@ def test_case(group: str, name: str) -> Callable[[Callable], TestCase]:
 
 
 def run(**kwargs):
-    groups = kwargs.get("groups", None)
+    tests = kwargs.get("tests", None)
     filters = kwargs.get("filters", None)
-    for test_case in [test for group in groups for test in group._tests]:
+    for test_case in tests:
         if filters is None or len(filters) == 0 or test_case.group in filters:
             try:
                 test_case.runnable()

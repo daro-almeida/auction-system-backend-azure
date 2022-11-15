@@ -3,7 +3,6 @@ package scc.azure;
 import java.util.UUID;
 
 import redis.clients.jedis.JedisPool;
-import scc.cache.Cache;
 import scc.services.ServiceError;
 import scc.utils.Result;
 
@@ -11,16 +10,15 @@ public class UserAuth {
     private static final int SESSION_EXPIRE_SECONDS = 30 * 60;
 
     private final UserDB userDB;
-    private final Cache cache;
+    private final JedisPool jedisPool;
 
-    public UserAuth(UserDB userDB, Cache cache) {
+    public UserAuth(UserDB userDB, JedisPool jedisPool) {
         this.userDB = userDB;
-        //cache can't be NoOp
-        this.cache = cache;
+        this.jedisPool = jedisPool;
     }
 
     /**
-     * Checks if the provided user credentials are valid.
+     * Checks if the provided user crenditals are valid.
      * If they are, a session token is generated and returned.
      * 
      * @param userId   Identifier of the user
@@ -41,8 +39,10 @@ public class UserAuth {
         var cacheKey = this.cacheKeyFromToken(sessionToken);
         var cacheValue = userId;
 
-        cache.set(cacheKey, cacheValue);
-        cache.expire(cacheKey, SESSION_EXPIRE_SECONDS);
+        try (var client = this.jedisPool.getResource()) {
+            client.set(cacheKey, cacheValue);
+            client.expire(cacheKey, SESSION_EXPIRE_SECONDS);
+        }
 
         return Result.ok(sessionToken);
     }
@@ -56,21 +56,26 @@ public class UserAuth {
      */
     public Result<String, ServiceError> validateSessionToken(String sessionToken) {
         var cacheKey = this.cacheKeyFromToken(sessionToken);
-        var userId = cache.get(cacheKey);
-        if (userId == null)
-            return Result.err(ServiceError.INVALID_CREDENTIALS);
+        try (var client = this.jedisPool.getResource()) {
+            var userId = client.get(cacheKey);
+            if (userId == null)
+                return Result.err(ServiceError.INVALID_CREDENTIALS);
 
-        cache.expire(cacheKey, SESSION_EXPIRE_SECONDS);
-        return Result.ok(userId);
+            client.expire(cacheKey, SESSION_EXPIRE_SECONDS);
+            return Result.ok(userId);
+        }
     }
 
     /**
      * Deletes the entry from the cache associated to the given session token.
+     * 
      * @param sessionToken Session token from the logged in user
      */
     public void deleteSessionToken(String sessionToken) {
         var cacheKey = this.cacheKeyFromToken(sessionToken);
-        cache.del(cacheKey);
+        try (var client = this.jedisPool.getResource()) {
+            client.del(cacheKey);
+        }
     }
 
     private String cacheKeyFromToken(String sessionToken) {
