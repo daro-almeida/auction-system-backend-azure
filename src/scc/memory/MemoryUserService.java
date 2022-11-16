@@ -8,6 +8,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import scc.services.MediaService;
 import scc.services.ServiceError;
 import scc.services.UserService;
+import scc.services.data.UserItem;
 import scc.utils.Result;
 
 public class MemoryUserService implements UserService {
@@ -34,7 +35,7 @@ public class MemoryUserService implements UserService {
     }
 
     @Override
-    public synchronized Result<String, ServiceError> createUser(CreateUserParams params) {
+    public synchronized Result<UserItem, ServiceError> createUser(CreateUserParams params) {
         var validateResult = UserService.validateCreateUserParams(params);
         if (validateResult.isError())
             return Result.err(validateResult.error());
@@ -46,7 +47,7 @@ public class MemoryUserService implements UserService {
         var imageId = params.image().map(img -> this.media.uploadUserProfilePicture(params.nickname(), img));
         var user = new User(params.nickname(), params.name(), params.password(), imageId);
         this.users.put(params.nickname(), user);
-        return Result.ok(params.nickname());
+        return Result.ok(new UserItem(user.nickname, user.name, user.password, imageId.get()));
     }
 
     @Override

@@ -54,6 +54,16 @@ public class RedisCache implements Cache {
     }
 
     @Override
+    public void setUserAuction(String userId, String auctionId) {
+
+    }
+
+    @Override
+    public List<AuctionDAO> getUserAuctions(String userId) {
+        return null;
+    }
+
+    @Override
     public void setAuction(AuctionDAO auction) {
         var key = this.createAuctionKey(auction.getId());
         var value = this.gson.toJson(auction);
@@ -79,6 +89,16 @@ public class RedisCache implements Cache {
                 return null;
             return this.gson.fromJson(value, AuctionDAO.class);
         }
+    }
+
+    @Override
+    public void setAuctionBid(String bidId) {
+
+    }
+
+    @Override
+    public List<BidDAO> getAuctionBids(String auctionId) {
+        return null;
     }
 
     @Override

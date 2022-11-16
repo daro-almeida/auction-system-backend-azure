@@ -21,8 +21,10 @@ import scc.services.AuctionService;
 import scc.services.MediaService;
 import scc.services.ServiceError;
 import scc.services.UserService;
+import scc.services.data.AuctionItem;
 import scc.services.data.BidItem;
 import scc.services.data.QuestionItem;
+import scc.services.data.UserItem;
 import scc.utils.Hash;
 import scc.utils.Result;
 
@@ -76,13 +78,13 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      * 
      * @param params JSON that contains the necessary information to create an
      *               auction
-     * @param auth   Cookie related to the user being "logged" in the application
+     * @param sessionToken   Cookie related to the user being "logged" in the application
      * @return 200 with auction's identifier if successful,
      *         404 if the user does not exist
      *         403 if the authentication phase failed
      */
     @Override
-    public Result<String, ServiceError> createAuction(CreateAuctionParams params, String sessionToken) {
+    public Result<AuctionItem, ServiceError> createAuction(CreateAuctionParams params, String sessionToken) {
         var validateResult = AuctionService.validateCreateAuctionParams(params);
         if (validateResult.isError())
             return Result.err(validateResult.error());
@@ -102,7 +104,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
 
         this.cache.setAuction(response.value());
         // TODO Delete search entries from cache
-        return response.map(AuctionDAO::getId);
+        return Result.ok(AuctionItem.fromAuctionDAO(response.value()));
     }
 
     /**
@@ -117,11 +119,12 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
     @Override
     public Result<Void, ServiceError> deleteAuction(String auctionId) {
         var result = this.auctionDB.deleteAuction(auctionId);
-        if (result.isError())
-            return Result.err(result.error());
-        this.cache.unsetAuction(auctionId);
-        // TODO Delete search entries from cache
-        return this.auctionDB.deleteAuction(auctionId);
+        if (result.isOk()) {
+            this.cache.unsetAuction(auctionId);
+            // TODO Delete search entries from cache
+
+        }
+        return result;
     }
 
     /**
@@ -135,11 +138,11 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      *         404 if the user does not exist
      */
     @Override
-    public Result<List<String>, ServiceError> listAuctionsOfUser(String userId) {
+    public Result<List<AuctionItem>, ServiceError> listAuctionsOfUser(String userId) {
         // TODO Get search result from cache if it exists
         // TODO If not, make the search in database and save in cache
-        return this.auctionDB.listAuctionsOfUser(userId)
-                .map(auctions -> auctions.stream().map(AuctionDAO::getId).collect(Collectors.toList()));
+        var result = this.auctionDB.listAuctionsOfUser(userId);
+        return Result.ok(result.value().stream().map(AuctionItem::fromAuctionDAO).toList());
     }
 
     /**
@@ -149,7 +152,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      * 
      * @param auctionId identifier of the auction to be updated
      * @param ops       Values that are to be changed to new ones
-     * @param auth      Cookie related to the user being "logged" in the application
+     * @param sessionToken      Cookie related to the user being "logged" in the application
      * @return 204 if successful on changing the auction's values,
      *         404 if the auction does not exist,
      *         403 if the authentication phase failed
@@ -190,13 +193,13 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      * The user making the bid must be logged in to execute this operation
      * 
      * @param params Parameters required to create a bid object
-     * @param auth   Cookie related to the user being "logged" in the application
+     * @param sessionToken   Cookie related to the user being "logged" in the application
      * @return 200 with bid's generated identifier,
      *         404 if the user making the bid or the auction doesn't exist
      *         403 if the authentication phase failed
      */
     @Override
-    public Result<String, ServiceError> createBid(CreateBidParams params, String sessionToken) {
+    public Result<BidItem, ServiceError> createBid(CreateBidParams params, String sessionToken) {
         var authResult = this.userAuth.validateSessionToken(sessionToken);
         if (authResult.isError())
             return Result.err(authResult.error());
@@ -210,7 +213,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
 
         this.cache.setBid(bidDao);
         // TODO Delete search entries from cache
-        return response.map(BidDAO::getId);
+        return Result.ok(BidItem.fromBidDAO(response.value()));
     }
 
     /**
@@ -227,12 +230,11 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         if (!this.auctionDB.auctionExists(auctionId))
             return Result.err(ServiceError.AUCTION_NOT_FOUND);
 
-        // TODO Get search result from cache if it exists
-        // TODO If not, make the search in database and save in cache
+        //TODO Get search result from cache if it exists
+        //TODO If not, make the search in database and save in cache
 
-        return this.bidDB.listBids(auctionId).stream()
-                .map(bid -> new BidItem(bid.getId(), bid.getUserId(), bid.getAmount()))
-                .collect(Collectors.collectingAndThen(Collectors.toList(), Result::ok));
+        var result = this.bidDB.listBids(auctionId);
+        return Result.ok(result.stream().map(BidItem::fromBidDAO).toList());
     }
 
     /**
@@ -241,7 +243,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      * The user making the question must be logged in to make this operation
      * 
      * @param params Parameters required to create a question
-     * @param auth   Cookie related to the user being "logged" in the application
+     * @param sessionToken Cookie related to the user being "logged" in the application
      * @return 200 with generated question's identifier,
      *         404 if the user or the auction does not exist,
      *         403 if the authentication phase failed
@@ -272,7 +274,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      * operation
      * 
      * @param params Parameters required to create a reply
-     * @param auth   Cookie related to the user being "logged" in the application
+     * @param sessionToken   Cookie related to the user being "logged" in the application
      * @return 200 with generated reply's identifier,
      *         404 if the user or auction does not exist,
      *         403 if the authentication phase failed
@@ -393,12 +395,12 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      *         409 if the user with given identifier already exists
      */
     @Override
-    public Result<String, ServiceError> createUser(CreateUserParams params) {
+    public Result<UserItem, ServiceError> createUser(CreateUserParams params) {
         var validateResult = UserService.validateCreateUserParams(params);
         if (validateResult.isError())
             return Result.err(validateResult.error());
 
-        var photoId = params.image().map(img -> this.mediaStorage.createUserMediaID(img));
+        var photoId = params.image().map(this.mediaStorage::createUserMediaID);
         var userDao = new UserDAO(params.nickname(), params.name(), Hash.of(params.password()), photoId.orElse(null));
         var result = this.userDB.createUser(userDao);
         if (result.isError())
@@ -408,7 +410,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
 
         this.cache.setUser(result.value());
 
-        return result.map(UserDAO::getId);
+        return Result.ok(UserItem.fromUserDAO(result.value()));
     }
 
     /**
@@ -422,7 +424,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      * USER".
      * 
      * @param userId identifier of the user
-     * @param auth   Cookie related to the user being "logged" in the application
+     * @param sessionToken   Cookie related to the user being "logged" in the application
      * @return 204 if deleted successfully,
      *         403 if the authentication phase failed
      */
@@ -457,7 +459,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      * 
      * @param userId identifier of the user
      * @param ops    Values to be placed on the user
-     * @param auth   Cookie related to the user being "logged" in the application
+     * @param sessionToken   Cookie related to the user being "logged" in the application
      * @return 204 if updated successfully,
      *         404 if the user does not exist,
      *         403 if the authentication phase failed

@@ -3,6 +3,8 @@ package scc.services;
 import java.util.List;
 import java.util.Optional;
 
+import scc.azure.dao.AuctionDAO;
+import scc.services.data.AuctionItem;
 import scc.services.data.BidItem;
 import scc.services.data.QuestionItem;
 import scc.utils.Result;
@@ -16,11 +18,11 @@ public interface AuctionService {
             Optional<byte[]> image) {
     }
 
-    Result<String, ServiceError> createAuction(CreateAuctionParams params, String sessionToken);
+    Result<AuctionItem, ServiceError> createAuction(CreateAuctionParams params, String sessionToken);
 
     Result<Void, ServiceError> deleteAuction(String auctionId);
 
-    Result<List<String>, ServiceError> listAuctionsOfUser(String userId);
+    Result<List<AuctionItem>, ServiceError> listAuctionsOfUser(String userId);
 
     class UpdateAuctionOps {
         private String title;
@@ -77,7 +79,7 @@ public interface AuctionService {
             long price) {
     }
 
-    Result<String, ServiceError> createBid(CreateBidParams params, String sessionToken);
+    Result<BidItem, ServiceError> createBid(CreateBidParams params, String sessionToken);
 
     Result<List<BidItem>, ServiceError> listBids(String auctionId);
 

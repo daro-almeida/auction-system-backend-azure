@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import scc.services.AuctionService;
 import scc.services.UserService;
+import scc.services.data.AuctionItem;
 
 import static scc.resources.ResourceUtils.SESSION_COOKIE;
 
@@ -49,7 +50,7 @@ public class UserResource {
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String createUser(CreateUserRequest request) {
+    public String createUser(CreateUserRequest request) { //TODO change do DTO
         System.out.println("Received create user request");
         System.out.println(request);
 
@@ -62,13 +63,13 @@ public class UserResource {
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
 
-        return result.value();
+        return result.value().getId();
     }
 
     @GET
     @Path("/{" + USER_ID + "}/auctions")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<String> getUserAuctions(@PathParam(USER_ID) String userId) {
+    public List<String> getUserAuctions(@PathParam(USER_ID) String userId) { //TODO change do DTO
         System.out.println("Received get user auctions request");
         System.out.println("User ID: " + userId);
 
@@ -77,7 +78,8 @@ public class UserResource {
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
 
-        return result.value();
+
+        return result.value().stream().map(AuctionItem::getId).toList();
     }
 
     /**

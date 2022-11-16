@@ -23,6 +23,16 @@ public class NoOpCache implements Cache {
     }
 
     @Override
+    public void setUserAuction(String userId, String auctionId) {
+
+    }
+
+    @Override
+    public List<AuctionDAO> getUserAuctions(String userId) {
+        return null;
+    }
+
+    @Override
     public void setAuction(AuctionDAO auction) {
     }
 
@@ -32,6 +42,16 @@ public class NoOpCache implements Cache {
 
     @Override
     public AuctionDAO getAuction(String auctionId) {
+        return null;
+    }
+
+    @Override
+    public void setAuctionBid(String bidId) {
+
+    }
+
+    @Override
+    public List<BidDAO> getAuctionBids(String auctionId) {
         return null;
     }
 

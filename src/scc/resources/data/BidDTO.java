@@ -36,6 +36,6 @@ public class BidDTO {
     }
 
     public static BidDTO from(BidItem bidItem) {
-        return new BidDTO(bidItem.getBidderId(), bidItem.getValue());
+        return new BidDTO(bidItem.getUserId(), bidItem.getAmount());
     }
 }

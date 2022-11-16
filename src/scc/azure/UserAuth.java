@@ -18,7 +18,7 @@ public class UserAuth {
     }
 
     /**
-     * Checks if the provided user crenditals are valid.
+     * Checks if the provided user credentials are valid.
      * If they are, a session token is generated and returned.
      * 
      * @param userId   Identifier of the user

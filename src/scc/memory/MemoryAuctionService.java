@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import scc.services.AuctionService;
 import scc.services.ServiceError;
+import scc.services.data.AuctionItem;
 import scc.services.data.BidItem;
 import scc.services.data.QuestionItem;
 import scc.services.data.ReplyItem;
@@ -19,7 +20,7 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public Result<String, ServiceError> createAuction(CreateAuctionParams params, String sessionToken) {
+    public Result<AuctionItem, ServiceError> createAuction(CreateAuctionParams params, String sessionToken) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -31,7 +32,7 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public Result<List<String>, ServiceError> listAuctionsOfUser(String userId) {
+    public Result<List<AuctionItem>, ServiceError> listAuctionsOfUser(String userId) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -43,7 +44,7 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public Result<String, ServiceError> createBid(CreateBidParams params, String sessionToken) {
+    public Result<BidItem, ServiceError> createBid(CreateBidParams params, String sessionToken) {
         // TODO Auto-generated method stub
         return null;
     }

@@ -2,6 +2,7 @@ package scc.services;
 
 import java.util.Optional;
 
+import scc.services.data.UserItem;
 import scc.utils.Result;
 
 public interface UserService {
@@ -12,7 +13,7 @@ public interface UserService {
             Optional<byte[]> image) {
     }
 
-    Result<String, ServiceError> createUser(CreateUserParams params);
+    Result<UserItem, ServiceError> createUser(CreateUserParams params);
 
     Result<Void, ServiceError> deleteUser(String userId, String sessionToken);
 

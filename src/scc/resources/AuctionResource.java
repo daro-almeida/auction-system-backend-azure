@@ -48,8 +48,7 @@ public class AuctionResource {
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String createAuction(CreateAuctionRequest request,
-            @CookieParam(SESSION_COOKIE) Cookie authentication) {
+    public String createAuction(CreateAuctionRequest request, @CookieParam(SESSION_COOKIE) Cookie authentication) { //TODO change do DTO
         System.out.println("Received create auction request");
         System.out.println(request);
         var sessionToken = ResourceUtils.sessionTokenOrFail(authentication);
@@ -64,7 +63,7 @@ public class AuctionResource {
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
 
-        return result.value();
+        return result.value().getId();
     }
 
     public static record UpdateAuctionRequest(
@@ -126,7 +125,7 @@ public class AuctionResource {
     @Produces(MediaType.APPLICATION_JSON)
     public String createBid(@PathParam(AUCTION_ID) String auctionId,
             CreateBidRequest request,
-            @CookieParam(SESSION_COOKIE) Cookie authentication) {
+            @CookieParam(SESSION_COOKIE) Cookie authentication) { //TODO change do DTO
         System.out.println("Received create bid request");
         System.out.println(request);
 
@@ -139,7 +138,7 @@ public class AuctionResource {
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
 
-        return result.value();
+        return result.value().getId();
     }
 
     /**

@@ -15,12 +15,20 @@ public interface Cache {
 
     UserDAO getUser(String userId);
 
+    void setUserAuction(String userId, String auctionId);
+
+    List<AuctionDAO> getUserAuctions(String userId);
+
     // Auction
     void setAuction(AuctionDAO auction);
 
     void unsetAuction(String auctionId);
 
     AuctionDAO getAuction(String auctionId);
+
+    void setAuctionBid(String bidId);
+
+    List<BidDAO> getAuctionBids(String auctionId);
 
     // Bid
     void setBid(BidDAO bid);
