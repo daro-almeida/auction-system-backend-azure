@@ -30,6 +30,7 @@ node_modules/
 
 # python
 __pycache__/
+/.mypy_cache/
 
 # jdtls
 /.settings/
@@ -39,6 +40,9 @@ __pycache__/
 # intellij
 /*.iml
 /.idea
+
+# vscode
+/.vscode/
 
 # macos cringe
 .DS_Store
