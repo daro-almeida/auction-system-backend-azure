@@ -1,11 +1,11 @@
 package scc.resources;
 
+import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 
-import jakarta.annotation.Resource;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Cookie;
-import org.apache.commons.lang3.NotImplementedException;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -14,7 +14,6 @@ import scc.resources.data.AuctionDTO;
 import scc.resources.data.BidDTO;
 import scc.resources.data.QuestionDTO;
 import scc.services.AuctionService;
-import scc.services.data.AuctionItem;
 
 import static scc.resources.ResourceUtils.SESSION_COOKIE;
 
@@ -33,9 +32,8 @@ public class AuctionResource {
             @JsonProperty(required = true) String title,
             @JsonProperty(required = true) String description,
             @JsonProperty(required = true) String owner,
-            @JsonProperty(required = true) Long initialPrice,
+            @JsonProperty(required = true) String minimumPrice,
             @JsonProperty(required = true) String endTime,
-            String imageBase64,
             String imageId) {
     }
 
@@ -47,28 +45,29 @@ public class AuctionResource {
      *                       auction
      * @param authentication Cookie related to the user being "logged" in the
      *                       application
-     * @return Auction's generated identifier // TODO change do DTO
+     * @return Auction's generated identifier
      */
     @POST
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String createAuction(CreateAuctionRequest request, @CookieParam(SESSION_COOKIE) Cookie authentication) {
+    public AuctionDTO createAuction(CreateAuctionRequest request, @CookieParam(SESSION_COOKIE) Cookie authentication) {
         System.out.println("Received create auction request");
         System.out.println(request);
         var sessionToken = ResourceUtils.sessionTokenOrFail(authentication);
         var result = this.service.createAuction(new AuctionService.CreateAuctionParams(
                 request.title(),
                 request.description(),
-                request.initialPrice().longValue(),
-                request.endTime(),
-                ResourceUtils.decodeBase64Nullable(request.imageBase64())),
+                request.owner(),
+                Double.parseDouble(request.minimumPrice),
+                ZonedDateTime.parse(request.endTime()),
+                Optional.ofNullable(request.imageId())),
                 sessionToken);
 
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
 
-        return result.value().getId();
+        return AuctionDTO.from(result.value());
     }
 
     public static record UpdateAuctionRequest(
@@ -111,8 +110,8 @@ public class AuctionResource {
     }
 
     public record CreateBidRequest(
-        @JsonProperty(required = true) String userId,
-        @JsonProperty(required = true) Long bid) {
+            @JsonProperty(required = true) String userId,
+            @JsonProperty(required = true) Long bid) {
     }
 
     /**
@@ -185,7 +184,7 @@ public class AuctionResource {
     @Produces(MediaType.APPLICATION_JSON)
     public String createQuestion(@PathParam(AUCTION_ID) String auctionId,
             CreateQuestionRequest request,
-            @CookieParam(SESSION_COOKIE) Cookie authentication) { //TODO change to DTO
+            @CookieParam(SESSION_COOKIE) Cookie authentication) { // TODO change to DTO
         System.out.println("Received create question request");
         System.out.println(request);
 
@@ -293,7 +292,7 @@ public class AuctionResource {
     @GET
     @Path("/popular")
     @Produces(MediaType.TEXT_PLAIN)
-    public List<AuctionDTO> listPopularAuctions(){
+    public List<AuctionDTO> listPopularAuctions() {
         System.out.println("Received list popular auctions request");
 
         var result = this.service.listPopularAuctions();

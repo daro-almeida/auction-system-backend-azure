@@ -2,6 +2,7 @@ package scc.services;
 
 public enum ServiceError {
     BAD_REQUEST,
+    UNAUTHORIZED,
     INVALID_CREDENTIALS,
 
     USER_NOT_FOUND,

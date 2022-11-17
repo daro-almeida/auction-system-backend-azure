@@ -1,10 +1,9 @@
 package scc.services;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import scc.azure.dao.AuctionDAO;
-import scc.resources.data.AuctionDTO;
 import scc.services.data.AuctionItem;
 import scc.services.data.BidItem;
 import scc.services.data.QuestionItem;
@@ -20,9 +19,10 @@ public interface AuctionService {
     record CreateAuctionParams(
             String title,
             String description,
-            long initialPrice,
-            String endTime,
-            Optional<byte[]> image) {
+            String owner,
+            double minimumPrice,
+            ZonedDateTime endTime,
+            Optional<String> imageId) {
     }
 
     Result<AuctionItem, ServiceError> createAuction(CreateAuctionParams params, String sessionToken);
@@ -114,10 +114,10 @@ public interface AuctionService {
         if (params.description == null || params.description.isEmpty()) {
             return Result.err(ServiceError.BAD_REQUEST);
         }
-        if (params.initialPrice <= 0) {
+        if (params.minimumPrice <= 0) {
             return Result.err(ServiceError.BAD_REQUEST);
         }
-        if (params.endTime == null || params.endTime.isEmpty()) {
+        if (params.endTime == null) {
             return Result.err(ServiceError.BAD_REQUEST);
         }
         return Result.ok();

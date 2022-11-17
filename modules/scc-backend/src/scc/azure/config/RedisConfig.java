@@ -8,4 +8,9 @@ public class RedisConfig {
         this.key = key;
         this.url = url;
     }
+
+    @Override
+    public String toString() {
+        return "RedisConfig [key=" + key + ", url=" + url + "]";
+    }
 }

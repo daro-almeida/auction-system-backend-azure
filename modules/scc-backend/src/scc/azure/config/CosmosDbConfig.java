@@ -19,4 +19,11 @@ public class CosmosDbConfig {
         this.bidContainer = bidContainer;
         this.questionContainer = questionContainer;
     }
+
+    @Override
+    public String toString() {
+        return "CosmosDbConfig [dbKey=" + dbKey + ", dbUrl=" + dbUrl + ", dbName=" + dbName + ", auctionContainer="
+                + auctionContainer + ", userContainer=" + userContainer + ", bidContainer=" + bidContainer
+                + ", questionContainer=" + questionContainer + "]";
+    }
 }

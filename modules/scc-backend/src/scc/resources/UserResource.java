@@ -9,7 +9,6 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Cookie;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import scc.resources.data.UserDTO;
 import scc.services.AuctionService;
 import scc.services.UserService;
 import scc.services.data.AuctionItem;

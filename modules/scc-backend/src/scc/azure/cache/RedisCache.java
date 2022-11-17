@@ -1,12 +1,18 @@
 package scc.azure.cache;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import scc.azure.dao.AuctionDAO;
 import scc.azure.dao.BidDAO;
 import scc.azure.dao.QuestionDAO;
+import scc.utils.LocalDateTimeConverter;
+import scc.utils.ZonedDateTimeConverter;
 
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 public class RedisCache implements Cache {
@@ -20,7 +26,10 @@ public class RedisCache implements Cache {
 
     public RedisCache(JedisPool jedisPool) {
         this.jedisPool = jedisPool;
-        this.gson = new Gson();
+        this.gson = new GsonBuilder()
+                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeConverter())
+                .registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeConverter())
+                .create();
     }
 
     @Override
@@ -88,7 +97,6 @@ public class RedisCache implements Cache {
             return null;
         return value.stream().map(s -> gson.fromJson(s, BidDAO.class)).toList();
     }
-
 
     @Override
     public void addAuctionQuestion(QuestionDAO questionDAO) {
@@ -196,7 +204,6 @@ public class RedisCache implements Cache {
 
         return client.get(key.getBytes());
     }
-
 
     private String createUserAuctionListKey(String userId) {
         return USER_AUCTIONS_PREFIX + userId;

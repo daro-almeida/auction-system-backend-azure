@@ -16,7 +16,7 @@ import scc.azure.dao.AuctionDAO;
 import scc.services.ServiceError;
 import scc.utils.Result;
 
-class AuctionDB {
+public class AuctionDB {
     private final CosmosContainer container;
     private static final int DAYS_ABOUT_TO_CLOSE = 7;
 
@@ -151,36 +151,42 @@ class AuctionDB {
     public Result<List<AuctionDAO>, ServiceError> getAboutToCloseAuctions() {
         var systemDate = new Date();
         // TODO this probably can be optimized
-        var auctions = this.container
-                .queryItems(
-                        "SELECT * FROM auctions",
-                        new CosmosQueryRequestOptions(),
-                        AuctionDAO.class);
-        var auctionsAboutToClose = new LinkedList<AuctionDAO>();
-        for(AuctionDAO dao : auctions.stream().toList()){
-            long diffInMillies = Math.abs(systemDate.getTime() - dao.getEndTime().getTime());
-            long diff = TimeUnit.DAYS.convert(diffInMillies, TimeUnit.MILLISECONDS);
-            if (diff < DAYS_ABOUT_TO_CLOSE) auctionsAboutToClose.add(dao);
-        }
-        return Result.ok(auctionsAboutToClose);
+        // var auctions = this.container
+        // .queryItems(
+        // "SELECT * FROM auctions",
+        // new CosmosQueryRequestOptions(),
+        // AuctionDAO.class);
+        // var auctionsAboutToClose = new LinkedList<AuctionDAO>();
+        // for (AuctionDAO dao : auctions.stream().toList()) {
+        // long diffInMillies = Math.abs(systemDate.getTime() -
+        // dao.getEndTime().getTime());
+        // long diff = TimeUnit.DAYS.convert(diffInMillies, TimeUnit.MILLISECONDS);
+        // if (diff < DAYS_ABOUT_TO_CLOSE)
+        // auctionsAboutToClose.add(dao);
+        // }
+        // return Result.ok(auctionsAboutToClose);
+        return null;
     }
 
     public Result<List<AuctionDAO>, ServiceError> getRecentAuctions() {
-        var systemDate = new Date();
-        // TODO this probably can be optimized
-        var auctions = this.container
-                .queryItems(
-                        "SELECT * FROM auctions",
-                        new CosmosQueryRequestOptions(),
-                        AuctionDAO.class
-                );
-        var auctionsRecent = new LinkedList<AuctionDAO>();
-        for(AuctionDAO dao : auctions.stream().toList()){
+        // var systemDate = new Date();
+        // // TODO this probably can be optimized
+        // var auctions = this.container
+        // .queryItems(
+        // "SELECT * FROM auctions",
+        // new CosmosQueryRequestOptions(),
+        // AuctionDAO.class);
+        // var auctionsRecent = new LinkedList<AuctionDAO>();
+        // for (AuctionDAO dao : auctions.stream().toList()) {
 
-            long diffInMillies = Math.abs(systemDate.getTime() - dao.getEndTime().getTime());
-            long diff = TimeUnit.DAYS.convert(diffInMillies, TimeUnit.MILLISECONDS);
-            if (diff == 0) auctionsRecent.add(dao);
-        }
-        return Result.ok(auctionsRecent);
+        // long diffInMillies = Math.abs(systemDate.getTime() -
+        // dao.getEndTime().getTime());
+        // long diff = TimeUnit.DAYS.convert(diffInMillies, TimeUnit.MILLISECONDS);
+        // if (diff == 0)
+        // auctionsRecent.add(dao);
+        // }
+        // return Result.ok(auctionsRecent);
+        return null;
     }
+
 }

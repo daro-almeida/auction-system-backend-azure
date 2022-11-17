@@ -11,7 +11,7 @@ import jakarta.ws.rs.core.NewCookie;
 import scc.services.ServiceError;
 
 class ResourceUtils {
-    public static final String SESSION_COOKIE = "scc:session";
+    public static final String SESSION_COOKIE = "scc-session";
 
     public static NewCookie createSessionCookie(String sessionToken) {
         return new NewCookie.Builder(SESSION_COOKIE)
@@ -48,6 +48,7 @@ class ResourceUtils {
         switch (error) {
             case AUCTION_NOT_FOUND -> throw new NotFoundException(message);
             case BAD_REQUEST -> throw new BadRequestException(message);
+            case UNAUTHORIZED -> throw new WebApplicationException(message, 401);
             case INVALID_CREDENTIALS -> throw new WebApplicationException(message, 401);
             case QUESTION_ALREADY_REPLIED -> throw new WebApplicationException(message, 409);
             case QUESTION_NOT_FOUND -> throw new NotFoundException(message);

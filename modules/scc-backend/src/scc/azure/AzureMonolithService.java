@@ -11,7 +11,6 @@ import scc.azure.dao.AuctionDAO;
 import scc.azure.dao.BidDAO;
 import scc.azure.dao.QuestionDAO;
 import scc.azure.dao.UserDAO;
-import scc.resources.data.AuctionDTO;
 import scc.services.AuctionService;
 import scc.services.MediaService;
 import scc.services.ServiceError;
@@ -23,7 +22,6 @@ import scc.services.data.UserItem;
 import scc.utils.Hash;
 import scc.utils.Result;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -94,18 +92,19 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
             return Result.err(authResult.error());
         var userId = authResult.value();
 
-        var pictureId = params.image().map(mediaStorage::createAuctionMediaID);
-        var auctionDao = new AuctionDAO(params.title(), params.description(), pictureId.orElse(null), userId,
-                new Date(), params.initialPrice());
-        var response = this.auctionDB.createAuction(auctionDao);
+        if (!userId.equals(params.owner()))
+            return Result.err(ServiceError.UNAUTHORIZED);
 
-        if (response.isOk()) {
-            this.cache.addUserAuction(response.value());
-            if(params.image().isPresent())
-                uploadAuctionMedia(params.image().get());
-            return Result.ok(AuctionItem.fromAuctionDAO(response.value()));
-        } else
+        var auctionDao = new AuctionDAO(params.title(), params.description(), params.imageId().orElse(null), userId,
+                params.endTime(), params.minimumPrice());
+        var response = this.auctionDB.createAuction(auctionDao);
+        if (response.isError())
             return Result.err(response.error());
+        auctionDao = response.value();
+
+        this.cache.addUserAuction(auctionDao);
+
+        return Result.ok(AzureUtils.auctionDaoToItem(auctionDao));
     }
 
     /**
@@ -146,7 +145,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
                 return Result.err(result.error());
             auctionDAOList = result.value();
         }
-        return Result.ok(auctionDAOList.stream().map(AuctionItem::fromAuctionDAO).toList());
+        return Result.ok(auctionDAOList.stream().map(AzureUtils::auctionDaoToItem).toList());
     }
 
     /**
@@ -169,7 +168,8 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
             return Result.err(authResult.error());
 
         var oldAuction = this.auctionDB.getAuction(auctionId);
-        if(oldAuction.isEmpty()) return Result.err(ServiceError.AUCTION_NOT_FOUND);
+        if (oldAuction.isEmpty())
+            return Result.err(ServiceError.AUCTION_NOT_FOUND);
 
         var patchOps = CosmosPatchOperations.create();
         if (ops.shouldUpdateTitle())
@@ -184,7 +184,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
 
         if (result.isOk()) {
             var updatedAuction = result.value();
-                                    //oldAuction, updatedAuction
+            // oldAuction, updatedAuction
             this.cache.updateAuction(oldAuction.get(), updatedAuction);
             if (ops.shouldUpdateImage())
                 uploadAuctionMedia(ops.getImage());
@@ -236,7 +236,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
     public Result<List<BidItem>, ServiceError> listBids(String auctionId) {
         var bidDAOList = this.cache.getAuctionBids(auctionId);
         if (bidDAOList == null) {
-//            bidDAOList = this.bidDB.listBids(auctionId);
+            // bidDAOList = this.bidDB.listBids(auctionId);
             var result = this.bidDB.listBids(auctionId);
             if (result.isError())
                 return Result.err(result.error());
@@ -299,7 +299,8 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
 
         var oldQuestion = this.questionDB.getQuestion(params.questionId());
 
-        if(oldQuestion.isEmpty()) return Result.err(ServiceError.QUESTION_NOT_FOUND);
+        if (oldQuestion.isEmpty())
+            return Result.err(ServiceError.QUESTION_NOT_FOUND);
 
         var response = this.questionDB.createReply(params.questionId(),
                 new QuestionDAO.Reply(userId, params.reply()));
@@ -309,7 +310,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
 
         var repliedQuestion = response.value();
         if (response.isOk()) {
-                                    //oldQuestion, repliedQuestion
+            // oldQuestion, repliedQuestion
             this.cache.updateQuestion(oldQuestion.get(), repliedQuestion);
             return Result.ok();
         } else
@@ -331,10 +332,10 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         var questionDAOList = this.cache.getAuctionQuestions(auctionId);
         if (questionDAOList == null) {
             questionDAOList = this.questionDB.listQuestions(auctionId);
-//            var result = this.questionDB.listQuestions(auctionId);
-//            if (result.isError())
-//                return Result.err(result.error());
-//            questionDAOList = result.value();
+            // var result = this.questionDB.listQuestions(auctionId);
+            // if (result.isError())
+            // return Result.err(result.error());
+            // questionDAOList = result.value();
         }
         return Result.ok(questionDAOList.stream().map(QuestionItem::fromQuestionDAO).toList());
     }
@@ -500,8 +501,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
             if (ops.shouldUpdateImage())
                 uploadUserProfilePicture(ops.getImage());
             return Result.ok();
-        }
-        else
+        } else
             return Result.err(result.error());
     }
 
@@ -525,35 +525,41 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
     }
 
     /**
-     * Lists all the auctions that are considered about to close (for example, in less than a week)
+     * Lists all the auctions that are considered about to close (for example, in
+     * less than a week)
+     * 
      * @return List of auctions that meet the "about to close" criteria
      */
     @Override
-    public Result<List<AuctionItem>, ServiceError> listAuctionsAboutToClose(){
+    public Result<List<AuctionItem>, ServiceError> listAuctionsAboutToClose() {
         var AuctionDAOList = this.cache.getAboutToCloseAuctions();
-        if(AuctionDAOList.isEmpty()){
+        if (AuctionDAOList.isEmpty()) {
             var result = this.auctionDB.getAboutToCloseAuctions();
             if (result.isError())
                 return Result.err(result.error());
             AuctionDAOList = result.value();
         }
-        return Result.ok(AuctionDAOList.stream().map(AuctionItem::fromAuctionDAO).toList());
+        return Result.ok(AuctionDAOList.stream().map(AzureUtils::auctionDaoToItem).toList());
     }
 
     /**
-     * Lists all the auctions that are considered recent (for example, creation in the same day as this call)
+     * Lists all the auctions that are considered recent (for example, creation in
+     * the same day as this call)
+     * 
      * @return List of auctions that meet the "recent" criteria
      */
     @Override
     public Result<List<AuctionItem>, ServiceError> listRecentAuctions() {
         var result = this.auctionDB.getRecentAuctions();
-        if(result.isError())
+        if (result.isError())
             return Result.err(result.error());
-        return Result.ok(result.value().stream().map(AuctionItem::fromAuctionDAO).toList());
+        return Result.ok(result.value().stream().map(AzureUtils::auctionDaoToItem).toList());
     }
 
     /**
-     * Lists all the auctions that are considered popular (for example, top 5 auctions with most bids
+     * Lists all the auctions that are considered popular (for example, top 5
+     * auctions with most bids
+     * 
      * @return List of auctions that meet the "popular" criteria
      */
     @Override

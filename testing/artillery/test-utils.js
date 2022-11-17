@@ -159,15 +159,9 @@ function genNewAuction(context, events, done) {
 	var d = new Date();
 	d.setTime(Date.now() + random(300000));
 	context.vars.endTime = d.toISOString();
-	if (Math.random() > 0.2) {
-		context.vars.status = "OPEN";
-		context.vars.numBids = random(maxBids);
-		context.vars.numQuestions = random(maxQuestions);
-	} else {
-		context.vars.status = "CLOSED";
-		delete context.vars.numBids;
-		delete context.vars.numQuestions;
-	}
+	context.vars.status = "OPEN";
+	context.vars.numBids = random(maxBids);
+	context.vars.numQuestions = random(maxQuestions);
 	return done()
 }
 

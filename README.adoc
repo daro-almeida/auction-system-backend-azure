@@ -119,13 +119,14 @@ $ cd modules
 ----
 
 Create a new maven module.
+Use the name convention `scc-backend-function-<name>`.
 [source,bash]
 ----
 $ mvn -B archetype:generate \
     -DarchetypeGroupId=com.microsoft.azure \
     -DarchetypeArtifactId=azure-functions-archetype \
     -DjavaVersion=17 \
-    -DgroupId=scc \
+    -DgroupId=scc.azure.functions \
     -DappName='${project.artifactId}' \
     -DresourceGroup="scc2223-rg-westeurope-bdd" \
     -DappRegion="westeurope" \

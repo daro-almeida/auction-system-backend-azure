@@ -1,6 +1,6 @@
 package scc.azure.dao;
 
-import java.util.Date;
+import java.time.ZonedDateTime;
 
 public class AuctionDAO {
     public static enum Status {
@@ -16,13 +16,13 @@ public class AuctionDAO {
     private String description;
     private String pictureId;
     private String userId;
-    private Date endTime;
-    private long startingPrice;
+    private ZonedDateTime endTime;
+    private double startingPrice;
     private String winnerBidId;
     private Status status;
 
-    public AuctionDAO(String title, String description, String pictureId, String userId, Date endTime,
-            long startingPrice) {
+    public AuctionDAO(String title, String description, String pictureId, String userId, ZonedDateTime endTime,
+            double startingPrice) {
         this._rid = null;
         this._ts = null;
         this.id = null;
@@ -41,8 +41,8 @@ public class AuctionDAO {
             String description,
             String pictureId,
             String userId,
-            Date endTime,
-            long startingPrice,
+            ZonedDateTime endTime,
+            double startingPrice,
             String winnerBidId,
             Status status) {
         this.id = id;
@@ -87,11 +87,11 @@ public class AuctionDAO {
         return userId;
     }
 
-    public Date getEndTime() {
+    public ZonedDateTime getEndTime() {
         return endTime;
     }
 
-    public long getStartingPrice() {
+    public double getStartingPrice() {
         return startingPrice;
     }
 
@@ -127,11 +127,11 @@ public class AuctionDAO {
         this.pictureId = pictureId;
     }
 
-    public void setEndTime(Date endTime) {
+    public void setEndTime(ZonedDateTime endTime) {
         this.endTime = endTime;
     }
 
-    public void setStartingPrice(long minimumPrice) {
+    public void setStartingPrice(double minimumPrice) {
         this.startingPrice = minimumPrice;
     }
 

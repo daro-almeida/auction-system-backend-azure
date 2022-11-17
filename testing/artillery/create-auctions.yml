@@ -53,7 +53,6 @@ scenarios:
                 imageId: "{{ imageId }}"
                 endTime: "{{ endTime }}"
                 minimumPrice: "{{ minimumPrice }}"
-                status: "{{ status }}"
               capture: # Capturing auction id and store it in variable auctionId
                 - json: $.id
                   as: "auctionId"
