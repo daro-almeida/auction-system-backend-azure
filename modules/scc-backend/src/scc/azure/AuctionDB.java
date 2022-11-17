@@ -70,17 +70,14 @@ class AuctionDB {
      * @param auctionId identifier of the auction
      * @return 204 if successful, 404 otherwise
      */
-    public Result<Void, ServiceError> deleteAuction(String auctionId) {
-        try {
-            var deleteOps = CosmosPatchOperations.create();
-            deleteOps.set("/status", AuctionDAO.Status.DELETED);
-            var response = updateAuction(auctionId, deleteOps);
-            return Result.ok();
-        } catch (CosmosException e) {
-            if (e.getStatusCode() == 404)
-                return Result.err(ServiceError.AUCTION_NOT_FOUND);
-            throw e;
-        }
+    public Result<AuctionDAO, ServiceError> deleteAuction(String auctionId) {
+        var deleteOps = CosmosPatchOperations.create();
+        deleteOps.set("/status", AuctionDAO.Status.DELETED);
+        var response = updateAuction(auctionId, deleteOps);
+        if (response.isOk())
+            return Result.ok(response.value());
+        else
+            return Result.err(response.error());
     }
 
     public Result<List<AuctionDAO>, ServiceError> listAuctionsOfUser(String userId) {

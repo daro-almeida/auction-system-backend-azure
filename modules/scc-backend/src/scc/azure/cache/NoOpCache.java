@@ -1,11 +1,10 @@
 package scc.azure.cache;
 
-import java.util.List;
-
 import scc.azure.dao.AuctionDAO;
 import scc.azure.dao.BidDAO;
 import scc.azure.dao.QuestionDAO;
-import scc.azure.dao.UserDAO;
+
+import java.util.List;
 
 public class NoOpCache implements Cache {
 
@@ -60,7 +59,7 @@ public class NoOpCache implements Cache {
     }
 
     @Override
-    public void deleteAuction(String auctionId) {
+    public void deleteAuction(AuctionDAO auctionDAO) {
 
     }
 

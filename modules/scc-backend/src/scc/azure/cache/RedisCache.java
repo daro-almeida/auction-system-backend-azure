@@ -120,14 +120,14 @@ public class RedisCache implements Cache {
     }
 
     @Override
-    public void deleteAuction(String auctionId) {
+    public void deleteAuction(AuctionDAO auctionDAO) {
         var client = getClientInstance();
 
-        var key1 = createAuctionBidListKey(auctionId);
-        var key2 = createAuctionQuestionListKey(auctionId);
+        var key1 = createAuctionBidListKey(auctionDAO.getId());
+        var key2 = createAuctionQuestionListKey(auctionDAO.getId());
         client.del(key1, key2);
 
-        //TODO need to also delete auction from list of user auctions
+        removeUserAuction(auctionDAO);
     }
 
     @Override

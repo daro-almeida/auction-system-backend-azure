@@ -121,9 +121,10 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
     public Result<Void, ServiceError> deleteAuction(String auctionId) {
         var result = this.auctionDB.deleteAuction(auctionId);
         if (result.isOk()) {
-            this.cache.deleteAuction(auctionId);
-        }
-        return result;
+            this.cache.deleteAuction(result.value());
+            return Result.ok();
+        } else
+            return Result.err(result.error());
     }
 
     /**

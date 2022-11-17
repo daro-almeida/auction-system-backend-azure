@@ -30,15 +30,11 @@ public interface Cache {
 
     List<QuestionDAO> getAuctionQuestions(String auctionId);
 
-    void deleteAuction(String auctionId);
+    void deleteAuction(AuctionDAO auctionDAO);
 
     void updateAuction(AuctionDAO oldValue, AuctionDAO newValue);
 
     void updateQuestion(QuestionDAO oldValue, QuestionDAO newValue); //happens on reply
-
-    //TODO Are these lists really necessary to be on cache?
-    //TODO The computation for this on cache might be as equal or more than just pick from database
-    //TODO Because: You need to update whenever a bid is made, day changes and auction is created
 
     List<AuctionDAO> getAboutToCloseAuctions();
 
