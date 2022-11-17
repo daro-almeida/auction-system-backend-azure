@@ -2,6 +2,7 @@ package scc.resources;
 
 import java.util.List;
 
+import com.azure.search.documents.models.SearchResult;
 import jakarta.annotation.Resource;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Cookie;
@@ -264,7 +265,7 @@ public class AuctionResource {
      */
     @GET
     @Path("/")
-    @Produces(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     public List<AuctionDTO> listAuctionsAboutToClose() {
         System.out.println("Received list auctions about to close request");
 
@@ -278,7 +279,7 @@ public class AuctionResource {
 
     @GET
     @Path("/recent")
-    @Produces(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     public List<AuctionDTO> listRecentAuctions() {
         System.out.println("Received list recent auctions request");
 
@@ -292,7 +293,7 @@ public class AuctionResource {
 
     @GET
     @Path("/popular")
-    @Produces(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.APPLICATION_JSON)
     public List<AuctionDTO> listPopularAuctions(){
         System.out.println("Received list popular auctions request");
 
@@ -302,6 +303,20 @@ public class AuctionResource {
             ResourceUtils.throwError(result.error(), result.errorMessage());
 
         return result.value().stream().map(AuctionDTO::from).toList();
+    }
+
+    @GET
+    @Path("/any")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<SearchResult> listQueryAuctions(@QueryParam("query") String query){
+        System.out.printf("Received list auctions request with query %s\n", query);
+
+        var result = this.service.listQueryAuctions(query);
+
+        if(result.isError())
+            ResourceUtils.throwError(result.error(), result.errorMessage());
+
+        return result.value().stream().toList();
     }
 
 }

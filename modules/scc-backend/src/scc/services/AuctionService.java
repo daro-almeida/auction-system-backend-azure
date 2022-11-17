@@ -3,6 +3,7 @@ package scc.services;
 import java.util.List;
 import java.util.Optional;
 
+import com.azure.search.documents.models.SearchResult;
 import scc.azure.dao.AuctionDAO;
 import scc.resources.data.AuctionDTO;
 import scc.services.data.AuctionItem;
@@ -16,6 +17,8 @@ public interface AuctionService {
     Result<List<AuctionItem>, ServiceError> listRecentAuctions();
 
     Result<List<AuctionItem>, ServiceError> listPopularAuctions();
+
+    Result<List<SearchResult>, ServiceError>  listQueryAuctions(String query);
 
     record CreateAuctionParams(
             String title,

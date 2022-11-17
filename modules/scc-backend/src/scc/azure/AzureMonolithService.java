@@ -1,7 +1,13 @@
 package scc.azure;
 
+import com.azure.core.credential.AzureKeyCredential;
 import com.azure.cosmos.CosmosClientBuilder;
 import com.azure.cosmos.models.CosmosPatchOperations;
+import com.azure.search.documents.SearchClient;
+import com.azure.search.documents.SearchClientBuilder;
+import com.azure.search.documents.models.SearchOptions;
+import com.azure.search.documents.models.SearchResult;
+import com.azure.search.documents.util.SearchPagedIterable;
 import org.apache.commons.lang3.NotImplementedException;
 import scc.azure.cache.Cache;
 import scc.azure.cache.NoOpCache;
@@ -11,7 +17,6 @@ import scc.azure.dao.AuctionDAO;
 import scc.azure.dao.BidDAO;
 import scc.azure.dao.QuestionDAO;
 import scc.azure.dao.UserDAO;
-import scc.resources.data.AuctionDTO;
 import scc.services.AuctionService;
 import scc.services.MediaService;
 import scc.services.ServiceError;
@@ -28,6 +33,10 @@ import java.util.List;
 import java.util.Optional;
 
 public class AzureMonolithService implements UserService, MediaService, AuctionService {
+    private static final String SearchServiceQueryKey = "UXWCEJmyOccoflVnisIkCpcxglF2QTuyMg3ADzVLPOAzSeB5mWt1";
+    private static final String SearchServiceUrl = "https://scc223-cognitive-search-d464.search.windows.net";
+    private static final String IndexName = "cosmosdb-auction-indexer";
+
     private final MediaStorage mediaStorage;
     private final UserDB userDB;
     private final AuctionDB auctionDB;
@@ -35,6 +44,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
     private final QuestionDB questionDB;
     private final UserAuth userAuth;
     private final Cache cache;
+    private final SearchClient searchClient;
 
     public AzureMonolithService(AzureMonolithConfig config) {
         this.mediaStorage = new MediaStorage(config.getBlobStoreConfig());
@@ -69,6 +79,11 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         // TESTING: create an admin user
         this.userDB.createUser(new UserDAO("admin", "admin", AzureUtils.hashUserPassword("123"), null));
         jedisPool.getResource().flushAll();
+        this.searchClient = new SearchClientBuilder()
+                .credential(new AzureKeyCredential(SearchServiceQueryKey))
+                .endpoint(SearchServiceUrl)
+                .indexName(IndexName)
+                .buildClient();
     }
 
     /**
@@ -560,6 +575,18 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
     public Result<List<AuctionItem>, ServiceError> listPopularAuctions() {
         // TODO implement
         throw new NotImplementedException();
+    }
+
+    @Override
+    public Result<List<SearchResult>, ServiceError> listQueryAuctions(String query){
+        SearchOptions options = new SearchOptions()
+                .setIncludeTotalCount(true)
+                .setSelect("id", "userid", "title", "description")
+                .setSearchFields("title")
+                .setTop(5);
+
+        SearchPagedIterable searchPagedIterable = searchClient.search(query, options, null);
+        return Result.ok(searchPagedIterable.stream().toList());
     }
 
 }
