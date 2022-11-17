@@ -1,8 +1,7 @@
 package scc.azure;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosDatabase;
@@ -19,6 +18,7 @@ import scc.utils.Result;
 
 class AuctionDB {
     private final CosmosContainer container;
+    private static final int DAYS_ABOUT_TO_CLOSE = 7;
 
     public AuctionDB(CosmosDatabase db, CosmosDbConfig config) {
         this.container = db.getContainer(config.auctionContainer);
@@ -75,7 +75,7 @@ class AuctionDB {
             var deleteOps = CosmosPatchOperations.create();
             deleteOps.set("/status", AuctionDAO.Status.DELETED);
             var response = updateAuction(auctionId, deleteOps);
-            return Result.ok(response.value());
+            return Result.ok();
         } catch (CosmosException e) {
             if (e.getStatusCode() == 404)
                 return Result.err(ServiceError.AUCTION_NOT_FOUND);
@@ -99,13 +99,12 @@ class AuctionDB {
      * 
      * @param auctionId identifier of the auction
      * @param ops       operations to be executed on the entry
-     * @return 204 if successful, 404 otherwise
+     * @return 200 if successful, 404 otherwise
      */
-    public Result<Void, ServiceError> updateAuction(String auctionId, CosmosPatchOperations ops) {
+    public Result<AuctionDAO, ServiceError> updateAuction(String auctionId, CosmosPatchOperations ops) {
         var partitionKey = this.createPartitionKey(auctionId);
         try {
-            this.container.patchItem(auctionId, partitionKey, ops, AuctionDAO.class);
-            return Result.ok();
+            return Result.ok(this.container.patchItem(auctionId, partitionKey, ops, AuctionDAO.class).getItem());
         } catch (CosmosException e) {
             return Result.err(ServiceError.AUCTION_NOT_FOUND);
         }
@@ -150,5 +149,41 @@ class AuctionDB {
 
     private CosmosQueryRequestOptions createQueryOptions(String auctionId) {
         return createQueryOptions().setPartitionKey(this.createPartitionKey(auctionId));
+    }
+
+    public Result<List<AuctionDAO>, ServiceError> getAboutToCloseAuctions() {
+        var systemDate = new Date();
+        // TODO this probably can be optimized
+        var auctions = this.container
+                .queryItems(
+                        "SELECT * FROM auctions",
+                        new CosmosQueryRequestOptions(),
+                        AuctionDAO.class);
+        var auctionsAboutToClose = new LinkedList<AuctionDAO>();
+        for(AuctionDAO dao : auctions.stream().toList()){
+            long diffInMillies = Math.abs(systemDate.getTime() - dao.getEndTime().getTime());
+            long diff = TimeUnit.DAYS.convert(diffInMillies, TimeUnit.MILLISECONDS);
+            if (diff < DAYS_ABOUT_TO_CLOSE) auctionsAboutToClose.add(dao);
+        }
+        return Result.ok(auctionsAboutToClose);
+    }
+
+    public Result<List<AuctionDAO>, ServiceError> getRecentAuctions() {
+        var systemDate = new Date();
+        // TODO this probably can be optimized
+        var auctions = this.container
+                .queryItems(
+                        "SELECT * FROM auctions",
+                        new CosmosQueryRequestOptions(),
+                        AuctionDAO.class
+                );
+        var auctionsRecent = new LinkedList<AuctionDAO>();
+        for(AuctionDAO dao : auctions.stream().toList()){
+
+            long diffInMillies = Math.abs(systemDate.getTime() - dao.getEndTime().getTime());
+            long diff = TimeUnit.DAYS.convert(diffInMillies, TimeUnit.MILLISECONDS);
+            if (diff == 0) auctionsRecent.add(dao);
+        }
+        return Result.ok(auctionsRecent);
     }
 }

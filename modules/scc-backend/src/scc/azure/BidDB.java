@@ -71,14 +71,14 @@ class BidDB {
      * @param auctionId identifier of the auction
      * @return List of bids made in the auction
      */
-    public List<BidDAO> listBids(String auctionId) { //TODO this should probably be Result?
+    public Result<List<BidDAO>, ServiceError> listBids(String auctionId) {
         var options = this.createQueryOptions(auctionId);
-        return this.container
+        return Result.ok(this.container
                 .queryItems(
                         "SELECT * FROM bids WHERE bids.auctionId=\"" + auctionId + "\"",
                         options,
                         BidDAO.class)
-                .stream().collect(Collectors.toList());
+                .stream().collect(Collectors.toList()));
     }
 
     private PartitionKey createPartitionKey(String bidId) {

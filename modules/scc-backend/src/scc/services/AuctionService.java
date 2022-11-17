@@ -4,12 +4,19 @@ import java.util.List;
 import java.util.Optional;
 
 import scc.azure.dao.AuctionDAO;
+import scc.resources.data.AuctionDTO;
 import scc.services.data.AuctionItem;
 import scc.services.data.BidItem;
 import scc.services.data.QuestionItem;
 import scc.utils.Result;
 
 public interface AuctionService {
+    Result<List<AuctionItem>, ServiceError> listAuctionsAboutToClose();
+
+    Result<List<AuctionItem>, ServiceError> listRecentAuctions();
+
+    Result<List<AuctionItem>, ServiceError> listPopularAuctions();
+
     record CreateAuctionParams(
             String title,
             String description,
