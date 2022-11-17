@@ -68,6 +68,24 @@ public class MemoryAuctionService implements AuctionService {
         return null;
     }
 
+    @Override
+    public Result<List<AuctionItem>, ServiceError> listAuctionsAboutToClose() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Result<List<AuctionItem>, ServiceError> listRecentAuctions() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Result<List<AuctionItem>, ServiceError> listPopularAuctions() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
 }
 
 // public class MemoryAuctionService implements AuctionService {
