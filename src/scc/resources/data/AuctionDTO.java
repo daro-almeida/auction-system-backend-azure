@@ -1,5 +1,7 @@
 package scc.resources.data;
 
+import scc.services.data.AuctionItem;
+
 public class AuctionDTO {
     public String title;
     public String description;
@@ -46,6 +48,10 @@ public class AuctionDTO {
 
     public void setImageId(String imageId) {
         this.imageId = imageId;
+    }
+
+    public static AuctionDTO from(AuctionItem item){
+        return new AuctionDTO(item.getTitle(), item.getDescription(), item.getUserId(), item.getPictureId());
     }
 
     @Override

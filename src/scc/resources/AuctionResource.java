@@ -2,6 +2,7 @@ package scc.resources;
 
 import java.util.List;
 
+import jakarta.annotation.Resource;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Cookie;
 import org.apache.commons.lang3.NotImplementedException;
@@ -9,9 +10,11 @@ import org.apache.commons.lang3.NotImplementedException;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.ws.rs.core.MediaType;
+import scc.resources.data.AuctionDTO;
 import scc.resources.data.BidDTO;
 import scc.resources.data.QuestionDTO;
 import scc.services.AuctionService;
+import scc.services.data.AuctionItem;
 
 import static scc.resources.ResourceUtils.SESSION_COOKIE;
 
@@ -260,9 +263,43 @@ public class AuctionResource {
     @GET
     @Path("/")
     @Produces(MediaType.TEXT_PLAIN)
-    public String listAuctionsAboutToClose() {
-        // TODO implement
-        throw new NotImplementedException();
+    public List<AuctionDTO> listAuctionsAboutToClose() {
+        System.out.println("Received list auctions about to close request");
+
+        var result = this.service.listAuctionsAboutToClose();
+
+        if (result.isError())
+            ResourceUtils.throwError(result.error(), result.errorMessage());
+
+        return result.value().stream().map(AuctionDTO::from).toList();
+    }
+
+    @GET
+    @Path("/recent")
+    @Produces(MediaType.TEXT_PLAIN)
+    public List<AuctionDTO> listRecentAuctions() {
+        System.out.println("Received list recent auctions request");
+
+        var result = this.service.listRecentAuctions();
+
+        if (result.isError())
+            ResourceUtils.throwError(result.error(), result.errorMessage());
+
+        return result.value().stream().map(AuctionDTO::from).toList();
+    }
+
+    @GET
+    @Path("/popular")
+    @Produces(MediaType.TEXT_PLAIN)
+    public List<AuctionDTO> listPopularAuctions(){
+        System.out.println("Received list popular auctions request");
+
+        var result = this.service.listPopularAuctions();
+
+        if (result.isError())
+            ResourceUtils.throwError(result.error(), result.errorMessage());
+
+        return result.value().stream().map(AuctionDTO::from).toList();
     }
 
 }

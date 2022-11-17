@@ -75,6 +75,36 @@ public class NoOpCache implements Cache {
     }
 
     @Override
+    public List<AuctionDAO> getAboutToCloseAuctions() {
+        return null;
+    }
+
+    @Override
+    public void addAboutToCloseAuctions(List<AuctionDAO> auctions) {
+
+    }
+
+    @Override
+    public List<AuctionDAO> getRecentAuctions() {
+        return null;
+    }
+
+    @Override
+    public void addRecentAuction(AuctionDAO auctionDAO) {
+
+    }
+
+    @Override
+    public List<AuctionDAO> getPopularAuctions() {
+        return null;
+    }
+
+    @Override
+    public void addPopularAuctions(AuctionDAO auctionDAO) {
+
+    }
+
+    @Override
     public void setMedia(String mediaId, byte[] contents) {
 
     }
