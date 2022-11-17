@@ -44,7 +44,7 @@ public class MemoryUserService implements UserService {
             return Result.err(ServiceError.USER_ALREADY_EXISTS);
         }
 
-        var imageId = params.image().map(img -> this.media.uploadUserProfilePicture(params.nickname(), img));
+        var imageId = params.image().map(this.media::uploadUserProfilePicture);
         var user = new User(params.nickname(), params.name(), params.password(), imageId);
         this.users.put(params.nickname(), user);
         return Result.ok(new UserItem(user.nickname, user.name, user.password, imageId.get()));
@@ -82,7 +82,7 @@ public class MemoryUserService implements UserService {
 
         if (ops.shouldUpdateImage()) {
             user.imageId.ifPresent(this.media::deleteMedia);
-            user.imageId = Optional.of(this.media.uploadUserProfilePicture(userId, ops.getImage()));
+            user.imageId = Optional.of(this.media.uploadUserProfilePicture(ops.getImage()));
         }
 
         return Result.ok();

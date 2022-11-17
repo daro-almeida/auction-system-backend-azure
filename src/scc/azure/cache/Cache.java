@@ -5,49 +5,45 @@ import java.util.List;
 import scc.azure.dao.AuctionDAO;
 import scc.azure.dao.BidDAO;
 import scc.azure.dao.QuestionDAO;
-import scc.azure.dao.UserDAO;
 
 public interface Cache {
     // User
-    void setUser(UserDAO user);
+    void addUserAuction(AuctionDAO auctionDAO);
 
-    void unsetUser(String userId);
-
-    UserDAO getUser(String userId);
-
-    void setUserAuction(String userId, String auctionId);
+    void removeUserAuction(AuctionDAO auctionDAO);
 
     List<AuctionDAO> getUserAuctions(String userId);
 
+    void deleteUser(String userId);
+
+
     // Auction
-    void setAuction(AuctionDAO auction);
+    void addAuctionBid(BidDAO bidDAO);
 
-    void unsetAuction(String auctionId);
-
-    AuctionDAO getAuction(String auctionId);
-
-    void setAuctionBid(String bidId);
+    void removeAuctionBid(BidDAO bidDAO);
 
     List<BidDAO> getAuctionBids(String auctionId);
 
-    // Bid
-    void setBid(BidDAO bid);
+    void addAuctionQuestion(QuestionDAO questionDAO);
 
-    void unsetBid(String bidId);
+    void removeAuctionQuestion(QuestionDAO questionDAO);
 
-    BidDAO getBid(String bidId);
+    List<QuestionDAO> getAuctionQuestions(String auctionId);
 
-    // Question
-    void setQuestion(QuestionDAO question);
+    void deleteAuction(String auctionId);
 
-    void unsetQuestion(String questionId);
+    void updateAuction(AuctionDAO oldValue, AuctionDAO newValue);
 
-    QuestionDAO getQuestion(String questionId);
+    void updateQuestion(QuestionDAO oldValue, QuestionDAO newValue); //happens on reply
 
-    // Auction question list
-    void addAuctionQuestion(String auctionId, String questionId);
 
-    void removeAuctionQuestion(String auctionId, String questionId);
+    //Media
 
-    List<String> getAuctionQuestions(String auctionId);
+    void setMedia(String mediaId, byte[] contents);
+
+    void deleteMedia(String mediaId);
+
+    byte[] getMedia(String mediaId);
+
+    //TODO list Recent and popular auctions
 }

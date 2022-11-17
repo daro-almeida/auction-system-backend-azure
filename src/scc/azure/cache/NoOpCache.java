@@ -10,20 +10,12 @@ import scc.azure.dao.UserDAO;
 public class NoOpCache implements Cache {
 
     @Override
-    public void setUser(UserDAO user) {
+    public void addUserAuction(AuctionDAO auctionDAO) {
+
     }
 
     @Override
-    public void unsetUser(String userId) {
-    }
-
-    @Override
-    public UserDAO getUser(String userId) {
-        return null;
-    }
-
-    @Override
-    public void setUserAuction(String userId, String auctionId) {
+    public void removeUserAuction(AuctionDAO auctionDAO) {
 
     }
 
@@ -33,20 +25,17 @@ public class NoOpCache implements Cache {
     }
 
     @Override
-    public void setAuction(AuctionDAO auction) {
+    public void deleteUser(String userId) {
+
     }
 
     @Override
-    public void unsetAuction(String auctionId) {
+    public void addAuctionBid(BidDAO bidDAO) {
+
     }
 
     @Override
-    public AuctionDAO getAuction(String auctionId) {
-        return null;
-    }
-
-    @Override
-    public void setAuctionBid(String bidId) {
+    public void removeAuctionBid(BidDAO bidDAO) {
 
     }
 
@@ -56,42 +45,47 @@ public class NoOpCache implements Cache {
     }
 
     @Override
-    public void setBid(BidDAO bid) {
+    public void addAuctionQuestion(QuestionDAO questionDAO) {
+
     }
 
     @Override
-    public void unsetBid(String bidId) {
+    public void removeAuctionQuestion(QuestionDAO questionDAO) {
+
     }
 
     @Override
-    public BidDAO getBid(String bidId) {
+    public List<QuestionDAO> getAuctionQuestions(String auctionId) {
         return null;
     }
 
     @Override
-    public void setQuestion(QuestionDAO question) {
+    public void deleteAuction(String auctionId) {
+
     }
 
     @Override
-    public void unsetQuestion(String questionId) {
+    public void updateAuction(AuctionDAO oldValue, AuctionDAO newValue) {
+
     }
 
     @Override
-    public QuestionDAO getQuestion(String questionId) {
+    public void updateQuestion(QuestionDAO oldValue, QuestionDAO newValue) {
+
+    }
+
+    @Override
+    public void setMedia(String mediaId, byte[] contents) {
+
+    }
+
+    @Override
+    public void deleteMedia(String mediaId) {
+
+    }
+
+    @Override
+    public byte[] getMedia(String mediaId) {
         return null;
     }
-
-    @Override
-    public void addAuctionQuestion(String auctionId, String questionId) {
-    }
-
-    @Override
-    public void removeAuctionQuestion(String auctionId, String questionId) {
-    }
-
-    @Override
-    public List<String> getAuctionQuestions(String auctionId) {
-        return null;
-    }
-
 }

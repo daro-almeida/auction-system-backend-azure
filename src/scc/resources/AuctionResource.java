@@ -26,7 +26,7 @@ public class AuctionResource {
         this.service = service;
     }
 
-    public static record CreateAuctionRequest(
+    public record CreateAuctionRequest(
             @JsonProperty(required = true) String title,
             @JsonProperty(required = true) String description,
             @JsonProperty(required = true) Long initialPrice,
@@ -105,9 +105,9 @@ public class AuctionResource {
             ResourceUtils.throwError(result.error(), result.errorMessage());
     }
 
-    public static record CreateBidRequest(
-            @JsonProperty(required = true) String userId,
-            @JsonProperty(required = true) Long bid) {
+    public record CreateBidRequest(
+        @JsonProperty(required = true) String userId,
+        @JsonProperty(required = true) Long bid) {
     }
 
     /**
@@ -180,7 +180,7 @@ public class AuctionResource {
     @Produces(MediaType.APPLICATION_JSON)
     public String createQuestion(@PathParam(AUCTION_ID) String auctionId,
             CreateQuestionRequest request,
-            @CookieParam(SESSION_COOKIE) Cookie authentication) {
+            @CookieParam(SESSION_COOKIE) Cookie authentication) { //TODO change to DTO
         System.out.println("Received create question request");
         System.out.println(request);
 
@@ -193,7 +193,7 @@ public class AuctionResource {
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
 
-        return result.value();
+        return result.value().getId();
     }
 
     public static record CreateReplyRequest(
@@ -261,7 +261,7 @@ public class AuctionResource {
     @Path("/")
     @Produces(MediaType.TEXT_PLAIN)
     public String listAuctionsAboutToClose() {
-        // TODO
+        // TODO implement
         throw new NotImplementedException();
     }
 

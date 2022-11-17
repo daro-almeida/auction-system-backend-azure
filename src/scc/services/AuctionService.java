@@ -74,7 +74,7 @@ public interface AuctionService {
 
     Result<Void, ServiceError> updateAuction(String auctionId, UpdateAuctionOps ops, String sessionToken);
 
-    public static record CreateBidParams(
+    record CreateBidParams(
             String auctionId,
             long price) {
     }
@@ -83,14 +83,14 @@ public interface AuctionService {
 
     Result<List<BidItem>, ServiceError> listBids(String auctionId);
 
-    public static record CreateQuestionParams(
+    record CreateQuestionParams(
             String auctionId,
             String question) {
     }
 
-    Result<String, ServiceError> createQuestion(CreateQuestionParams params, String sessionToken);
+    Result<QuestionItem, ServiceError> createQuestion(CreateQuestionParams params, String sessionToken);
 
-    public static record CreateReplyParams(
+    record CreateReplyParams(
             String auctionId,
             String questionId,
             String reply) {

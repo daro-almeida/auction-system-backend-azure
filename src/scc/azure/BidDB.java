@@ -71,7 +71,7 @@ class BidDB {
      * @param auctionId identifier of the auction
      * @return List of bids made in the auction
      */
-    public List<BidDAO> listBids(String auctionId) {
+    public List<BidDAO> listBids(String auctionId) { //TODO this should probably be Result?
         var options = this.createQueryOptions(auctionId);
         return this.container
                 .queryItems(

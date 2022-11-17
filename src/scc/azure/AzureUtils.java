@@ -27,11 +27,4 @@ public interface AzureUtils {
         poolConfig.setBlockWhenExhausted(true);
         return new JedisPool(poolConfig, config.url, 6380, 1000, config.key, true);
     }
-
-    public static QuestionItem questionDaoToItem(QuestionDAO question) {
-        return new QuestionItem(question.getId(), question.getUserId(),
-                question.getQuestion(),
-                Optional.ofNullable(question.getReply())
-                        .map(reply -> new ReplyItem(reply.getUserId(), reply.getReply())));
-    }
 }

@@ -18,23 +18,22 @@ public class MemoryMediaService implements MediaService {
     }
 
     @Override
-    public synchronized String uploadUserProfilePicture(String userId, byte[] contents) {
+    public synchronized String uploadUserProfilePicture(byte[] contents) {
         return this.uploadAuctionMedia(contents);
     }
 
     @Override
-    public synchronized Optional<byte[]> downloadMedia(String id) {
+    public synchronized Optional<byte[]> downloadMedia(String mediaId) {
         try {
-            return Optional.ofNullable(this.media.get(Integer.parseInt(id)));
+            return Optional.ofNullable(this.media.get(Integer.parseInt(mediaId)));
         } catch (NumberFormatException __) {
             return Optional.empty();
         }
     }
 
     @Override
-    public synchronized boolean deleteMedia(String id) {
-        var prev = this.media.remove(Integer.parseInt(id));
-        return prev != null;
+    public synchronized void deleteMedia(String mediaId) {
+        var prev = this.media.remove(Integer.parseInt(mediaId));
     }
 
 }

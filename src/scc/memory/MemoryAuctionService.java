@@ -1,18 +1,13 @@
 package scc.memory;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 import scc.services.AuctionService;
 import scc.services.ServiceError;
 import scc.services.data.AuctionItem;
 import scc.services.data.BidItem;
 import scc.services.data.QuestionItem;
-import scc.services.data.ReplyItem;
 import scc.utils.Result;
+
+import java.util.List;
 
 public class MemoryAuctionService implements AuctionService {
 
@@ -56,7 +51,7 @@ public class MemoryAuctionService implements AuctionService {
     }
 
     @Override
-    public Result<String, ServiceError> createQuestion(CreateQuestionParams params, String sessionToken) {
+    public Result<QuestionItem, ServiceError> createQuestion(CreateQuestionParams params, String sessionToken) {
         // TODO Auto-generated method stub
         return null;
     }
