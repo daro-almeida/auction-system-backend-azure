@@ -1,0 +1,12 @@
+# Install faker with `npm i @faker-js/faker` in this directory
+
+# npm
+/node_modules
+/package-lock.json
+/package.json
+
+# Output of reports
+/*.json
+
+# Data produced by tests
+/*.data

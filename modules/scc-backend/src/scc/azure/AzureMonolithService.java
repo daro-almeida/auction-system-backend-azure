@@ -73,9 +73,10 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      * Creates an auction for a user with given identifier.
      * The user creating the auction must be logged in to execute this operation.
      * 
-     * @param params JSON that contains the necessary information to create an
-     *               auction
-     * @param sessionToken   Cookie related to the user being "logged" in the application
+     * @param params       JSON that contains the necessary information to create an
+     *                     auction
+     * @param sessionToken Cookie related to the user being "logged" in the
+     *                     application
      * @return 200 with auction's identifier if successful,
      *         404 if the user does not exist
      *         403 if the authentication phase failed
@@ -150,9 +151,10 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      * The user who is the owner of the auction must be logged in order to execute
      * this operation.
      * 
-     * @param auctionId identifier of the auction to be updated
-     * @param ops       Values that are to be changed to new ones
-     * @param sessionToken      Cookie related to the user being "logged" in the application
+     * @param auctionId    identifier of the auction to be updated
+     * @param ops          Values that are to be changed to new ones
+     * @param sessionToken Cookie related to the user being "logged" in the
+     *                     application
      * @return 204 if successful on changing the auction's values,
      *         404 if the auction does not exist,
      *         403 if the authentication phase failed
@@ -192,8 +194,9 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      * the auction's winning bid will be set to this one's identifier
      * The user making the bid must be logged in to execute this operation
      * 
-     * @param params Parameters required to create a bid object
-     * @param sessionToken   Cookie related to the user being "logged" in the application
+     * @param params       Parameters required to create a bid object
+     * @param sessionToken Cookie related to the user being "logged" in the
+     *                     application
      * @return 200 with bid's generated identifier,
      *         404 if the user making the bid or the auction doesn't exist
      *         403 if the authentication phase failed
@@ -242,8 +245,9 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      * given identifier
      * The user making the question must be logged in to make this operation
      * 
-     * @param params Parameters required to create a question
-     * @param sessionToken Cookie related to the user being "logged" in the application
+     * @param params       Parameters required to create a question
+     * @param sessionToken Cookie related to the user being "logged" in the
+     *                     application
      * @return 200 with generated question's identifier,
      *         404 if the user or the auction does not exist,
      *         403 if the authentication phase failed
@@ -274,8 +278,9 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      * The user who is owner of the auction must be logged in to execute this
      * operation
      * 
-     * @param params Parameters required to create a reply
-     * @param sessionToken   Cookie related to the user being "logged" in the application
+     * @param params       Parameters required to create a reply
+     * @param sessionToken Cookie related to the user being "logged" in the
+     *                     application
      * @return 200 with generated reply's identifier,
      *         404 if the user or auction does not exist,
      *         403 if the authentication phase failed
@@ -397,7 +402,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         if (validateResult.isError())
             return Result.err(validateResult.error());
 
-        var photoId = params.image().map(this.mediaStorage::createUserMediaID);
+        var photoId = params.image().map(this.mediaStorage::createUserMediaID).or(() -> params.imageId());
         var userDao = new UserDAO(params.nickname(), params.name(), Hash.of(params.password()), photoId.orElse(null));
         var result = this.userDB.createUser(userDao);
         if (result.isOk()) {
@@ -418,8 +423,9 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      * performing reads on any of them, we show that it was created by a "DELETED
      * USER".
      * 
-     * @param userId identifier of the user
-     * @param sessionToken   Cookie related to the user being "logged" in the application
+     * @param userId       identifier of the user
+     * @param sessionToken Cookie related to the user being "logged" in the
+     *                     application
      * @return 204 if deleted successfully,
      *         403 if the authentication phase failed
      */
@@ -450,9 +456,10 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
      * Updates the values stored in a user with given identifier to new ones
      * The updated user must be logged in to execute this operation
      * 
-     * @param userId identifier of the user
-     * @param ops    Values to be placed on the user
-     * @param sessionToken   Cookie related to the user being "logged" in the application
+     * @param userId       identifier of the user
+     * @param ops          Values to be placed on the user
+     * @param sessionToken Cookie related to the user being "logged" in the
+     *                     application
      * @return 204 if updated successfully,
      *         404 if the user does not exist,
      *         403 if the authentication phase failed
@@ -477,6 +484,9 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
             String photoId = this.mediaStorage.createUserMediaID(ops.getImage());
             patchOps.set("/photoId", photoId);
         }
+        if (ops.shouldUpdateImageId())
+            patchOps.set("/photoId", ops.getImageId());
+
         var result = this.userDB.updateUser(userId, patchOps);
         if (result.isOk()) {
             if (ops.shouldUpdateImage())

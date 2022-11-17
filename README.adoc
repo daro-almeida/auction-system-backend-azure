@@ -17,7 +17,7 @@ URL: http://localhost:8080/
 .launch container (run just once)
 [source,shell]
 ----
-docker run -it --rm --network host -v "$(pwd)/target/scc2223-lab1-1.0.war:/usr/local/tomcat/webapps/ROOT.war" --env-file azure.env tomcat:latest
+docker run -it --rm --network host -v "$(pwd)/modules/scc-backend-app/target/scc-backend-app-1.0-SNAPSHOT.war:/usr/local/tomcat/webapps/ROOT.war" --env-file azure.env tomcat:latest
 ----
 
 .package
@@ -32,7 +32,7 @@ URL: http://localhost:8080/
 .launch container (run just once)
 [source,shell]
 ----
-podman run -it --rm --network host -v ./target/scc2223-lab1-1.0.war:/usr/local/tomcat/webapps/ROOT.war:Z --env-file azure.env docker.io/tomcat:latest
+podman run -it --rm --network host -v ./modules/scc-backend-app/target/scc-backend-app-1.0-SNAPSHOT.war:/usr/local/tomcat/webapps/ROOT.war:Z --env-file azure.env docker.io/tomcat:latest
 ----
 
 .package
@@ -109,3 +109,64 @@ AZURE_REDIS_URL=
 | `AZURE_REDIS_URL`
 | The URL to the Azure Redis Cache account.
 |===
+
+== Creating a new Azure Function
+
+Change directory to `modules`.
+[source,bash]
+----
+$ cd modules
+----
+
+Create a new maven module.
+[source,bash]
+----
+$ mvn -B archetype:generate \
+    -DarchetypeGroupId=com.microsoft.azure \
+    -DarchetypeArtifactId=azure-functions-archetype \
+    -DjavaVersion=17 \
+    -DgroupId=scc \
+    -DappName='${project.artifactId}' \
+    -DresourceGroup="scc2223-rg-westeurope-bdd" \
+    -DappRegion="westeurope" \
+    -DartifactId=scc-backend-my-function-name
+----
+
+Modify the `pom.xml` in the new module.
+Add the following properties:
+[source,xml]
+----
+<properties>
+    <functionPricingTier>B1</functionPricingTier>
+</properties>
+----
+
+Add the folowing dependcy if the backend code is required:
+[source,xml]
+----
+<dependencies>
+    <dependency>
+      <groupId>scc</groupId>
+      <artifactId>scc-backend</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+</dependencies>
+----
+
+Add the new function to the root pom.xml.
+[source,xml]
+----
+<modules>
+    <module>modules/scc-backend-my-function-name</module>
+</modules>
+----
+
+Deploy the function.
+[source,bash]
+----
+$ cd modules/scc-backend-my-function-name
+$ mvn compile package
+$ mvn azure-functions:deploy
+----
+
+The function should now be available at `https://scc-backend-my-function-name.azurewebsites.net/api/`.

@@ -10,7 +10,8 @@ public interface UserService {
             String nickname,
             String name,
             String password,
-            Optional<byte[]> image) {
+            Optional<byte[]> image,
+            Optional<String> imageId) {
     }
 
     Result<UserItem, ServiceError> createUser(CreateUserParams params);
@@ -21,6 +22,7 @@ public interface UserService {
         private String name;
         private String password;
         private byte[] image;
+        private String imageId;
 
         public UpdateUserOps() {
         }
@@ -57,11 +59,26 @@ public interface UserService {
 
         public UpdateUserOps updateImage(byte[] image) {
             this.image = image;
+            this.imageId = null;
             return this;
         }
 
         public byte[] getImage() {
             return this.image;
+        }
+
+        public UpdateUserOps updateImage(String imageId) {
+            this.imageId = imageId;
+            this.image = null;
+            return this;
+        }
+
+        public boolean shouldUpdateImageId() {
+            return this.imageId != null;
+        }
+
+        public String getImageId() {
+            return this.imageId;
         }
     }
 

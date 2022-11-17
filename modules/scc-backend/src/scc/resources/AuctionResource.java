@@ -29,9 +29,11 @@ public class AuctionResource {
     public record CreateAuctionRequest(
             @JsonProperty(required = true) String title,
             @JsonProperty(required = true) String description,
+            @JsonProperty(required = true) String owner,
             @JsonProperty(required = true) Long initialPrice,
             @JsonProperty(required = true) String endTime,
-            String imageBase64) {
+            String imageBase64,
+            String imageId) {
     }
 
     /**
@@ -42,13 +44,13 @@ public class AuctionResource {
      *                       auction
      * @param authentication Cookie related to the user being "logged" in the
      *                       application
-     * @return Auction's generated identifier
+     * @return Auction's generated identifier // TODO change do DTO
      */
     @POST
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String createAuction(CreateAuctionRequest request, @CookieParam(SESSION_COOKIE) Cookie authentication) { //TODO change do DTO
+    public String createAuction(CreateAuctionRequest request, @CookieParam(SESSION_COOKIE) Cookie authentication) {
         System.out.println("Received create auction request");
         System.out.println(request);
         var sessionToken = ResourceUtils.sessionTokenOrFail(authentication);
@@ -125,7 +127,7 @@ public class AuctionResource {
     @Produces(MediaType.APPLICATION_JSON)
     public String createBid(@PathParam(AUCTION_ID) String auctionId,
             CreateBidRequest request,
-            @CookieParam(SESSION_COOKIE) Cookie authentication) { //TODO change do DTO
+            @CookieParam(SESSION_COOKIE) Cookie authentication) { // TODO change do DTO
         System.out.println("Received create bid request");
         System.out.println(request);
 

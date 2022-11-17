@@ -1,6 +1,7 @@
 package scc.resources;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -8,6 +9,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Cookie;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import scc.resources.data.UserDTO;
 import scc.services.AuctionService;
 import scc.services.UserService;
 import scc.services.data.AuctionItem;
@@ -34,10 +36,18 @@ public class UserResource {
      * JSON which represents the set of parameters required to create an user
      */
     public static record CreateUserRequest(
-            @JsonProperty(required = true) String nickname,
+            @JsonProperty(required = true) String id,
             @JsonProperty(required = true) String name,
-            @JsonProperty(required = true) String password,
-            String imageBase64) {
+            @JsonProperty(required = true) String pwd,
+            String imageBase64,
+            String photoId) {
+    }
+
+    public static record CreateUserResponse(
+            String id,
+            String name,
+            String pwd,
+            String photoId) {
     }
 
     /**
@@ -50,26 +60,36 @@ public class UserResource {
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public String createUser(CreateUserRequest request) { //TODO change do DTO
+    public CreateUserResponse createUser(CreateUserRequest request) {
         System.out.println("Received create user request");
         System.out.println(request);
 
+        if (request.photoId != null && request.imageBase64 != null)
+            throw new BadRequestException("Cannot specify both imageId and imageBase64");
+
         var result = this.service.createUser(new UserService.CreateUserParams(
-                request.nickname(),
+                request.id(),
                 request.name(),
-                request.password(),
-                ResourceUtils.decodeBase64Nullable(request.imageBase64)));
+                request.pwd(),
+                ResourceUtils.decodeBase64Nullable(request.imageBase64),
+                Optional.ofNullable(request.photoId)));
 
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
 
-        return result.value().getId();
+        var userItem = result.value();
+        var response = new CreateUserResponse(
+                userItem.getId(),
+                userItem.getName(),
+                request.pwd,
+                userItem.getPhotoId().orElse(null));
+        return response;
     }
 
     @GET
     @Path("/{" + USER_ID + "}/auctions")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<String> getUserAuctions(@PathParam(USER_ID) String userId) { //TODO change do DTO
+    public List<String> getUserAuctions(@PathParam(USER_ID) String userId) { // TODO change do DTO
         System.out.println("Received get user auctions request");
         System.out.println("User ID: " + userId);
 
@@ -77,7 +97,6 @@ public class UserResource {
 
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
-
 
         return result.value().stream().map(AuctionItem::getId).toList();
     }
@@ -144,8 +163,8 @@ public class UserResource {
     }
 
     public static record AuthenticateUserRequest(
-            @JsonProperty(required = true) String nickname,
-            @JsonProperty(required = true) String password) {
+            @JsonProperty(required = true) String user,
+            @JsonProperty(required = true) String pwd) {
     }
 
     @POST
@@ -155,7 +174,7 @@ public class UserResource {
         System.out.println("Received authenticate user request");
         System.out.println(request);
 
-        var result = this.service.authenticateUser(request.nickname(), request.password());
+        var result = this.service.authenticateUser(request.user(), request.pwd());
 
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
