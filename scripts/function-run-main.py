@@ -26,8 +26,9 @@ def main():
 
     classpath = (
         ":".join(find_all_jarfiles())
-        + f":modules/{azure.function_artifact_id(sys.argv[1])}/target/classes"
+        + f":modules/{azure.function_directory_name(sys.argv[1])}/target/classes"
         + f":modules/scc-backend/target/classes"
+        + f":modules/scc-backend-azure/target/classes"
     )
 
     subprocess.run(

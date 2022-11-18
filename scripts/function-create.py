@@ -3,6 +3,7 @@ import re
 import subprocess
 import argparse
 import xml.etree.ElementTree as ET
+import lib.azure as azure
 
 
 def assert_function_name_is_valid(function_name):
@@ -31,21 +32,21 @@ def main():
             "-DjavaVersion=17",
             "-DgroupId=scc.azure.functions",
             "-DappName=${project.artifactId}",
-            "-DresourceGroup=scc2223-rg-westeurope-d46",
-            "-DappRegion=westeurope",
-            f"-DartifactId=scc-backend-function-{args.function_name}",
+            f"-DresourceGroup={azure.RESOURCE_GROUP}",
+            f"-DappRegion=${azure.REGION}",
+            f"-DartifactId=${azure.function_artifact_id(args.function_name)}",
         ],
         cwd="modules",
     ).check_returncode()
 
-    with open(f"modules/scc-backend-function-{args.function_name}/pom.xml", "rb+") as f:
+    with open(f"modules/function-{args.function_name}/pom.xml", "rb+") as f:
         pom = ET.parse(f)
         properties = pom.find("{*}properties")
         ET.SubElement(properties, "functionPrincingTier").text = "B1"
         dependencies = pom.find("{*}dependencies")
         dependency = ET.SubElement(dependencies, "dependency")
         ET.SubElement(dependency, "groupId").text = "scc"
-        ET.SubElement(dependency, "artifactId").text = "scc-backend"
+        ET.SubElement(dependency, "artifactId").text = "scc-backend-azure"
         ET.SubElement(dependency, "version").text = "${project.version}"
 
         f.seek(0)
@@ -55,9 +56,7 @@ def main():
     with open(f"pom.xml", "rb+") as f:
         pom = ET.parse(f)
         modules = pom.find("{*}modules")
-        ET.SubElement(
-            modules, "module"
-        ).text = f"modules/scc-backend-function-{args.function_name}"
+        ET.SubElement(modules, "module").text = f"modules/function-{args.function_name}"
 
         f.seek(0)
         pom.write(f, encoding="utf-8", xml_declaration=True)

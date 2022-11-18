@@ -11,9 +11,10 @@
   <packaging>pom</packaging>
 
   <modules>
-    <module>modules/scc-backend</module>
-    <module>modules/scc-backend-app</module>
-    <module>modules/scc-backend-function-popular-auctions</module>
+    <module>modules/backend</module>
+    <module>modules/backend-app</module>
+    <module>modules/backend-azure</module>
+    <module>modules/function-popular-auctions</module>
   </modules>
 
   <dependencies>
