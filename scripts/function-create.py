@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import os
 import re
 import subprocess
 import argparse
@@ -39,7 +40,14 @@ def main():
         cwd="modules",
     ).check_returncode()
 
-    with open(f"modules/function-{args.function_name}/pom.xml", "rb+") as f:
+    os.rename(
+        azure.function_artifact_id(args.function_name),
+        azure.function_directory_name(args.function_name),
+    )
+
+    with open(
+        f"modules/{azure.function_directory_name(args.function_name)}/pom.xml", "rb+"
+    ) as f:
         pom = ET.parse(f)
         properties = pom.find("{*}properties")
         ET.SubElement(properties, "functionPrincingTier").text = "B1"
@@ -56,7 +64,9 @@ def main():
     with open(f"pom.xml", "rb+") as f:
         pom = ET.parse(f)
         modules = pom.find("{*}modules")
-        ET.SubElement(modules, "module").text = f"modules/function-{args.function_name}"
+        ET.SubElement(
+            modules, "module"
+        ).text = f"modules/{azure.function_directory_name(args.function_name)}"
 
         f.seek(0)
         pom.write(f, encoding="utf-8", xml_declaration=True)

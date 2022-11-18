@@ -4,6 +4,7 @@ import static scc.rest.ResourceUtils.SESSION_COOKIE;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -36,6 +37,7 @@ import scc.rest.dto.UserDTO;
  */
 @Path("/user")
 public class UserResource {
+    private static final Logger logger = Logger.getLogger(UserResource.class.toString());
 
     private static final String USER_ID = "userId";
 
@@ -53,6 +55,8 @@ public class UserResource {
     @Path("/{" + USER_ID + "}")
     @Consumes(MediaType.APPLICATION_JSON)
     public UserDTO getUser(@PathParam(USER_ID) String id) {
+        logger.fine("GET /user/" + id);
+
         if (id == null)
             throw new BadRequestException("User id cannot be null");
 
@@ -62,6 +66,7 @@ public class UserResource {
 
         var userItem = result.value();
         var userDto = UserDTO.from(userItem);
+        logger.fine("GET /user/" + id + " -> " + userDto);
 
         return userDto;
     }
@@ -95,6 +100,8 @@ public class UserResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public CreateUserResponse createUser(CreateUserRequest request) {
+        logger.fine("POST /user/ " + request);
+
         if (request.photoBase64 != null && request.photoId != null)
             throw new BadRequestException("Only one of photoBase64 and photoId should be provided");
 
@@ -105,7 +112,7 @@ public class UserResource {
             if (result.isError())
                 ResourceUtils.throwError(result.error(), result.errorMessage());
             photoId = Optional.of(result.value());
-        } else {
+        } else if (request.photoId != null) {
             photoId = Optional.of(ResourceUtils.stringToMediaId(request.photoId));
         }
 
@@ -119,6 +126,7 @@ public class UserResource {
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
         var userItem = result.value();
+        logger.fine("POST /user/ " + request + " -> " + userItem);
 
         return new CreateUserResponse(
                 userItem.getId(),
@@ -136,12 +144,15 @@ public class UserResource {
     @Path("/auth")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response authenticateUser(AuthenticateUserRequest request) {
+        logger.fine("POST /user/auth " + request);
         var result = this.service.authenticateUser(request.user, request.pwd);
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
 
         var sessionToken = result.value();
         var cookie = ResourceUtils.createSessionCookie(sessionToken);
+        logger.fine("POST /user/auth " + request + " -> " + sessionToken);
+
         return Response.ok().cookie(cookie).build();
     }
 
@@ -166,6 +177,7 @@ public class UserResource {
     public void updateUser(@PathParam(USER_ID) String id,
             UpdateUserRequest request,
             @CookieParam(SESSION_COOKIE) Cookie authentication) {
+        logger.fine("PATCH /user/" + id + " " + request);
         if (id == null)
             throw new BadRequestException("User id cannot be null");
 
@@ -181,6 +193,7 @@ public class UserResource {
             ops.updateImage(mediaId);
         }
 
+        logger.fine("PATCH /user/" + id + " " + request + " -> " + ops);
         var result = this.service.updateUser(sessionToken, id, ops);
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
@@ -197,6 +210,7 @@ public class UserResource {
     @Path("/{" + USER_ID + "}")
     public void deleteUser(@PathParam(USER_ID) String id,
             @CookieParam(SESSION_COOKIE) Cookie authentication) {
+        logger.fine("DELETE /user/" + id);
         if (id == null)
             throw new BadRequestException("User id cannot be null");
 
@@ -205,6 +219,8 @@ public class UserResource {
         var result = this.service.deleteUser(sessionToken, id);
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
+
+        logger.fine("DELETE /user/" + id + " -> " + result.value());
     }
 
     @GET
@@ -212,15 +228,20 @@ public class UserResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public List<AuctionDTO> getUserAuctions(@PathParam(USER_ID) String id, @QueryParam("status") String status) {
+        logger.fine("GET /user/" + id + "/auctions");
+
         if (id == null)
             throw new BadRequestException("User id cannot be null");
 
-        var result = this.auctionService.listAuctionsOfUser(id, status.equals("OPEN"));
+        var result = this.auctionService.listAuctionsOfUser(id, "OPEN".equals(status));
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
 
         var auctions = result.value();
-        return auctions.stream().map(AuctionDTO::from).collect(Collectors.toList());
+        var auctionDaos = auctions.stream().map(AuctionDTO::from).collect(Collectors.toList());
+        logger.fine("GET /user/" + id + "/auctions -> " + auctionDaos);
+
+        return auctionDaos;
     }
 
     @GET
@@ -228,6 +249,8 @@ public class UserResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public List<AuctionDTO> getUserFollowing(@PathParam(USER_ID) String id) {
+        logger.fine("GET /user/" + id + "/following");
+
         if (id == null)
             throw new BadRequestException("User id cannot be null");
 
@@ -236,7 +259,10 @@ public class UserResource {
             ResourceUtils.throwError(result.error(), result.errorMessage());
 
         var auctions = result.value();
-        return auctions.stream().map(AuctionDTO::from).collect(Collectors.toList());
+        var auctionDaos = auctions.stream().map(AuctionDTO::from).collect(Collectors.toList());
+        logger.fine("GET /user/" + id + "/following -> " + auctionDaos);
+
+        return auctionDaos;
     }
 
 }

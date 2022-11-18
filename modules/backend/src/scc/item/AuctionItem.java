@@ -30,6 +30,7 @@ public class AuctionItem {
         this.title = title;
         this.description = description;
         this.ownerId = ownerId;
+        this.endTime = endTime;
         this.imageId = imageId;
         this.startingPrice = startingPrice;
         this.status = status;

@@ -42,96 +42,68 @@ public class Redis {
 
     public static AuctionDAO getAuction(Jedis jedis, String auctionId) {
         var key = PREFIX_AUCTION + auctionId;
-        var value = jedis.get(key);
-        if (value == null)
-            return null;
-
-        return gson.fromJson(value, AuctionDAO.class);
+        return getDao(jedis, key, AuctionDAO.class);
     }
 
     public static void setAuction(Jedis jedis, AuctionDAO auctionDAO) {
         var key = PREFIX_AUCTION + auctionDAO.getId();
-        var value = gson.toJson(auctionDAO);
-
-        jedis.setex(key, TTL_DAO, value);
+        setDao(jedis, key, auctionDAO);
     }
 
     public static void removeAuction(Jedis jedis, String auctionId) {
         var key = PREFIX_AUCTION + auctionId;
-
-        jedis.del(key);
+        removeDao(jedis, key);
     }
 
     /* ------------------------- Bid DAO ------------------------- */
 
     public static BidDAO getBid(Jedis jedis, String bidId) {
         var key = PREFIX_BID + bidId;
-        var value = jedis.get(key);
-        if (value == null)
-            return null;
-
-        return gson.fromJson(value, BidDAO.class);
+        return getDao(jedis, key, BidDAO.class);
     }
 
     public static void setBid(Jedis jedis, BidDAO auctionDAO) {
         var key = PREFIX_BID + auctionDAO.getId();
-        var value = gson.toJson(auctionDAO);
-
-        jedis.setex(key, TTL_DAO, value);
+        setDao(jedis, key, auctionDAO);
     }
 
     public static void removeBid(Jedis jedis, String bidId) {
         var key = PREFIX_BID + bidId;
-
-        jedis.del(key);
+        removeDao(jedis, key);
     }
 
     /* ------------------------- Question DAO ------------------------- */
 
     public static QuestionDAO getQuestion(Jedis jedis, String questionId) {
         var key = PREFIX_QUESTION + questionId;
-        var value = jedis.get(key);
-        if (value == null)
-            return null;
-
-        return gson.fromJson(value, QuestionDAO.class);
+        return getDao(jedis, key, QuestionDAO.class);
     }
 
     public static void setQuestion(Jedis jedis, QuestionDAO auctionDAO) {
         var key = PREFIX_QUESTION + auctionDAO.getId();
-        var value = gson.toJson(auctionDAO);
-
-        jedis.setex(key, TTL_DAO, value);
+        setDao(jedis, key, auctionDAO);
     }
 
     public static void removeQuestion(Jedis jedis, String questionId) {
         var key = PREFIX_QUESTION + questionId;
-
-        jedis.del(key);
+        removeDao(jedis, key);
     }
 
     /* ------------------------- User DAO ------------------------- */
 
     public static UserDAO getUser(Jedis jedis, String userId) {
         var key = PREFIX_USER + userId;
-        var value = jedis.get(key);
-        if (value == null)
-            return null;
-
-        return gson.fromJson(value, UserDAO.class);
+        return getDao(jedis, key, UserDAO.class);
     }
 
     public static void setUser(Jedis jedis, UserDAO auctionDAO) {
         var key = PREFIX_USER + auctionDAO.getId();
-        var value = gson.toJson(auctionDAO);
-
-        jedis.setex(key, TTL_DAO, value);
+        setDao(jedis, key, auctionDAO);
     }
 
     public static void removeUser(Jedis jedis, String userId) {
         var key = PREFIX_USER + userId;
-
-        jedis.del(key);
+        removeDao(jedis, key);
     }
 
     /* ------------------------- Session ------------------------- */
@@ -163,7 +135,6 @@ public class Redis {
     public static void setTopBid(Jedis jedis, String auctionId, String bidId) {
         var key = PREFIX_TOP_BID + auctionId;
         var value = bidId;
-
         jedis.setex(key, TTL_DAO, value);
     }
 
@@ -174,82 +145,62 @@ public class Redis {
 
     public static void setAuctionBids(Jedis jedis, String auctionId, List<String> bids) {
         var key = PREFIX_AUCTION_BIDS + auctionId;
-        for (var bid : bids)
-            jedis.rpush(key, bid);
-        jedis.expire(key, TTL_DAO);
+        setDaoIdList(jedis, key, bids);
     }
 
     public static List<String> getAuctionBids(Jedis jedis, String auctionId) {
         var key = PREFIX_AUCTION_BIDS + auctionId;
-        return jedis.lrange(key, 0, -1);
+        return getDaoIdList(jedis, key);
     }
 
     public static void addAuctionBid(Jedis jedis, String auctionId, String bidId) {
         var key = PREFIX_AUCTION_BIDS + auctionId;
-        if (!jedis.exists(key))
-            return;
-        jedis.rpush(key, bidId);
-        jedis.expire(key, TTL_DAO);
+        addDaoId(jedis, key, bidId);
     }
 
     public static void setAuctionQuestions(Jedis jedis, String auctionId, List<String> questions) {
         var key = PREFIX_AUCTION_QUESTIONS + auctionId;
-        for (var question : questions)
-            jedis.rpush(key, question);
-        jedis.expire(key, TTL_DAO);
+        setDaoIdList(jedis, key, questions);
     }
 
     public static List<String> getAuctionQuestions(Jedis jedis, String auctionId) {
         var key = PREFIX_AUCTION_QUESTIONS + auctionId;
-        return jedis.lrange(key, 0, -1);
+        return getDaoIdList(jedis, key);
     }
 
     public static void addAuctionQuestion(Jedis jedis, String auctionId, String questionId) {
         var key = PREFIX_AUCTION_QUESTIONS + auctionId;
-        if (!jedis.exists(key))
-            return;
-        jedis.rpush(key, questionId);
-        jedis.expire(key, TTL_DAO);
+        addDaoId(jedis, key, questionId);
     }
 
     public static void setUserAuctions(Jedis jedis, String userId, List<String> auctions) {
         var key = PREFIX_USER_AUCTIONS + userId;
-        for (var auction : auctions)
-            jedis.rpush(key, auction);
-        jedis.expire(key, TTL_DAO);
+        setDaoIdList(jedis, key, auctions);
     }
 
     public static List<String> getUserAuctions(Jedis jedis, String userId) {
         var key = PREFIX_USER_AUCTIONS + userId;
-        return jedis.lrange(key, 0, -1);
+        return getDaoIdList(jedis, key);
     }
 
     public static void addUserAuction(Jedis jedis, String userId, String auctionId) {
         var key = PREFIX_USER_AUCTIONS + userId;
-        if (!jedis.exists(key))
-            return;
-        jedis.rpush(key, auctionId);
-        jedis.expire(key, TTL_DAO);
+        addDaoId(jedis, key, auctionId);
     }
 
     public static void setUserFollowedAuctions(Jedis jedis, String userId, List<String> auctions) {
         var key = PREFIX_USER_FOLLOWED_AUCTIONS + userId;
-        for (var auction : auctions)
-            jedis.rpush(key, auction);
-        jedis.expire(key, TTL_DAO);
+        setDaoIdList(jedis, key, auctions);
     }
 
     public static List<String> getUserFollowedAuctions(Jedis jedis, String userId) {
         var key = PREFIX_USER_FOLLOWED_AUCTIONS + userId;
-        return jedis.lrange(key, 0, -1);
+        return getDaoIdList(jedis, key);
     }
 
     public static void addUserFollowedAuction(Jedis jedis, String userId, String auctionId) {
         var key = PREFIX_USER_FOLLOWED_AUCTIONS + userId;
-        if (!jedis.exists(key))
-            return;
-        jedis.rpush(key, auctionId);
-        jedis.expire(key, TTL_DAO);
+        addDaoId(jedis, key, auctionId);
     }
 
     public static void setAuctionsAboutToClose(Jedis jedis, List<String> auctions) {
@@ -285,5 +236,41 @@ public class Redis {
                 .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeConverter())
                 .registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeConverter())
                 .create();
+    }
+
+    private static <T> T getDao(Jedis jedis, String key, Class<T> clazz) {
+        var json = jedis.get(key);
+        if (json == null)
+            return null;
+        return gson.fromJson(json, clazz);
+    }
+
+    private static void setDao(Jedis jedis, String key, Object dao) {
+        var json = gson.toJson(dao);
+        jedis.set(key, json);
+        jedis.expire(key, TTL_DAO);
+    }
+
+    private static void removeDao(Jedis jedis, String key) {
+        jedis.del(key);
+    }
+
+    private static void setDaoIdList(Jedis jedis, String key, List<String> ids) {
+        for (var id : ids)
+            jedis.rpush(key, id);
+        jedis.expire(key, TTL_DAO);
+    }
+
+    private static void addDaoId(Jedis jedis, String key, String id) {
+        if (jedis.exists(key))
+            jedis.rpush(key, id);
+        jedis.expire(key, TTL_DAO);
+    }
+
+    private static List<String> getDaoIdList(Jedis jedis, String key) {
+        var l = jedis.lrange(key, 0, -1);
+        if (l.isEmpty())
+            return null;
+        return l;
     }
 }

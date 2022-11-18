@@ -3,6 +3,7 @@ package scc.azure;
 import scc.azure.config.AzureMonolithConfig;
 import scc.azure.config.BlobStoreConfig;
 import scc.azure.config.CosmosDbConfig;
+import scc.azure.config.MessageBusConfig;
 import scc.azure.config.RedisConfig;
 
 public class AzureEnv {
@@ -29,13 +30,18 @@ public class AzureEnv {
     public static final String AZURE_REDIS_KEY = "AZURE_REDIS_KEY";
     public static final String AZURE_REDIS_URL = "AZURE_REDIS_URL";
 
+    public static final String AZURE_MESSAGE_BUS_CONNECTION_STRING = "AZURE_MESSAGE_BUS_CONNECTION_STRING";
+
     public static final String getBackendKind() {
         return getEnvVar(BACKEND_KIND, BACKEND_KIND_MEM);
     }
 
     public static final AzureMonolithConfig getAzureMonolithConfig() {
-        var config = new AzureMonolithConfig(getAzureBlobStoreConfig(), getAzureCosmosDbConfig(),
-                getAzureRedisConfig());
+        var config = new AzureMonolithConfig(
+                getAzureBlobStoreConfig(),
+                getAzureCosmosDbConfig(),
+                getAzureRedisConfig(),
+                getAzureMessageBusConfig());
         var enableCaching = getAzureEnableCaching();
         switch (enableCaching) {
             case AZURE_ENABLE_CACHING_YES:
@@ -91,6 +97,10 @@ public class AzureEnv {
         var azureRedisUrl = getEnvVar(AZURE_REDIS_URL);
 
         return new RedisConfig(azureRedisKey, azureRedisUrl);
+    }
+
+    public static final MessageBusConfig getAzureMessageBusConfig() {
+        return new MessageBusConfig(getEnvVar(AZURE_MESSAGE_BUS_CONNECTION_STRING));
     }
 
     private static String getEnvVar(String name, String defaultValue) {

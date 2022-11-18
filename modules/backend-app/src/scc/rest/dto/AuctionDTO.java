@@ -1,7 +1,6 @@
 package scc.rest.dto;
 
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 
 import scc.item.AuctionItem;
 import scc.rest.ResourceUtils;
@@ -12,7 +11,7 @@ public class AuctionDTO {
     public String description;
     public String owner;
     public String imageId;
-    public ZonedDateTime endTime;
+    public String endTime;
     public double minimumPrice;
     public String status;
     public BidDTO bid;
@@ -26,7 +25,7 @@ public class AuctionDTO {
             String description,
             String owner,
             String imageId,
-            ZonedDateTime endTime,
+            String endTime,
             double minimumPrice,
             String status,
             BidDTO bid) {
@@ -81,11 +80,11 @@ public class AuctionDTO {
         this.imageId = imageId;
     }
 
-    public ZonedDateTime getEndTime() {
+    public String getEndTime() {
         return endTime;
     }
 
-    public void setEndTime(ZonedDateTime endTime) {
+    public void setEndTime(String endTime) {
         this.endTime = endTime;
     }
 
@@ -120,7 +119,7 @@ public class AuctionDTO {
                 item.getDescription(),
                 item.getOwnerId(),
                 item.getImageId().map(ResourceUtils::mediaIdToString).orElse(null),
-                item.getEndTime().atZone(ZoneOffset.UTC),
+                item.getEndTime().atZone(ZoneOffset.UTC).toString(),
                 item.getStartingPrice(),
                 item.getStatus().toString(),
                 item.getTopBid().map(BidDTO::from).orElse(null));

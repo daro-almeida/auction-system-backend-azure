@@ -1,5 +1,8 @@
 package scc.azure.functions;
 
+import com.azure.messaging.servicebus.ServiceBusClientBuilder;
+import com.azure.messaging.servicebus.ServiceBusMessage;
+import com.azure.messaging.servicebus.ServiceBusSenderClient;
 import com.microsoft.azure.functions.ExecutionContext;
 import com.microsoft.azure.functions.HttpMethod;
 import com.microsoft.azure.functions.HttpRequestMessage;
@@ -8,10 +11,15 @@ import com.microsoft.azure.functions.HttpStatus;
 import com.microsoft.azure.functions.annotation.AuthorizationLevel;
 import com.microsoft.azure.functions.annotation.FunctionName;
 import com.microsoft.azure.functions.annotation.HttpTrigger;
+import com.microsoft.azure.functions.annotation.ServiceBusQueueTrigger;
 
 import scc.azure.Azure;
 import scc.azure.AzureEnv;
+import scc.azure.config.MessageBusConfig;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 /**
@@ -33,12 +41,28 @@ public class PopularAuctions {
         return request.createResponseBuilder(HttpStatus.OK).body("Everything is OK").build();
     }
 
-    public static void main(String[] args) {
-        var redisConfig = AzureEnv.getAzureRedisConfig();
-        var cosmosConfig = AzureEnv.getAzureCosmosDbConfig();
-        System.out.println("Redis config: " + redisConfig);
+    @FunctionName("test-receiver")
+    public void testReceiver(
+            @ServiceBusQueueTrigger(name = "message", queueName = MessageBusConfig.QUEUE_CLOSE_AUCTION, connection = AzureEnv.AZURE_MESSAGE_BUS_CONNECTION_STRING) String message,
+            final ExecutionContext context) {
+        context.getLogger().info("Received message: " + message);
+        System.out.println("Received message: " + message);
+    }
 
-        var cosmosDb = Azure.createCosmosDatabase(cosmosConfig);
-        var container = cosmosDb.getContainer(cosmosConfig.auctionContainer);
+    public static void main(String[] args) {
+        var messageBusConfig = AzureEnv.getAzureMessageBusConfig();
+        ServiceBusSenderClient sender = new ServiceBusClientBuilder()
+                .connectionString(messageBusConfig.connectionString)
+                .sender()
+                .queueName(MessageBusConfig.QUEUE_CLOSE_AUCTION)
+                .buildClient();
+
+        System.out.println("Sending message");
+        sender.sendMessage(
+                new ServiceBusMessage("Hello world!")
+                        .setScheduledEnqueueTime(
+                                LocalDateTime.now().plus(Duration.ofSeconds(3)).atOffset(ZoneOffset.UTC)));
+
+        sender.close();
     }
 }

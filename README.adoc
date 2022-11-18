@@ -17,7 +17,7 @@ URL: http://localhost:8080/
 .launch container (run just once)
 [source,shell]
 ----
-docker run -it --rm --network host -v "$(pwd)/modules/scc-backend-app/target/scc-backend-app-1.0-SNAPSHOT.war:/usr/local/tomcat/webapps/ROOT.war" --env-file azure.env tomcat:latest
+docker run -it --rm --network host -v "$(pwd)/modules/backend-app/target/scc-backend-app-1.0-SNAPSHOT.war:/usr/local/tomcat/webapps/ROOT.war" --env-file azure.env tomcat:latest
 ----
 
 .package
@@ -32,7 +32,7 @@ URL: http://localhost:8080/
 .launch container (run just once)
 [source,shell]
 ----
-podman run -it --rm --network host -v ./modules/scc-backend-app/target/scc-backend-app-1.0-SNAPSHOT.war:/usr/local/tomcat/webapps/ROOT.war:Z --env-file azure.env docker.io/tomcat:latest
+podman run -it --rm --network host -v ./modules/backend-app/target/scc-backend-app-1.0-SNAPSHOT.war:/usr/local/tomcat/webapps/ROOT.war:Z --env-file azure.env docker.io/tomcat:latest
 ----
 
 .package
@@ -68,7 +68,7 @@ AZURE_REDIS_URL=
 |*Description*
 
 | `BACKEND_KIND`
-| The kind of backend to use. Can be `azure` or `memory`. Defaults to `memory`. Variables prefixed with `AZURE_` are only used if `BACKEND_KIND` is `azure`.
+| The kind of backend to use. Can be `azure`.
 
 | `AZURE_BLOB_STORAGE_CONNECTION_STRING`
 | The connection string to the Azure Blob Storage account.
@@ -112,6 +112,15 @@ AZURE_REDIS_URL=
 
 == Creating a new Azure Function
 
+=== Automatic
+
+[source,shell]
+----
+$ scripts/function-create.py <function-name>
+----
+
+=== Manual
+
 Change directory to `modules`.
 [source,bash]
 ----
@@ -119,7 +128,7 @@ $ cd modules
 ----
 
 Create a new maven module.
-Use the name convention `scc-backend-function-<name>`.
+Use the name convention `function-<name>`.
 [source,bash]
 ----
 $ mvn -B archetype:generate \
@@ -130,7 +139,7 @@ $ mvn -B archetype:generate \
     -DappName='${project.artifactId}' \
     -DresourceGroup="scc2223-rg-westeurope-bdd" \
     -DappRegion="westeurope" \
-    -DartifactId=scc-backend-my-function-name
+    -DartifactId=scc-backend-azure-function-my-function-name
 ----
 
 Modify the `pom.xml` in the new module.
@@ -158,7 +167,7 @@ Add the new function to the root pom.xml.
 [source,xml]
 ----
 <modules>
-    <module>modules/scc-backend-my-function-name</module>
+    <module>modules/function-my-function-name</module>
 </modules>
 ----
 

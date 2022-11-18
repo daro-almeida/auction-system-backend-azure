@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import com.azure.cosmos.CosmosClientBuilder;
@@ -26,6 +27,8 @@ import scc.azure.dao.QuestionDAO;
 import scc.azure.dao.UserDAO;
 
 public class Cosmos {
+
+    private static final Logger logger = Logger.getLogger(Cosmos.class.getName());
 
     public static CosmosDatabase createDatabase(CosmosDbConfig config) {
         var cosmosClient = new CosmosClientBuilder()
@@ -80,7 +83,9 @@ public class Cosmos {
     public static Result<AuctionDAO, ServiceError> createAuction(CosmosContainer container, AuctionDAO auction) {
         if (auction.getId() == null)
             auction.setId(UUID.randomUUID().toString());
+        logger.fine("Creating auction with id: " + auction.getId() + " and parameters: " + auction);
         var response = container.createItem(auction);
+        logger.fine("Auction created with: " + response.getItem());
         return Result.ok(response.getItem());
     }
 
@@ -126,6 +131,7 @@ public class Cosmos {
                             options,
                             AuctionDAO.class)
                     .stream().toList();
+            logger.fine("Found " + auctions.size() + " open auctions of user " + userId);
             return Result.ok(auctions);
         } else {
             var auctions = container
@@ -134,6 +140,7 @@ public class Cosmos {
                             options,
                             AuctionDAO.class)
                     .stream().toList();
+            logger.fine("Found " + auctions.size() + " auctions of user " + userId);
             return Result.ok(auctions);
         }
     }
@@ -368,6 +375,7 @@ public class Cosmos {
             var response = container.createItem(user);
             return Result.ok(response.getItem());
         } catch (CosmosException e) {
+            e.printStackTrace();
             return Result.err(ServiceError.USER_ALREADY_EXISTS);
         }
     }

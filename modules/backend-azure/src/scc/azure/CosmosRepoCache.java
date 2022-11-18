@@ -2,6 +2,7 @@ package scc.azure;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -18,6 +19,7 @@ import scc.azure.repo.QuestionRepo;
 import scc.azure.repo.UserRepo;
 
 public class CosmosRepoCache implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
+    private static final Logger logger = Logger.getLogger(CosmosRepoCache.class.getName());
 
     private final CosmosRepo repo;
     private final JedisPool jedisPool;
@@ -142,7 +144,7 @@ public class CosmosRepoCache implements AuctionRepo, BidRepo, QuestionRepo, User
 
     @Override
     public Result<BidDAO, ServiceError> getTopBid(String auctionId) {
-        return null;
+        return this.repo.getTopBid(auctionId);
     }
 
     @Override
@@ -175,8 +177,13 @@ public class CosmosRepoCache implements AuctionRepo, BidRepo, QuestionRepo, User
     public Result<AuctionDAO, ServiceError> insertAuction(AuctionDAO auction) {
         try (var jedis = jedisPool.getResource()) {
             var result = repo.insertAuction(auction);
-            if (result.isOk())
-                Redis.setAuction(jedis, result.value());
+            if (result.isError())
+                return result;
+
+            var auctionDao = result.value();
+            Redis.setAuction(jedis, auctionDao);
+            Redis.addUserAuction(jedis, auction.getUserId(), auction.getId());
+
             return result;
         }
     }
@@ -195,12 +202,16 @@ public class CosmosRepoCache implements AuctionRepo, BidRepo, QuestionRepo, User
     public Result<List<AuctionDAO>, ServiceError> listUserAuctions(String userId, boolean open) {
         try (var jedis = jedisPool.getResource()) {
             var auctions = Redis.getUserAuctions(jedis, userId);
-            if (auctions != null)
-                return Result
-                        .ok(this.auctionIdsToDaos(jedis, auctions)
-                                .stream()
-                                .filter(a -> !open || a.getStatus().equals(AuctionDAO.Status.OPEN) == open)
-                                .toList());
+            if (auctions != null) {
+                var auctionDaos = this.auctionIdsToDaos(jedis, auctions)
+                        .stream()
+                        .filter(a -> !open || a.getStatus().equals(AuctionDAO.Status.OPEN) == open)
+                        .toList();
+                logger.fine("Found " + auctionDaos.size() + " auctions in cache");
+                return Result.ok(auctionDaos);
+            }
+
+            logger.fine("No auctions found in cache for user " + userId);
             var result = repo.listUserAuctions(userId, false);
             if (result.isOk())
                 Redis.setUserAuctions(jedis, userId, result.value().stream().map(AuctionDAO::getId).toList());

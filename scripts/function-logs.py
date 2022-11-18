@@ -10,18 +10,21 @@ def main():
     args.add_argument("function_name")
     args = args.parse_args()
 
-    subprocess.run(
-        [
-            "az",
-            "webapp",
-            "log",
-            "tail",
-            "--resource-group",
-            azure.RESOURCE_GROUP,
-            "--name",
-            azure.function_artifact_id(args.function_name),
-        ]
-    )
+    try:
+        subprocess.run(
+            [
+                "az",
+                "webapp",
+                "log",
+                "tail",
+                "--resource-group",
+                azure.RESOURCE_GROUP,
+                "--name",
+                azure.function_artifact_id(args.function_name),
+            ]
+        )
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == "__main__":

@@ -339,7 +339,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         var result = this.userRepo.insertUser(new UserDAO(
                 params.id(),
                 params.name(),
-                params.password(),
+                Azure.hashUserPassword(params.password()),
                 params.imageId().map(Azure::mediaIdToString).orElse(null)));
 
         if (result.isError())
@@ -411,7 +411,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
     private Result<AuctionItem, ServiceError> auctionDaoToItem(AuctionDAO auctionDao) {
         var topBidResult = this.bidRepo.getTopBid(auctionDao.getId());
         if (topBidResult.isError())
-            return Result.err(topBidResult.error());
+            return Result.ok(DAO.auctionToItem(auctionDao, Optional.empty()));
         var topBid = Optional.of(topBidResult.value());
         return Result.ok(DAO.auctionToItem(auctionDao, topBid));
     }

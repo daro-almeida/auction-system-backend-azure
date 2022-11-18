@@ -2,6 +2,7 @@ package scc.azure;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 import com.azure.core.credential.AzureKeyCredential;
 import com.azure.cosmos.CosmosContainer;
@@ -26,6 +27,7 @@ import scc.azure.repo.QuestionRepo;
 import scc.azure.repo.UserRepo;
 
 public class CosmosRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
+    private static final Logger logger = Logger.getLogger(CosmosRepo.class.getName());
 
     // TODO Not sure if right place to have this
     private static final String SearchServiceQueryKey = "UXWCEJmyOccoflVnisIkCpcxglF2QTuyMg3ADzVLPOAzSeB5mWt1";
@@ -61,7 +63,7 @@ public class CosmosRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo 
 
     @Override
     public Result<UserDAO, ServiceError> getUser(String id) {
-        var user = Cosmos.getUser(auctionContainer, id);
+        var user = Cosmos.getUser(userContainer, id);
         if (user.isEmpty())
             return Result.err(ServiceError.USER_NOT_FOUND);
         return Result.ok(user.get());
@@ -138,7 +140,14 @@ public class CosmosRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo 
 
     @Override
     public Result<AuctionDAO, ServiceError> insertAuction(AuctionDAO auction) {
-        return Cosmos.createAuction(auctionContainer, auction);
+        var result = Cosmos.createAuction(auctionContainer, auction);
+        if (result.isError())
+            return result;
+
+        var auctionDao = result.value();
+        MessageBus.sendCloseAuction(auctionDao.getId(), auctionDao.getEndTime());
+
+        return result;
     }
 
     @Override

@@ -1,5 +1,7 @@
 package scc.rest;
 
+import java.util.logging.Logger;
+
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -15,6 +17,8 @@ import scc.MediaService;
  */
 @Path("/media")
 public class MediaResource {
+    private static final Logger logger = Logger.getLogger(MediaResource.class.toString());
+
     private static final String MEDIA_ID = "media";
     private final MediaService service;
 
@@ -30,6 +34,7 @@ public class MediaResource {
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.APPLICATION_JSON)
     public String upload(byte[] contents) {
+        logger.fine("POST /media/ " + contents.length + " bytes");
         var result = this.service.uploadMedia(MediaNamespace.Auction, contents);
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
@@ -46,6 +51,7 @@ public class MediaResource {
     @Path("/{" + MEDIA_ID + "}")
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
     public byte[] download(@PathParam(MEDIA_ID) String id) {
+        logger.fine("GET /media/" + id);
         var mediaId = ResourceUtils.stringToMediaId(id);
         var result = this.service.downloadMedia(mediaId);
         if (result.isError())
