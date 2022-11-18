@@ -1,21 +1,40 @@
 package scc.rest.dto;
 
-import java.util.Optional;
-
 import scc.item.QuestionItem;
+import scc.item.ReplyItem;
 
 public class QuestionDTO {
+    public String id;
+    public String auctionId;
     public String authorId;
-    public String content;
-    public Optional<ReplyDTO> reply;
+    public String text;
+    public String reply;
 
     public QuestionDTO() {
     }
 
-    public QuestionDTO(String authorId, String content, Optional<ReplyDTO> reply) {
+    public QuestionDTO(String id, String auctionId, String authorId, String text, String reply) {
+        this.id = id;
+        this.auctionId = auctionId;
         this.authorId = authorId;
-        this.content = content;
+        this.text = text;
         this.reply = reply;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getAuctionId() {
+        return auctionId;
+    }
+
+    public void setAuctionId(String auctionId) {
+        this.auctionId = auctionId;
     }
 
     public String getAuthorId() {
@@ -26,31 +45,34 @@ public class QuestionDTO {
         this.authorId = authorId;
     }
 
-    public String getContent() {
-        return content;
+    public String getText() {
+        return text;
     }
 
-    public void setContent(String content) {
-        this.content = content;
+    public void setText(String text) {
+        this.text = text;
     }
 
-    public Optional<ReplyDTO> getReply() {
+    public String getReply() {
         return reply;
     }
 
-    public void setReply(Optional<ReplyDTO> reply) {
+    public void setReply(String reply) {
         this.reply = reply;
     }
 
     public static QuestionDTO from(QuestionItem questionItem) {
         return new QuestionDTO(
+                questionItem.getId(),
+                questionItem.getAuctionId(),
                 questionItem.getUserId(),
                 questionItem.getQuestion(),
-                questionItem.getReply().map(ReplyDTO::from));
+                questionItem.getReply().map(ReplyItem::getReply).orElse(null));
     }
 
     @Override
     public String toString() {
-        return "QuestionDTO [authorId=" + authorId + ", content=" + content + "]";
+        return "QuestionDTO [id=" + id + ", auctionId=" + auctionId + ", authorId=" + authorId + ", text=" + text
+                + ", reply=" + reply + "]";
     }
 }

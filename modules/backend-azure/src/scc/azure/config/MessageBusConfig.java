@@ -8,4 +8,9 @@ public class MessageBusConfig {
     public MessageBusConfig(String connectionString) {
         this.connectionString = connectionString;
     }
+
+    @Override
+    public String toString() {
+        return "MessageBusConfig [connectionString=" + connectionString + "]";
+    }
 }

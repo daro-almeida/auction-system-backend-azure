@@ -105,6 +105,9 @@ public class UserResource {
         if (request.photoBase64 != null && request.photoId != null)
             throw new BadRequestException("Only one of photoBase64 and photoId should be provided");
 
+        if (request.id == null || request.name == null || request.pwd == null)
+            throw new BadRequestException("id, name and pwd are required");
+
         Optional<MediaId> photoId = Optional.empty();
         if (request.photoBase64 != null) {
             var content = ResourceUtils.decodeBase64(request.photoBase64);
@@ -145,6 +148,10 @@ public class UserResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public Response authenticateUser(AuthenticateUserRequest request) {
         logger.fine("POST /user/auth " + request);
+
+        if (request.user == null || request.pwd == null)
+            throw new BadRequestException("user and pwd are required");
+
         var result = this.service.authenticateUser(request.user, request.pwd);
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
@@ -159,7 +166,7 @@ public class UserResource {
     /**
      * JSON which represents the set of parameters to update on the user
      */
-    public static record UpdateUserRequest(String name, String password, String imageId) {
+    public static record UpdateUserRequest(String name, String pwd, String imageId) {
     }
 
     /**
@@ -186,8 +193,8 @@ public class UserResource {
         var ops = new UpdateUserOps();
         if (request.name != null)
             ops.updateName(request.name);
-        if (request.password != null)
-            ops.updatePassword(request.password);
+        if (request.pwd != null)
+            ops.updatePassword(request.pwd);
         if (request.imageId != null) {
             var mediaId = ResourceUtils.stringToMediaId(request.imageId);
             ops.updateImage(mediaId);

@@ -30,7 +30,7 @@ public class Auth {
 
         logger.fine("User found, checking password");
         var user = userResult.value();
-        if (!user.getHashedPwd().equals(Azure.hashUserPassword(password))){
+        if (!user.getHashedPwd().equals(Azure.hashUserPassword(password))) {
             logger.fine("Password incorrect");
             return Result.err(ServiceError.INVALID_CREDENTIALS);
         }

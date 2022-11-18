@@ -1,6 +1,6 @@
 package scc;
 
 public enum AuctionStatus {
-    Open,
-    Closed,
+    OPEN,
+    CLOSED,
 }

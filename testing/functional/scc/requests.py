@@ -1,201 +1,175 @@
 from __future__ import annotations
-
+import datetime
 import math
 
-from dataclasses import dataclass, replace
+from datetime import timezone
+from pydantic import BaseModel, Field, validator
 from faker import Faker
-
-from scc import (
-    _patch_dataclass_with_kwargs,
-    invalid_image_base64,
-    random_image_base64,
-)
-from scc.invalidator import InvalidRequest, Invalidator
+from .invalidator import Invalidator
 
 
-@dataclass
-class UserCreateRequest:
-    nickname: str
+class CreateUserRequest(BaseModel):
+    id: str
     name: str
-    password: str
-    imageBase64: str
+    pwd: str
+    photoId: str | None = None
 
     @staticmethod
-    def invalid_requests() -> list[InvalidRequest[UserCreateRequest]]:
-        invalidators = UserCreateRequest._invalidators()
-        invalid_requests = []
-        for invalidator in invalidators:
-            rand = UserCreateRequest.random()
-            invalid_requests.append(
-                InvalidRequest(
-                    data=invalidator.func(rand),
-                    reason=f"{invalidator.field} {invalidator.desc}",
-                )
-            )
-        return invalid_requests
-
-    @staticmethod
-    def random(**kwargs):
+    def random() -> CreateUserRequest:
         faker = Faker()
-        request = UserCreateRequest(
-            nickname=faker.user_name(),
-            name=faker.name(),
-            password=faker.password(),
-            imageBase64=random_image_base64(),
+        return CreateUserRequest(
+            id=faker.user_name(), name=faker.name(), pwd=faker.password(), photoId=None
         )
-        return _patch_dataclass_with_kwargs(request, **kwargs)
 
     @staticmethod
-    def _invalidators() -> list[Invalidator[UserCreateRequest]]:
+    def invalidators() -> list[Invalidator]:
         return [
-            Invalidator(
-                "nickname",
-                "empty",
-                lambda req: _patch_dataclass_with_kwargs(req, nickname=""),
-            ),
-            Invalidator(
-                "nickname",
-                "null",
-                lambda req: _patch_dataclass_with_kwargs(req, nickname=None),
-            ),
-            Invalidator(
-                "name",
-                "empty",
-                lambda req: _patch_dataclass_with_kwargs(req, name=""),
-            ),
-            Invalidator(
-                "name",
-                "null",
-                lambda req: _patch_dataclass_with_kwargs(req, name=None),
-            ),
-            Invalidator(
-                "password",
-                "empty",
-                lambda req: _patch_dataclass_with_kwargs(req, password=""),
-            ),
-            Invalidator(
-                "password",
-                "null",
-                lambda req: _patch_dataclass_with_kwargs(req, password=None),
-            ),
-            Invalidator(
-                "imageBase64",
-                "invalid",
-                lambda req: _patch_dataclass_with_kwargs(
-                    req, imageBase64=invalid_image_base64()
-                ),
-            ),
+            Invalidator.null("id"),
+            Invalidator.empty("id"),
+            Invalidator.null("name"),
+            Invalidator.empty("name"),
+            Invalidator.null("pwd"),
+            Invalidator.empty("pwd"),
         ]
 
 
-@dataclass
-class UserUpdateRequest:
+class AuthenticateUserRequest(BaseModel):
+    user: str
+    pwd: str
+
+    @staticmethod
+    def invalidators() -> list[Invalidator]:
+        return [
+            Invalidator.null("user"),
+            Invalidator.empty("user"),
+            Invalidator.null("pwd"),
+            Invalidator.empty("pwd"),
+        ]
+
+
+class UpdateUserRequest(BaseModel):
     name: str
-    password: str
-    imageBase64: str
-
-    @staticmethod
-    def random(**kwargs):
-        faker = Faker()
-        request = UserUpdateRequest(
-            name=faker.name(),
-            password=faker.password(),
-            imageBase64=random_image_base64(),
-        )
-        return _patch_dataclass_with_kwargs(request, **kwargs)
+    pwd: str
+    photoId: str | None = None
 
 
-@dataclass
-class UserAuthenticateRequest:
-    nickname: str
-    password: str
-
-    @staticmethod
-    def random(**kwargs):
-        faker = Faker()
-        request = UserAuthenticateRequest(
-            nickname=faker.user_name(), password=faker.password()
-        )
-        return _patch_dataclass_with_kwargs
-
-
-@dataclass
-class AuctionCreateRequest:
+class CreateAuctionRequest(BaseModel):
     title: str
     description: str
-    initialPrice: float
-    endTime: str
-    imageBase64: str
+    owner: str
+    minimumPrice: float
+    endTime: datetime.datetime
+    imageId: str | None = None
+
+    class Config:
+        json_encoders = {
+            datetime.datetime: lambda dt: dt.astimezone(timezone.utc).isoformat()
+        }
+
+    @validator("minimumPrice")
+    def check_greater_than_zero(cls, value):
+        if value <= 0:
+            raise ValueError("Minimum price must be greater than zero")
+        return value
 
     @staticmethod
-    def random(**kwargs):
+    def random(owner: str) -> CreateAuctionRequest:
         faker = Faker()
-        request = AuctionCreateRequest(
+        return CreateAuctionRequest(
             title=faker.sentence(),
-            description=faker.paragraph(),
-            endTime=faker.future_date().isoformat(),
-            initialPrice=math.fabs(faker.pyfloat()),
-            imageBase64=random_image_base64(),
+            description=faker.text(),
+            owner=owner,
+            minimumPrice=math.fabs(faker.pyfloat()),
+            endTime=faker.future_datetime(),
+            imageId=None,
         )
-        return _patch_dataclass_with_kwargs(request, **kwargs)
 
     @staticmethod
-    def invalid_requests() -> list[InvalidRequest[AuctionCreateRequest]]:
-        invalidators = AuctionCreateRequest._invalidators()
-        invalid_requests = []
-        for invalidator in invalidators:
-            rand = AuctionCreateRequest.random()
-            invalid_requests.append(
-                InvalidRequest(
-                    data=invalidator.func(rand),
-                    reason=f"{invalidator.field} {invalidator.desc}",
-                )
-            )
-        return invalid_requests
-
-    @staticmethod
-    def _invalidators() -> list[Invalidator[AuctionCreateRequest]]:
+    def invalidators() -> list[Invalidator]:
         return [
-            Invalidator.empty("title"),
             Invalidator.null("title"),
-            Invalidator.empty("description"),
+            Invalidator.empty("title"),
             Invalidator.null("description"),
-            Invalidator(
-                "initialPrice", "negative", lambda req: replace(req, initialPrice=-1)
-            ),
-            Invalidator.empty("endTime"),
+            Invalidator.empty("description"),
+            Invalidator.null("owner"),
+            Invalidator.empty("owner"),
+            Invalidator.null("minimumPrice"),
+            Invalidator.empty("minimumPrice"),
+            Invalidator.negative("minimumPrice"),
+            Invalidator.zero("minimumPrice"),
             Invalidator.null("endTime"),
+            Invalidator.empty("endTime"),
         ]
 
 
-@dataclass
-class AuctionUpdateRequest:
+class UpdateAuctionRequest(BaseModel):
     title: str
     description: str
-    imageBase64: str
+    imageId: str
 
 
-@dataclass
-class QuestionCreateRequest:
-    question: str
+class CreateBidRequest(BaseModel):
+    auctionId: str
+    user: str
+    value: float
+
+    @validator("value")
+    def check_greater_than_zero(cls, value):
+        if value <= 0:
+            raise ValueError("Bid value must be greater than zero")
+        return value
 
     @staticmethod
-    def random(**kwargs):
+    def invalidators() -> list[Invalidator]:
+        return [
+            Invalidator.null("auctionId"),
+            Invalidator.empty("auctionId"),
+            Invalidator.null("user"),
+            Invalidator.empty("user"),
+            Invalidator.null("value"),
+            Invalidator.empty("value"),
+            Invalidator.negative("value"),
+            Invalidator.zero("value"),
+        ]
+
+
+class CreateQuestionRequest(BaseModel):
+    auctionId: str
+    user: str
+    text: str
+
+    @staticmethod
+    def random(user_id: str, auction_id: str) -> CreateQuestionRequest:
         faker = Faker()
-        request = QuestionCreateRequest(
-            question=faker.sentence(),
+        return CreateQuestionRequest(
+            auctionId=auction_id,
+            user=user_id,
+            text=faker.text(),
         )
-        return _patch_dataclass_with_kwargs(request, **kwargs)
+
+    @staticmethod
+    def invalidators() -> list[Invalidator]:
+        return [
+            Invalidator.null("auctionId"),
+            Invalidator.empty("auctionId"),
+            Invalidator.null("user"),
+            Invalidator.empty("user"),
+            Invalidator.null("text"),
+            Invalidator.empty("text"),
+        ]
 
 
-@dataclass
-class ReplyCreateRequest:
+class CreateReplyRequest(BaseModel):
     reply: str
 
     @staticmethod
-    def random(**kwargs):
+    def random() -> CreateReplyRequest:
         faker = Faker()
-        request = ReplyCreateRequest(
-            reply=faker.sentence(),
-        )
-        return _patch_dataclass_with_kwargs(request, **kwargs)
+        return CreateReplyRequest(reply=faker.text())
+
+    @staticmethod
+    def invalidators() -> list[Invalidator]:
+        return [
+            Invalidator.null("reply"),
+            Invalidator.empty("reply"),
+        ]

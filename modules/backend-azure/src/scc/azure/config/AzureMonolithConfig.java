@@ -43,4 +43,11 @@ public class AzureMonolithConfig {
     public boolean isCachingEnabled() {
         return this.isCachingEnabled;
     }
+
+    @Override
+    public String toString() {
+        return "AzureMonolithConfig [blobStoreConfig=" + blobStoreConfig + ", cosmosDbConfig=" + cosmosDbConfig
+                + ", redisConfig=" + redisConfig + ", messageBusConfig=" + messageBusConfig + ", isCachingEnabled="
+                + isCachingEnabled + "]";
+    }
 }

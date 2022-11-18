@@ -1,27 +1,23 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 import json
 from typing import Callable, List, Union
 from colorama import Fore, Style
 import requests
+import re
+
+_last_validator: Validator | None = None
 
 
 @dataclass
 class TestCase:
-    group: str
     name: str
     runnable: Callable
 
-    def __init__(self, group: str, name: str, runnable: Callable):
-        self.group = group
+    def __init__(self, name: str, runnable: Callable):
         self.name = name
         self.runnable = runnable
-
-
-class TestGroup:
-    _tests: List[TestCase]
-
-    def __init__(self, tests: List[TestCase]):
-        self._tests = tests
 
 
 class AssertionError(Exception):
@@ -39,8 +35,13 @@ class Validator:
     def __init__(self, response: requests.Response):
         self.response = response
 
-    def status_code(self, expected: int):
-        if self.response.status_code != expected:
+    def status_code(self, expected: int | List[int]):
+        valid = False
+        if isinstance(expected, int):
+            valid = self.response.status_code == expected
+        else:
+            valid = self.response.status_code in expected
+        if not valid:
             raise AssertionError(
                 self.response,
                 f"Expected status code {expected}, got {self.response.status_code}",
@@ -57,7 +58,7 @@ class Validator:
         if self.response.content != expected:
             raise AssertionError(
                 self.response,
-                f"Expected content {expected}, got {self.response.content}",
+                f"Expected content {expected!r}, got {self.response.content!r}",
             )
 
     def cookie_exists(self, name: str):
@@ -80,62 +81,95 @@ class Validator:
         raise AssertionError(self.response, "Failed: " + message)
 
     def __enter__(self):
+        global _last_validator
+        _last_validator = self
         return self
 
     def __exit__(self, type, value, traceback):
         pass
 
 
-def test_case(group: str, name: str) -> Callable[[Callable], TestCase]:
+def test_case(name: str) -> Callable[[Callable], TestCase]:
     def decorator(func):
-        return lambda *args, **kwargs: TestCase(
-            group, name, lambda: func(*args, **kwargs)
-        )
+        return lambda *args, **kwargs: TestCase(name, lambda: func(*args, **kwargs))
 
     return decorator
 
 
-def run(**kwargs):
-    tests = kwargs.get("tests", None)
-    filters = kwargs.get("filters", None)
-    for test_case in tests:
-        if filters is None or len(filters) == 0 or test_case.group in filters:
-            try:
-                test_case.runnable()
-                print(
-                    f"[{Fore.GREEN}OK{Style.RESET_ALL}] {test_case.group}/{test_case.name}"
-                )
-            except AssertionError as e:
-                print(
-                    f"[{Fore.RED}FAIL{Style.RESET_ALL}] {test_case.group}/{test_case.name}"
-                )
-                print(e.message)
-                print("-------------------- Request --------------------")
-                print(e.response.request.method, e.response.request.url)
-                print(e.response.request.headers)
+def run(
+    test_cases: List[TestCase], filter: str | None = None, ignore_errors: bool = False
+):
+    for test_case in test_cases:
+        if filter is not None and not re.match(filter, test_case.name):
+            continue
+        try:
+            test_case.runnable()
+            print(f"[{Fore.GREEN}OK{Style.RESET_ALL}] {test_case.name}")
+        except AssertionError as e:
+            print(f"[{Fore.RED}FAIL{Style.RESET_ALL}] {test_case.name}")
+            print(e.message)
+            print("-------------------- Request --------------------")
+            print(e.response.request.method, e.response.request.url)
+            print(e.response.request.headers)
 
-                if e.response.request.body is not None:
+            if e.response.request.body is not None:
+                try:
                     jbody = json.loads(e.response.request.body)
                     if jbody is not None:
                         for k in jbody.keys():
                             if len(json.dumps(jbody[k])) > 1024:
                                 jbody[k] = "..."
                         print(json.dumps(jbody, indent=4))
-                    elif len(e.response.request.body) > 4096 * 10:
+                except:
+                    if len(e.response.request.body) > 4096 * 10:
                         print(f"Body too large to print {len(e.response.request.body)}")
                     else:
                         print(e.response.request.body)
 
-                print("-------------------- Response --------------------")
-                print(e.response.status_code, e.response.reason)
-                print(e.response.headers)
-                print(e.response.text)
-                print("-------------------------------------------------")
-            except Exception as e:
-                print(
-                    f"[{Fore.RED}FAIL{Style.RESET_ALL}] {test_case.group}/{test_case.name}"
-                )
+            print("-------------------- Response --------------------")
+            print(e.response.status_code, e.response.reason)
+            print(e.response.headers)
+            print(e.response.text)
+            print("-------------------------------------------------")
+
+            if not ignore_errors:
+                break
+        except Exception as e:
+            if _last_validator is None:
+                print(f"[{Fore.RED}FAIL{Style.RESET_ALL}] {test_case.name}")
                 raise e
+            else:
+                response = _last_validator.response
+                print(f"[{Fore.RED}FAIL{Style.RESET_ALL}] {test_case.name}")
+                print("-------------------- Request --------------------")
+                print(response.request.method, response.request.url)
+                print(response.request.headers)
+
+                if response.request.body is not None:
+                    try:
+                        jbody = json.loads(response.request.body)
+                        if jbody is not None:
+                            for k in jbody.keys():
+                                if len(json.dumps(jbody[k])) > 1024:
+                                    jbody[k] = "..."
+                            print(json.dumps(jbody, indent=4))
+                    except:
+                        if len(response.request.body) > 4096 * 10:
+                            print(
+                                f"Body too large to print {len(response.request.body)}"
+                            )
+                        else:
+                            print(response.request.body)
+
+                print("-------------------- Response --------------------")
+                print(response.status_code, response.reason)
+                print(response.headers)
+                print(response.text)
+                print("-------------------------------------------------")
+                print(e)
+                
+                if not ignore_errors:
+                    break
 
 
 def validate(response: requests.Response) -> Validator:

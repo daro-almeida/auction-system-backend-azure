@@ -30,9 +30,12 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class AzureMonolithService implements UserService, MediaService, AuctionService {
+    private static final Logger logger = Logger.getLogger(AzureMonolithService.class.getName());
+
     private final Auth auth;
     private final AuctionRepo auctionRepo;
     private final BidRepo bidRepo;
@@ -45,6 +48,11 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         var cosmosDb = Azure.createCosmosDatabase(cosmosConfig);
         var redisConfig = config.getRedisConfig();
         var jedisPool = Azure.createJedisPool(redisConfig);
+
+        logger.info("Cosmos Config: " + cosmosConfig);
+        logger.info("Redis Config: " + redisConfig);
+        logger.info("Storage Config: " + config.getBlobStoreConfig());
+        logger.info("MessageBus Config: " + config.getMessageBusConfig());
 
         var cosmosRepo = new CosmosRepo(cosmosConfig, cosmosDb, jedisPool);
         if (config.isCachingEnabled()) {
@@ -68,6 +76,9 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         var authResult = this.matchUserToken(token, params.owner());
         if (authResult.isError())
             return Result.err(authResult.error());
+
+        if (params.title().isBlank() || params.description().isBlank() || params.startingPrice() <= 0)
+            return Result.err(ServiceError.BAD_REQUEST);
 
         var result = this.auctionRepo.insertAuction(new AuctionDAO(
                 params.title(),
@@ -336,6 +347,9 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
 
     @Override
     public Result<UserItem, ServiceError> createUser(CreateUserParams params) {
+        if (params.id().isBlank() || params.name().isBlank() || params.password().isBlank())
+            return Result.err(ServiceError.BAD_REQUEST);
+
         var result = this.userRepo.insertUser(new UserDAO(
                 params.id(),
                 params.name(),
@@ -419,6 +433,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
     private Result<QuestionItem, ServiceError> questionDaoToItem(QuestionDAO questionDAO) {
         return Result.ok(DAO.questionToItem(questionDAO));
     }
+
     private Result<Void, ServiceError> matchUserToken(SessionToken token, String userId) {
         var result = this.auth.validate(token);
         if (result.isError())

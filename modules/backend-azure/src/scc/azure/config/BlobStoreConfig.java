@@ -10,4 +10,10 @@ public class BlobStoreConfig {
         this.auctionContainer = auctionContainer;
         this.userContainer = userContainer;
     }
+
+    @Override
+    public String toString() {
+        return "BlobStoreConfig [connectionString=" + connectionString + ", auctionContainer=" + auctionContainer
+                + ", userContainer=" + userContainer + "]";
+    }
 }

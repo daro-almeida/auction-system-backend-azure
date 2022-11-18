@@ -36,8 +36,8 @@ public class DAO {
 
     public static AuctionStatus statusToAuctionStatus(AuctionDAO.Status status) {
         return switch (status) {
-            case OPEN -> AuctionStatus.Open;
-            case CLOSED -> AuctionStatus.Closed;
+            case OPEN -> AuctionStatus.OPEN;
+            case CLOSED -> AuctionStatus.CLOSED;
             case DELETED -> throw new IllegalArgumentException("Cannot convert deleted status to auction status");
         };
     }

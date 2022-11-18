@@ -61,6 +61,10 @@ public class AuctionResource {
     public AuctionDTO createAuction(CreateAuctionRequest request, @CookieParam(SESSION_COOKIE) Cookie authentication) {
         logger.fine("POST /auction/ " + request);
 
+        if (request.title == null || request.description == null || request.owner == null
+                || request.minimumPrice == null || request.endTime == null)
+            throw new BadRequestException("Missing required fields");
+
         var sessionToken = ResourceUtils.sessionTokenOrFail(authentication);
         var createAuctionParams = new AuctionService.CreateAuctionParams(
                 request.title,
@@ -254,9 +258,10 @@ public class AuctionResource {
      * @return
      */
     @POST
-    @Path("/{" + AUCTION_ID + "}/question/{" + QUESTION_ID + "}")
+    @Path("/{" + AUCTION_ID + "}/question/{" + QUESTION_ID + "}/reply")
     @Consumes(MediaType.APPLICATION_JSON)
-    public ReplyDTO createReply(@PathParam(AUCTION_ID) String auctionId,
+    @Produces(MediaType.APPLICATION_JSON)
+    public String createReply(@PathParam(AUCTION_ID) String auctionId,
             @PathParam(QUESTION_ID) String questionId,
             CreateReplyRequest request,
             @CookieParam(SESSION_COOKIE) Cookie authentication) {
@@ -278,10 +283,8 @@ public class AuctionResource {
             ResourceUtils.throwError(result.error(), result.errorMessage());
 
         var replyItem = result.value();
-        var replyDto = ReplyDTO.from(replyItem);
-        logger.fine("Created reply: " + replyDto);
 
-        return replyDto;
+        return replyItem.getQuestionId();
     }
 
     /**
@@ -316,7 +319,7 @@ public class AuctionResource {
      * @return String composed of each collected auction's JSON
      */
     @GET
-    @Path("/")
+    @Path("/any/soon-to-close")
     @Produces(MediaType.APPLICATION_JSON)
     public List<AuctionDTO> listAuctionsAboutToClose() {
         logger.fine("GET /auction");
@@ -390,7 +393,7 @@ public class AuctionResource {
     @Path("/{" + AUCTION_ID + "}/question/any/query")
     @Produces
     public List<QuestionDTO> queryQuestionsFromAuction(@PathParam(AUCTION_ID) String auctionId,
-                                                       @QueryParam("query") String query) {
+            @QueryParam("query") String query) {
         if (query == null)
             throw new BadRequestException("Query must be provided");
 

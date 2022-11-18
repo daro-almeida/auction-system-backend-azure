@@ -3,7 +3,7 @@ import random
 
 from dataclasses import replace
 
-AUTH_COOKIE = "scc:session"
+AUTH_COOKIE = "scc-session"
 
 
 def random_image() -> bytes:
@@ -16,9 +16,3 @@ def random_image_base64() -> str:
 
 def invalid_image_base64() -> str:
     return "&??????"
-
-
-def _patch_dataclass_with_kwargs(data, **kwargs):
-    for key, value in kwargs.items():
-        data = replace(data, **{key: value})
-    return data

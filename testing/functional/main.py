@@ -11,14 +11,11 @@ def main():
         default="http://localhost:8080",
         help="The base url of the host to test",
     )
-    parser.add_argument("--groups", nargs="+", help="The groups to run")
+    parser.add_argument("filter", nargs="?", help="Regex to filter test cases")
     args = parser.parse_args()
 
     endpoints = Endpoints(args.host)
-    recon.run(
-        tests=tests.create_test_cases(endpoints),
-        filters=args.groups,
-    )
+    recon.run(tests.create_test_cases(endpoints), filter=args.filter)
 
 
 if __name__ == "__main__":
