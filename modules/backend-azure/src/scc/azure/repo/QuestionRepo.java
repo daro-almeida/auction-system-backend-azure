@@ -14,4 +14,6 @@ public interface QuestionRepo {
     public Result<QuestionDAO, ServiceError> insertReply(String id, QuestionDAO.Reply reply);
 
     public Result<List<QuestionDAO>, ServiceError> listAuctionQuestions(String auctionId);
+
+    public Result<List<QuestionDAO>, ServiceError> queryQuestionsFromAuction(String auctionId, String query);
 }

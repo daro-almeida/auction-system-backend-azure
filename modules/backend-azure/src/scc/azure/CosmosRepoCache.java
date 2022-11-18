@@ -253,6 +253,9 @@ public class CosmosRepoCache implements AuctionRepo, BidRepo, QuestionRepo, User
         return repo.queryAuctions(query);
     }
 
+    @Override
+    public Result<List<QuestionDAO>, ServiceError> queryQuestionsFromAuction(String auctionId, String query) { return repo.queryQuestionsFromAuction(auctionId, query);}
+
     private List<AuctionDAO> auctionIdsToDaos(Jedis jedis, List<String> ids) {
         var auctions = new ArrayList<AuctionDAO>();
         for (var id : ids) {

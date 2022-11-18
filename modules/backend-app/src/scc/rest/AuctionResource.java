@@ -340,4 +340,21 @@ public class AuctionResource {
         return auctions.stream().map(AuctionDTO::from).collect(Collectors.toList());
     }
 
+    @GET
+    @Path("/{" + AUCTION_ID + "}/question/any/query")
+    @Produces
+    public List<QuestionDTO> queryQuestionsFromAuction(@PathParam(AUCTION_ID) String auctionId,
+                                                       @QueryParam("query") String query) {
+        if (query == null)
+            throw new BadRequestException("Query must be provided");
+
+        var result = this.service.queryQuestionsFromAuction(auctionId, query);
+        if (result.isError())
+            ResourceUtils.throwError(result.error(), result.errorMessage());
+
+        var questions = result.value();
+
+        return questions.stream().map(QuestionDTO::from).collect(Collectors.toList());
+    }
+
 }

@@ -3,9 +3,14 @@ package scc.azure;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.azure.core.credential.AzureKeyCredential;
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosDatabase;
 
+import com.azure.search.documents.SearchClient;
+import com.azure.search.documents.SearchClientBuilder;
+import com.azure.search.documents.models.SearchOptions;
+import com.azure.search.documents.models.SearchResult;
 import redis.clients.jedis.JedisPool;
 import scc.Result;
 import scc.ServiceError;
@@ -22,10 +27,18 @@ import scc.azure.repo.UserRepo;
 
 public class CosmosRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
 
+    // TODO Not sure if right place to have this
+    private static final String SearchServiceQueryKey = "UXWCEJmyOccoflVnisIkCpcxglF2QTuyMg3ADzVLPOAzSeB5mWt1";
+    private static final String SearchServiceUrl = "https://scc223-cognitive-search-d464.search.windows.net";
+    private static final String IndexNameAuctions =  "cosmosdb-auction-indexer";
+    private static final String IndexNameQuestions = "cosmosdb-questions-indexer";
+
     private final CosmosContainer auctionContainer;
     private final CosmosContainer bidContainer;
     private final CosmosContainer questionContainer;
     private final CosmosContainer userContainer;
+    private final SearchClient searchClientAuctions;
+    private final SearchClient searchClientQuestions;
     private final JedisPool jedisPool;
 
     public CosmosRepo(CosmosDbConfig config, CosmosDatabase db, JedisPool jedisPool) {
@@ -34,6 +47,16 @@ public class CosmosRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo 
         this.questionContainer = db.getContainer(config.questionContainer);
         this.userContainer = db.getContainer(config.userContainer);
         this.jedisPool = jedisPool;
+        this.searchClientAuctions = new SearchClientBuilder()
+                .credential(new AzureKeyCredential(SearchServiceQueryKey))
+                .endpoint(SearchServiceUrl)
+                .indexName(IndexNameAuctions)
+                .buildClient();
+        this.searchClientQuestions = new SearchClientBuilder()
+                .credential(new AzureKeyCredential(SearchServiceQueryKey))
+                .endpoint(SearchServiceUrl)
+                .indexName(IndexNameQuestions)
+                .buildClient();
     }
 
     @Override
@@ -176,8 +199,36 @@ public class CosmosRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo 
 
     @Override
     public Result<List<AuctionDAO>, ServiceError> queryAuctions(String query) {
-        // TODO: Add cognitive search
-        return null;
+        // TODO Test this
+        SearchOptions options = new SearchOptions()
+                .setIncludeTotalCount(true)
+                .setSelect("id", "userid", "title", "description")
+                .setSearchFields("title", "description")
+                .setTop(5);
+
+        var list = new ArrayList<AuctionDAO>();
+        for (SearchResult searchResult : searchClientAuctions.search(query, options, null)) {
+            AuctionDAO doc = searchResult.getDocument(AuctionDAO.class);
+            list.add(doc);
+        }
+        return Result.ok(list);
+    }
+
+    @Override
+    public Result<List<QuestionDAO>, ServiceError> queryQuestionsFromAuction(String auctionId, String query) {
+        // TODO Test this
+        SearchOptions options = new SearchOptions()
+                .setIncludeTotalCount(true)
+                .setSelect("id", "userId", "question", "reply")
+                .setSearchFields("question")
+                .setTop(5);
+
+        var list = new ArrayList<QuestionDAO>();
+        for (SearchResult searchResult : searchClientQuestions.search(query, options, null)) {
+            QuestionDAO doc = searchResult.getDocument(QuestionDAO.class);
+            if (doc.getAuctionId().equals(auctionId)) list.add(doc);
+        }
+        return Result.ok(list);
     }
 
     private List<AuctionDAO> auctionIdsToDaos(List<String> ids) {

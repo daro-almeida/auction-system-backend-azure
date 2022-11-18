@@ -305,6 +305,21 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
     }
 
     @Override
+    public Result<List<QuestionItem>, ServiceError> queryQuestionsFromAuction(String auctionId, String query) {
+        var result = this.questionRepo.queryQuestionsFromAuction(auctionId, query);
+        if (result.isError())
+            return Result.err(result.error());
+
+        var questionItems = result.value().stream()
+                .map(this::questionDaoToItem)
+                .filter(Result::isOk)
+                .map(Result::value)
+                .collect(Collectors.toList());
+
+        return Result.ok(questionItems);
+    }
+
+    @Override
     public Result<MediaId, ServiceError> uploadMedia(MediaNamespace namespace, byte[] contents) {
         return Result.ok(this.mediaStorage.uploadMedia(namespace, contents));
     }
@@ -401,6 +416,9 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         return Result.ok(DAO.auctionToItem(auctionDao, topBid));
     }
 
+    private Result<QuestionItem, ServiceError> questionDaoToItem(QuestionDAO questionDAO) {
+        return Result.ok(DAO.questionToItem(questionDAO));
+    }
     private Result<Void, ServiceError> matchUserToken(SessionToken token, String userId) {
         var result = this.auth.validate(token);
         if (result.isError())

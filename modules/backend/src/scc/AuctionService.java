@@ -63,4 +63,6 @@ public interface AuctionService {
         Result<List<AuctionItem>, ServiceError> listPopularAuctions();
 
         Result<List<AuctionItem>, ServiceError> queryAuctions(String query);
+
+        Result<List<QuestionItem>, ServiceError> queryQuestionsFromAuction(String auctionId, String query);
 }
