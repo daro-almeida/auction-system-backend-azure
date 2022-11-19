@@ -75,7 +75,7 @@ public class MediaStorage {
         }
     }
 
-    private BlobContainerClient containerFromNamespace(MediaNamespace namespace) {
+    public BlobContainerClient containerFromNamespace(MediaNamespace namespace) {
         return switch (namespace) {
             case Auction -> this.auctionClient;
             case User -> this.userClient;
