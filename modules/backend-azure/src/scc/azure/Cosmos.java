@@ -126,6 +126,18 @@ public class Cosmos {
         }
     }
 
+    public static Result<AuctionDAO, ServiceError> closeAuction(CosmosContainer container, String auctionId) {
+        var partitionKey = createAuctionPartitionKey(auctionId);
+        try {
+            var ops = CosmosPatchOperations.create();
+            ops.set("/status", AuctionDAO.Status.CLOSED);
+            var response = container.patchItem(auctionId, partitionKey, ops, AuctionDAO.class);
+            return Result.ok(response.getItem());
+        } catch (CosmosException e) {
+            return Result.err(ServiceError.AUCTION_NOT_FOUND);
+        }
+    }
+
     public static Result<List<AuctionDAO>, ServiceError> listAuctionsOfUser(
             CosmosContainer container,
             String userId,
