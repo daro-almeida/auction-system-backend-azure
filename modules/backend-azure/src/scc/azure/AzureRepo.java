@@ -77,7 +77,12 @@ public class AzureRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
 
     @Override
     public Result<UserDAO, ServiceError> deleteUser(String id) {
-        return Cosmos.deleteUser(userContainer, id);
+        var result = Cosmos.getUser(userContainer, id);
+        if (result.isEmpty())
+            return Result.err(ServiceError.USER_NOT_FOUND);
+        var userDao = result.get();
+        MessageBus.sendDeleteUser(userDao.getId());
+        return Result.ok(userDao);
     }
 
     @Override

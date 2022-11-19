@@ -1,6 +1,6 @@
 package scc.azure.config;
 
-public class AzureMonolithConfig {
+public class AzureConfig {
     private final BlobStoreConfig blobStoreConfig;
     private final CosmosDbConfig cosmosDbConfig;
     private final RedisConfig redisConfig;
@@ -8,7 +8,7 @@ public class AzureMonolithConfig {
     private final CognitiveSearchConfig cognitiveSearchConfig;
     private boolean isCachingEnabled;
 
-    public AzureMonolithConfig(
+    public AzureConfig(
             BlobStoreConfig blobStoreConfig,
             CosmosDbConfig cosmosDbConfig,
             RedisConfig redisConfig,
@@ -22,7 +22,7 @@ public class AzureMonolithConfig {
         this.isCachingEnabled = false;
     }
 
-    public AzureMonolithConfig enableCaching() {
+    public AzureConfig enableCaching() {
         this.isCachingEnabled = true;
         return this;
     }

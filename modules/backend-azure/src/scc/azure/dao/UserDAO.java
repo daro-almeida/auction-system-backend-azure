@@ -7,18 +7,25 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class UserDAO {
+    public static enum Status {
+        ACTIVE,
+        DELETED
+    }
+
     private String _rid;
     private String _ts;
     private String id;
     private String name;
     private String hashedPwd;
     private String photoId;
+    private Status status;
 
-    public UserDAO(String id, String name, String hashedPwd, String photoId) {
+    public UserDAO(String id, String name, String hashedPwd, String photoId, Status status) {
         this.id = id;
         this.name = name;
         this.hashedPwd = hashedPwd;
         this.photoId = photoId;
+        this.status = status;
     }
 
     public UserDAO() {
@@ -48,6 +55,10 @@ public class UserDAO {
         return photoId;
     }
 
+    public Status getStatus() {
+        return status;
+    }
+
     public void set_rid(String _rid) {
         this._rid = _rid;
     }
@@ -64,23 +75,22 @@ public class UserDAO {
         this.name = name;
     }
 
+    public void setHashedPwd(String hashedPwd) {
+        this.hashedPwd = hashedPwd;
+    }
+
     public void setPhotoId(String photoId) {
         this.photoId = photoId;
     }
 
-    @Override
-    public String toString() {
-        return "UserDAO{" +
-                "_rid='" + _rid + '\'' +
-                ", _ts='" + _ts + '\'' +
-                ", id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                ", hashedPwd='" + hashedPwd + '\'' +
-                ", photoId='" + photoId + '\'' +
-                '}';
+    public void setStatus(Status status) {
+        this.status = status;
     }
 
-    public void setHashedPwd(String hashedPwd) {
-        this.hashedPwd = hashedPwd;
+    @Override
+    public String toString() {
+        return "UserDAO [_rid=" + _rid + ", _ts=" + _ts + ", id=" + id + ", name=" + name + ", hashedPwd=" + hashedPwd
+                + ", photoId=" + photoId + ", status=" + status + "]";
     }
+
 }

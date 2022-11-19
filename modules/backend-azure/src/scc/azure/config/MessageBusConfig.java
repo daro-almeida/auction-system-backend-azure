@@ -2,6 +2,7 @@ package scc.azure.config;
 
 public class MessageBusConfig {
     public static final String QUEUE_CLOSE_AUCTION = "close-auction";
+    public static final String QUEUE_DELETE_USER = "delete-user";
 
     public final String connectionString;
 

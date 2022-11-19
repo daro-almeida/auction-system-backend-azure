@@ -42,6 +42,12 @@ public class AzureLogic {
      */
     public static final int MAX_QUESTION_QUERY_RESULTS = 20;
 
+    /**
+     * The reserved user id and name for the deleted user.
+     */
+    public static final String DELETED_USER_ID = "deleted";
+    public static final String DELETED_USER_NAME = DELETED_USER_ID;
+
     public static boolean isAuctionEndTimeAboutToClose(LocalDateTime now, LocalDateTime auctionEndTime) {
         return now.plus(DURATION_ABOUT_TO_CLOSE_THRESHOLD).isAfter(auctionEndTime);
     }

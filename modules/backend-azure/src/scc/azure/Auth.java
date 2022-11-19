@@ -7,6 +7,7 @@ import redis.clients.jedis.JedisPool;
 import scc.Result;
 import scc.ServiceError;
 import scc.SessionToken;
+import scc.azure.dao.UserDAO;
 import scc.azure.repo.UserRepo;
 
 public class Auth {
@@ -30,6 +31,11 @@ public class Auth {
 
         logger.fine("User found, checking password");
         var user = userResult.value();
+        if (user.getStatus() != UserDAO.Status.ACTIVE) {
+            logger.fine("User is not active");
+            return Result.err(ServiceError.INVALID_CREDENTIALS);
+        }
+
         if (!user.getHashedPwd().equals(Azure.hashUserPassword(password))) {
             logger.fine("Password incorrect");
             return Result.err(ServiceError.INVALID_CREDENTIALS);

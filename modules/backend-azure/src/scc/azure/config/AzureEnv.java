@@ -36,8 +36,8 @@ public class AzureEnv {
         return getEnvVar(BACKEND_KIND, BACKEND_KIND_MEM);
     }
 
-    public static final AzureMonolithConfig getAzureMonolithConfig() {
-        var config = new AzureMonolithConfig(
+    public static final AzureConfig getAzureMonolithConfig() {
+        var config = new AzureConfig(
                 getAzureBlobStoreConfig(),
                 getAzureCosmosDbConfig(),
                 getAzureRedisConfig(),

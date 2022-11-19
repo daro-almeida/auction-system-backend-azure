@@ -100,5 +100,6 @@ def bid_on_closed_auction(endpoints: Endpoints):
     assert auction.bid is not None
     assert auction.bid.value == 100
     assert auction.bid.id == bid1.id
+    assert auction.status == AuctionStatus.CLOSED
     with recon.validate(response) as validator:
         validator.status_code_failure()

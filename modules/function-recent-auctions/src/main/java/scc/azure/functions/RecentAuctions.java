@@ -44,22 +44,35 @@ public class RecentAuctions {
                                 .format(java.time.LocalDateTime.now().atZone(ZoneOffset.UTC));
                 System.out.println(date);
 
-                var cosmosConfig = AzureEnv.getAzureCosmosDbConfig();
-                var cosmosDb = Azure.createCosmosDatabase(cosmosConfig);
-                var container = cosmosDb.getContainer("auctions");
-                var aboutToClose = Cosmos.listAuctionsAboutToClose(container);
-                for (var auction : aboutToClose.value()) {
-                        System.out.println(auction.getId());
-                }
-
                 // var cosmosConfig = AzureEnv.getAzureCosmosDbConfig();
                 // var cosmosDb = Azure.createCosmosDatabase(cosmosConfig);
-                // var containers = new String[] { cosmosConfig.bidContainer,
-                // cosmosConfig.auctionContainer,
-                // cosmosConfig.userContainer, cosmosConfig.questionContainer };
-                // for (var name : containers) {
-                // cosmosDb.getContainer(name).delete();
-                // cosmosDb.createContainer(new CosmosContainerProperties(name, "/id"));
+                // var container = cosmosDb.getContainer("auctions");
+                // var aboutToClose = Cosmos.listAuctionsAboutToClose(container);
+                // for (var auction : aboutToClose.value()) {
+                // System.out.println(auction.getId());
                 // }
+
+                var redisConfig = AzureEnv.getAzureRedisConfig();
+                var cosmosConfig = AzureEnv.getAzureCosmosDbConfig();
+                var cosmosDb = Azure.createCosmosDatabase(cosmosConfig);
+                var containers = new String[] { cosmosConfig.bidContainer,
+                                cosmosConfig.auctionContainer,
+                                cosmosConfig.userContainer, cosmosConfig.questionContainer };
+                var jedis = Azure.createJedis(redisConfig);
+
+                // var bidOpt = Cosmos.getBid(cosmosDb.getContainer("bids"),
+                // "5dc52551-a58a-4f7d-aed1-b79238941c2c");
+                // if (bidOpt.isEmpty()) {
+                // System.out.println("Bid not found");
+                // } else {
+                // var bid = bidOpt.get();
+                // System.out.println(bid);
+                // }
+
+                // Recreate all containers
+                for (var name : containers) {
+                        cosmosDb.getContainer(name).delete();
+                        cosmosDb.createContainer(new CosmosContainerProperties(name, "/id"));
+                }
         }
 }

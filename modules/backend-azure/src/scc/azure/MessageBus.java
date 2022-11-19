@@ -22,4 +22,16 @@ public class MessageBus {
             sender.sendMessage(message);
         }
     }
+
+    public static void sendDeleteUser(String userId) {
+        var messageBusConfig = AzureEnv.getAzureMessageBusConfig();
+        try (var sender = new ServiceBusClientBuilder()
+                .connectionString(messageBusConfig.connectionString)
+                .sender()
+                .queueName(MessageBusConfig.QUEUE_DELETE_USER)
+                .buildClient()) {
+            var message = new ServiceBusMessage(userId);
+            sender.sendMessage(message);
+        }
+    }
 }

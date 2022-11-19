@@ -68,7 +68,7 @@ public class AzureRepoCached implements AuctionRepo, BidRepo, QuestionRepo, User
         try (var jedis = jedisPool.getResource()) {
             var result = repo.deleteUser(id);
             if (result.isOk())
-                Redis.removeUser(jedis, id);
+                Redis.setUser(jedis, result.value());
             return result;
         }
     }

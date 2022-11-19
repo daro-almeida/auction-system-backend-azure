@@ -17,7 +17,9 @@
     <module>modules/function-recent-auctions</module>
     <module>modules/function-close-auctions</module>
     <module>modules/function-auctions-about-to-close</module>
-  <module>modules/function-replication-blobs</module></modules>
+  	<module>modules/function-replication-blobs</module></modules>
+    <module>modules/function-delete-user</module>
+  </modules>
 
   <dependencies>
     <dependency>

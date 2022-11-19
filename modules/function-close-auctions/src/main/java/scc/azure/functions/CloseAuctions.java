@@ -10,9 +10,6 @@ import scc.azure.Redis;
 import scc.azure.config.AzureEnv;
 import scc.azure.config.MessageBusConfig;
 
-/**
- * Azure Functions with HTTP Trigger.
- */
 public class CloseAuctions {
     @FunctionName("closeAuctions")
     public void closeAuctions(
