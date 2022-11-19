@@ -2,10 +2,7 @@ package scc.azure;
 
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -31,7 +28,7 @@ import scc.azure.dao.UserDAO;
 public class Cosmos {
 
     private static final Logger logger = Logger.getLogger(Cosmos.class.getName());
-
+    private static final String[] PREFERRED_REGIONS = {"East US", "West US"};
     public static enum UpdateAuctionBidResult {
         SUCCESS,
         OVERSHADOWED,
@@ -45,6 +42,9 @@ public class Cosmos {
                 .directMode()
                 .connectionSharingAcrossClientsEnabled(true)
                 .contentResponseOnWriteEnabled(true)
+                .multipleWriteRegionsEnabled(true)
+                .endpointDiscoveryEnabled(true)
+                .preferredRegions(Arrays.asList(PREFERRED_REGIONS))
                 .buildClient();
         var dbClient = cosmosClient.getDatabase(config.dbName);
         return dbClient;
@@ -168,8 +168,8 @@ public class Cosmos {
     /**
      * Finds the auctions that the user has bid on
      * 
-     * @param auctionContainer auctions container
-     * @param bidContainer     bids container
+     * @param auctionsContainer auctions container
+     * @param bidsContainer     bids container
      * @param userId           identifier of the user
      * @return List of auction identifiers
      */
@@ -177,7 +177,12 @@ public class Cosmos {
             CosmosContainer auctionsContainer,
             CosmosContainer bidsContainer,
             String userId) {
-        return Result.ok(new ArrayList<String>()); // TODO: fix this
+        var bids = getBidsFromUser(bidsContainer, userId);
+        var auctionIds = new HashSet<String>();
+        for (BidDAO dao : bids.value()){
+            auctionIds.add(dao.getAuctionId());
+        }
+        return Result.ok(auctionIds.stream().toList());
     }
 
     public static Result<List<AuctionDAO>, ServiceError> listAuctionsAboutToClose(CosmosContainer container) {
@@ -545,6 +550,16 @@ public class Cosmos {
 
     private static CosmosItemRequestOptions createBidRequestOptions(String bidId) {
         return new CosmosItemRequestOptions();
+    }
+
+    private static Result<List<BidDAO>, ServiceError> getBidsFromUser(CosmosContainer container, String userId) {
+        return Result.ok(container
+                .queryItems(
+                        "SELECT * FROM bids WHERE bids.userId=\"" + userId + "\"",
+                        new CosmosQueryRequestOptions(),
+                        BidDAO.class)
+                .stream()
+                .toList());
     }
 
     /* ------------------------- Question Internal ------------------------- */
