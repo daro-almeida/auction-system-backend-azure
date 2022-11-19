@@ -1,13 +1,13 @@
 package scc.azure;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import com.azure.cosmos.CosmosClientBuilder;
+import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosContainer;
-import com.azure.cosmos.CosmosDatabase;
 import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.implementation.PreconditionFailedException;
 import com.azure.cosmos.models.CosmosItemRequestOptions;
@@ -18,35 +18,20 @@ import com.azure.cosmos.models.PartitionKey;
 
 import scc.Result;
 import scc.ServiceError;
-import scc.azure.config.CosmosDbConfig;
 import scc.azure.dao.AuctionDAO;
 import scc.azure.dao.BidDAO;
 import scc.azure.dao.QuestionDAO;
 import scc.azure.dao.UserDAO;
 
 public class Cosmos {
-    private static final Logger logger = Logger.getLogger(Cosmos.class.getName());
-    private static final String[] PREFERRED_REGIONS = { "East US", "West US" };
 
-    public static enum UpdateAuctionBidResult {
+    private static final Duration ABOUT_TO_CLOSE_THRESHOLD_DURATION = Duration.ofMinutes(5);
+    private static final Logger logger = Logger.getLogger(Cosmos.class.getName());
+
+    public enum UpdateAuctionBidResult {
         SUCCESS,
         OVERSHADOWED,
         AUCTION_CLOSED,
-    }
-
-    public static CosmosDatabase createDatabase(CosmosDbConfig config) {
-        var cosmosClient = new CosmosClientBuilder()
-                .endpoint(config.dbUrl)
-                .key(config.dbKey)
-                .directMode()
-                .connectionSharingAcrossClientsEnabled(true)
-                .contentResponseOnWriteEnabled(true)
-                .multipleWriteRegionsEnabled(true)
-                .endpointDiscoveryEnabled(true)
-                .preferredRegions(Arrays.asList(PREFERRED_REGIONS))
-                .buildClient();
-        var dbClient = cosmosClient.getDatabase(config.dbName);
-        return dbClient;
     }
 
     /* ------------------------- Auction External ------------------------- */
@@ -128,9 +113,11 @@ public class Cosmos {
     public static Result<AuctionDAO, ServiceError> closeAuction(CosmosContainer container, String auctionId) {
         var partitionKey = createAuctionPartitionKey(auctionId);
         try {
-            var ops = CosmosPatchOperations.create();
-            ops.set("/status", AuctionDAO.Status.CLOSED);
-            var response = container.patchItem(auctionId, partitionKey, ops, AuctionDAO.class);
+            var ops = new CosmosPatchItemRequestOptions();
+            ops.setConsistencyLevel(ConsistencyLevel.STRONG);
+            var patchOps = CosmosPatchOperations.create();
+            patchOps.set("/status", AuctionDAO.Status.CLOSED);
+            var response = container.patchItem(auctionId, partitionKey, patchOps, ops, AuctionDAO.class);
             return Result.ok(response.getItem());
         } catch (CosmosException e) {
             return Result.err(ServiceError.AUCTION_NOT_FOUND);
@@ -142,8 +129,9 @@ public class Cosmos {
             String userId,
             boolean open) {
         var options = createAuctionQueryOptions();
+        List<AuctionDAO> auctions;
         if (open) {
-            var auctions = container
+            auctions = container
                     .queryItems(
                             "SELECT * FROM auctions WHERE auctions.userId=\"" + userId
                                     + "\" and auctions.status=\"OPEN\"",
@@ -151,29 +139,26 @@ public class Cosmos {
                             AuctionDAO.class)
                     .stream().toList();
             logger.fine("Found " + auctions.size() + " open auctions of user " + userId);
-            return Result.ok(auctions);
         } else {
-            var auctions = container
+            auctions = container
                     .queryItems(
                             "SELECT * FROM auctions WHERE auctions.userId=\"" + userId + "\"",
                             options,
                             AuctionDAO.class)
                     .stream().toList();
             logger.fine("Found " + auctions.size() + " auctions of user " + userId);
-            return Result.ok(auctions);
         }
+        return Result.ok(auctions);
     }
 
     /**
      * Finds the auctions that the user has bid on
      * 
-     * @param auctionsContainer auctions container
      * @param bidsContainer     bids container
      * @param userId            identifier of the user
      * @return List of auction identifiers
      */
     public static Result<List<String>, ServiceError> listAuctionsFollowedByUser(
-            CosmosContainer auctionsContainer,
             CosmosContainer bidsContainer,
             String userId) {
         var bids = getBidsFromUser(bidsContainer, userId);
@@ -194,7 +179,7 @@ public class Cosmos {
     public static Result<List<AuctionDAO>, ServiceError> listAuctionsAboutToClose(
             CosmosContainer container,
             long limit) {
-        var threshold = LocalDateTime.now().plus(AzureLogic.DURATION_ABOUT_TO_CLOSE_THRESHOLD);
+        var threshold = LocalDateTime.now().plus(ABOUT_TO_CLOSE_THRESHOLD_DURATION);
         var thresholdStr = Azure.formatDateTime(threshold);
         var query = "SELECT * from auctions auc WHERE auc.status = \"OPEN\" and auc.endTime <= '"
                 + thresholdStr
@@ -432,7 +417,7 @@ public class Cosmos {
             return Result.err(ServiceError.USER_NOT_FOUND);
         var user = userOpt.get();
 
-        var options = createUserRequestOptions(userId);
+        var options = new CosmosItemRequestOptions().setConsistencyLevel(ConsistencyLevel.STRONG);
         var partitionKey = createUserPartitionKey(userId);
         try {
             container.deleteItem(userId, partitionKey, options);
@@ -505,7 +490,7 @@ public class Cosmos {
             try {
                 auctionContainer.patchItem(auctionId, auctionPKey, patch, opts, AuctionDAO.class);
                 return Result.ok(UpdateAuctionBidResult.SUCCESS);
-            } catch (PreconditionFailedException e) {
+            } catch (PreconditionFailedException ignored) {
             }
 
             var auctionOpt = getAuction(auctionContainer, auctionId);
@@ -534,10 +519,6 @@ public class Cosmos {
         return new PartitionKey(auctionId);
     }
 
-    private static CosmosItemRequestOptions createAuctionRequestOptions(String auctionId) {
-        return new CosmosItemRequestOptions();
-    }
-
     private static CosmosQueryRequestOptions createAuctionQueryOptions() {
         return new CosmosQueryRequestOptions();
 
@@ -556,10 +537,6 @@ public class Cosmos {
         var options = new CosmosQueryRequestOptions();
         options.setPartitionKey(createBidPartitionKey(bidId));
         return options;
-    }
-
-    private static CosmosItemRequestOptions createBidRequestOptions(String bidId) {
-        return new CosmosItemRequestOptions();
     }
 
     private static Result<List<BidDAO>, ServiceError> getBidsFromUser(CosmosContainer container, String userId) {
@@ -608,17 +585,6 @@ public class Cosmos {
      */
     private static PartitionKey createUserPartitionKey(String userId) {
         return new PartitionKey(userId);
-    }
-
-    /**
-     * Creates an ItemRequestOptions object with given nickname to be used on
-     * database operations
-     * 
-     * @param userId nickname of the user
-     * @return CosmosItemRequestOptions object with user's nickname
-     */
-    private static CosmosItemRequestOptions createUserRequestOptions(String userId) {
-        return new CosmosItemRequestOptions();
     }
 
     /**
