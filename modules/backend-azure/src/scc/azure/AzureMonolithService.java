@@ -24,14 +24,14 @@ import scc.item.UserItem;
  * Azure implementation of the Auction service.
  * This is responsible for authentication and validating input.
  */
-public class AzureMonolithService2 implements UserService, MediaService, AuctionService {
-    private static final Logger logger = Logger.getLogger(AzureMonolithService2.class.getName());
+public class AzureMonolithService implements UserService, MediaService, AuctionService {
+    private static final Logger logger = Logger.getLogger(AzureMonolithService.class.getName());
 
     private final UserService userService;
     private final MediaService mediaService;
     private final AuctionService auctionService;
 
-    public AzureMonolithService2(AzureConfig config) {
+    public AzureMonolithService(AzureConfig config) {
         var jedisPool = Azure.createJedisPool(config.getRedisConfig());
         var database = Azure.createCosmosDatabase(config.getCosmosDbConfig());
 

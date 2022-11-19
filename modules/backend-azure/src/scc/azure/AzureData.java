@@ -177,28 +177,15 @@ public class AzureData {
             return Result.err(userDaoResult);
         var userDao = userDaoResult.value();
 
-        Optional<BidItem> bidItem = Optional.empty();
+        Optional<BidDAO> bidDao = Optional.empty();
         if (auctionDao.getWinnerBidId() != null) {
             var bidResult = getBid(config, jedisPool, bidContainer, auctionDao.getWinnerBidId());
             if (bidResult.isError())
                 return Result.err(bidResult);
-
-            var bidDao = bidResult.value();
-            bidItem = Optional.of(bidDaoToItem(bidDao, userDao));
+            bidDao = Optional.of(bidResult.value());
         }
 
-        var auctionItem = new AuctionItem(
-                auctionDao.getId(),
-                auctionDao.getTitle(),
-                auctionDao.getDescription(),
-                auctionDao.getUserId(),
-                Azure.parseDateTime(auctionDao.getEndTime()),
-                Optional.ofNullable(auctionDao.getPictureId()).map(Azure::mediaIdFromString),
-                auctionDao.getStartingPrice(),
-                statusToAuctionStatus(auctionDao.getStatus()),
-                bidItem);
-
-        return Result.ok(auctionItem);
+        return auctionDaoToItem(auctionDao, userDao, bidDao);
     }
 
     public static Result<List<AuctionItem>, ServiceError> auctionDaosToItems(

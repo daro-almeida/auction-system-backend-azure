@@ -17,13 +17,13 @@ public class AzureUserService implements UserService {
     private final AzureConfig azureConfig;
     private final JedisPool jedisPool;
     private final CosmosContainer userContainer;
-    private final Auth2 auth;
+    private final Auth auth;
 
     public AzureUserService(AzureConfig config, JedisPool jedisPool, CosmosDatabase database) {
         this.azureConfig = config;
         this.jedisPool = jedisPool;
         this.userContainer = database.getContainer(config.getCosmosDbConfig().userContainer);
-        this.auth = new Auth2(config, jedisPool, database);
+        this.auth = new Auth(config, jedisPool, database);
     }
 
     @Override

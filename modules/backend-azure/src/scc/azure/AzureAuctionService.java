@@ -42,7 +42,7 @@ public class AzureAuctionService implements AuctionService {
     private final CosmosContainer questionContainer;
     private final SearchClient searchClientAuctions;
     private final SearchClient searchClientQuestions;
-    private final Auth2 auth;
+    private final Auth auth;
 
     public AzureAuctionService(AzureConfig config, JedisPool jedisPool, CosmosDatabase database) {
         this.azureConfig = config;
@@ -64,7 +64,7 @@ public class AzureAuctionService implements AuctionService {
                 .indexName(cogConfig.questionsIndex)
                 .buildClient();
 
-        this.auth = new Auth2(config, jedisPool, database);
+        this.auth = new Auth(config, jedisPool, database);
     }
 
     @Override

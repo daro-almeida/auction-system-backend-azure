@@ -4,7 +4,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jakarta.ws.rs.core.Application;
-import scc.azure.AzureMonolithService2;
+import scc.azure.AzureMonolithService;
 import scc.azure.config.AzureEnv;
 import scc.rest.AuctionResource;
 import scc.rest.ControlResource;
@@ -27,7 +27,7 @@ public class MainApplication extends Application {
         switch (backendKind) {
             case AzureEnv.BACKEND_KIND_AZURE:
                 var config = AzureEnv.getAzureMonolithConfig();
-                var service = new AzureMonolithService2(config);
+                var service = new AzureMonolithService(config);
                 singletons.add(new MediaResource(service));
                 singletons.add(new UserResource(service, service, service));
                 singletons.add(new AuctionResource(service));
