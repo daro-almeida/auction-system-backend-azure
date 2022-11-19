@@ -62,7 +62,7 @@ public class AzureData {
             String userId) {
         if (config.isCachingEnabled()) {
             try (var jedis = jedisPool.getResource()) {
-                var auctionIds = Redis.getUserAuctions(jedis, userId);
+                var auctionIds = Redis.getUserFollowedAuctions(jedis, userId);
                 if (auctionIds != null)
                     return Result.ok(auctionIdsToDaos(config, jedisPool, auctionContainer, auctionIds));
             }
@@ -74,7 +74,7 @@ public class AzureData {
         var auctionIds = auctionIdsResult.value();
         if (config.isCachingEnabled()) {
             try (var jedis = jedisPool.getResource()) {
-                Redis.setUserAuctions(jedis, userId, auctionIds);
+                Redis.setUserFollowedAuctions(jedis, userId, auctionIds);
             }
         }
 
@@ -339,10 +339,10 @@ public class AzureData {
         }
 
         var userResult = Cosmos.getUser(userContainer, userId);
-        if (userResult.isEmpty())
+        if (userResult.isError())
             return Result.err(ServiceError.USER_NOT_FOUND);
 
-        var userDao = userResult.get();
+        var userDao = userResult.value();
         setUser(config, jedisPool, userDao);
 
         return Result.ok(userDao);

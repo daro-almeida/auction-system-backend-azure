@@ -359,21 +359,22 @@ public class Cosmos {
 
 	/**
 	 * Returns the user with given identifier from the database
-	 * // TODO: Maybe change to return Result<UserDAO, ServiceError>
 	 * 
 	 * @param container users container
 	 * @param userId    Identifier of the user requested
 	 * @return Object which represents the user in the database
 	 */
-	public static Optional<UserDAO> getUser(CosmosContainer container, String userId) {
+	public static Result<UserDAO, ServiceError> getUser(CosmosContainer container, String userId) {
 		var options = createUserQueryOptions(userId);
-		return container
+		var user = container
 				.queryItems(
 						"SELECT * FROM users WHERE users.id=\"" + userId + "\"",
 						options,
 						UserDAO.class)
 				.stream()
 				.findFirst();
+		if (user.isPresent()) return Result.ok(user.get());
+		return Result.err(ServiceError.USER_NOT_FOUND);
 	}
 
 	/**
@@ -384,7 +385,7 @@ public class Cosmos {
 	 * @return True if exists in the database, false otherwise
 	 */
 	public static boolean userExists(CosmosContainer container, String userId) {
-		return getUser(container, userId).isPresent();
+		return getUser(container, userId).isOk();
 	}
 
 	/**
@@ -414,9 +415,9 @@ public class Cosmos {
 	 */
 	public static Result<UserDAO, ServiceError> deleteUser(CosmosContainer container, String userId) {
 		var userOpt = getUser(container, userId);
-		if (userOpt.isEmpty())
+		if (userOpt.isError())
 			return Result.err(ServiceError.USER_NOT_FOUND);
-		var user = userOpt.get();
+		var user = userOpt.value();
 
 		var ops = new CosmosPatchItemRequestOptions();
 		ops.setConsistencyLevel(ConsistencyLevel.STRONG);
@@ -458,7 +459,7 @@ public class Cosmos {
 
 			container.patchItem(userId, partitionKey, ops, UserDAO.class);
 			var updatedUser = getUser(container, userId);
-			return Result.ok(updatedUser.get());
+			return Result.ok(updatedUser.value());
 		} catch (CosmosException e) {
 			if (e.getStatusCode() == 404)
 				return Result.err(ServiceError.USER_NOT_FOUND);

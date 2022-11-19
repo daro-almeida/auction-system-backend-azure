@@ -220,6 +220,11 @@ public class AzureAuctionService implements AuctionService {
         var userDao = userDaoResult.value();
         var bidItem = AzureData.bidDaoToItem(bidDao, userDao);
 
+        // Update user's following auctions
+        try(var jedis = jedisPool.getResource()) {
+            Redis.addUserFollowedAuction(jedis, params.userId(), params.auctionId());
+        }
+
         return Result.ok(bidItem);
     }
 
