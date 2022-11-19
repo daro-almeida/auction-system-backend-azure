@@ -87,8 +87,8 @@
               </resource>
             </resources>
           </deployment>
-          <resourceGroup>scc-backend-rg-57833-57940-58369</resourceGroup>
-          <appName>scc-backend-57833-57940-58369</appName>
+          <resourceGroup>scc2223-rg-westeurope-d464</resourceGroup>
+          <appName>scc-backend-d464</appName>
         </configuration>
       </plugin>
     </plugins>
