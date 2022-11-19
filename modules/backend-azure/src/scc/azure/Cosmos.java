@@ -418,12 +418,13 @@ public class Cosmos {
 			return Result.err(ServiceError.USER_NOT_FOUND);
 		var user = userOpt.get();
 
-		var options = new CosmosItemRequestOptions().setConsistencyLevel(ConsistencyLevel.STRONG);
+		var ops = new CosmosPatchItemRequestOptions();
+		ops.setConsistencyLevel(ConsistencyLevel.STRONG);
 		var partitionKey = createUserPartitionKey(userId);
-		var ops = CosmosPatchOperations.create()
+		var patchOps = CosmosPatchOperations.create()
 				.set("/status", UserDAO.Status.DELETED);
 		try {
-			container.patchItem(userId, partitionKey, ops, UserDAO.class);
+			container.patchItem(userId, partitionKey, patchOps, ops, UserDAO.class);
 			return Result.ok(user);
 		} catch (CosmosException e) {
 			if (e.getStatusCode() == 404)
