@@ -35,6 +35,20 @@ class Validator:
     def __init__(self, response: requests.Response):
         self.response = response
 
+    def status_code_failure(self):
+        if not (self.response.status_code >= 400 and self.response.status_code < 600):
+            raise AssertionError(
+                self.response,
+                f"Expected status code to be in range 400-599, got {self.response.status_code}",
+            )
+
+    def status_code_success(self):
+        if not (self.response.status_code >= 200 and self.response.status_code < 300):
+            raise AssertionError(
+                self.response,
+                f"Expected status code to be in range 200-299, got {self.response.status_code}",
+            )
+
     def status_code(self, expected: int | List[int]):
         valid = False
         if isinstance(expected, int):
@@ -99,7 +113,9 @@ def test_case(name: str) -> Callable[[Callable], TestCase]:
 def run(
     test_cases: List[TestCase], filter: str | None = None, ignore_errors: bool = False
 ):
+    global _last_validator
     for test_case in test_cases:
+        _last_validator = None
         if filter is not None and not re.match(filter, test_case.name):
             continue
         try:
@@ -167,7 +183,7 @@ def run(
                 print(response.text)
                 print("-------------------------------------------------")
                 print(e)
-                
+
                 if not ignore_errors:
                     break
 

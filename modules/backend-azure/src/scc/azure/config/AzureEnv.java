@@ -9,6 +9,7 @@ public class AzureEnv {
     public static final String AZURE_BLOB_STORAGE_AUCTION_MEDIA_CONTAINER_NAME = "AZURE_BLOB_STORAGE_AUCTION_MEDIA_CONTAINER_NAME";
     public static final String AZURE_BLOB_STORAGE_USER_MEDIA_CONTAINER_NAME = "AZURE_BLOB_STORAGE_USER_MEDIA_CONTAINER_NAME";
 
+    public static final String AZURE_COSMOS_CONNECTION_STRING = "AZURE_COSMOS_DB_CONNECTION_STRING";
     public static final String AZURE_COSMOS_DB_KEY = "AZURE_COSMOS_DB_KEY";
     public static final String AZURE_COSMOS_DB_URL = "AZURE_COSMOS_DB_URL";
     public static final String AZURE_COSMOS_DB_DATABASE = "AZURE_COSMOS_DB_DATABASE";
@@ -74,6 +75,7 @@ public class AzureEnv {
     }
 
     public static final CosmosDbConfig getAzureCosmosDbConfig() {
+        var azureCosmosDbConnectionString = getEnvVar(AZURE_COSMOS_CONNECTION_STRING);
         var azureCosmosDbKey = getEnvVar(AZURE_COSMOS_DB_KEY);
         var azureCosmosDbUrl = getEnvVar(AZURE_COSMOS_DB_URL);
         var azureCosmosDbDatabase = getEnvVar(AZURE_COSMOS_DB_DATABASE);
@@ -83,6 +85,7 @@ public class AzureEnv {
         var azureCosmosDbQuestionContainerName = getEnvVar(AZURE_COSMOS_DB_QUESTION_CONTAINER_NAME);
 
         return new CosmosDbConfig(
+                azureCosmosDbConnectionString,
                 azureCosmosDbKey,
                 azureCosmosDbUrl,
                 azureCosmosDbDatabase,

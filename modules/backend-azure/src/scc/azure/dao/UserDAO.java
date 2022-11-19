@@ -1,8 +1,11 @@
 package scc.azure.dao;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * Represents a User, as stored in the database
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class UserDAO {
     private String _rid;
     private String _ts;

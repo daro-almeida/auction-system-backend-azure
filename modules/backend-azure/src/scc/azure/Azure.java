@@ -2,7 +2,9 @@ package scc.azure;
 
 import com.azure.cosmos.CosmosClientBuilder;
 import com.azure.cosmos.CosmosDatabase;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import scc.MediaId;
@@ -57,6 +59,12 @@ public class Azure {
         return dbClient;
     }
 
+    public static Jedis createJedis(RedisConfig config) {
+        var jedis = new Jedis(config.url, 6380, true);
+        jedis.auth(config.key);
+        return jedis;
+    }
+
     public static JedisPool createJedisPool(RedisConfig config) {
         JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(128);
@@ -68,6 +76,12 @@ public class Azure {
         poolConfig.setNumTestsPerEvictionRun(3);
         poolConfig.setBlockWhenExhausted(true);
         return new JedisPool(poolConfig, config.url, 6380, 1000, config.key, true);
+    }
+
+    public static ObjectMapper createObjectMapper() {
+        var objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        return objectMapper;
     }
 
 }

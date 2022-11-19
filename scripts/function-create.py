@@ -34,21 +34,23 @@ def main():
             "-DgroupId=scc.azure.functions",
             "-DappName=${project.artifactId}",
             f"-DresourceGroup={azure.RESOURCE_GROUP}",
-            f"-DappRegion=${azure.REGION}",
-            f"-DartifactId=${azure.function_artifact_id(args.function_name)}",
+            f"-DappRegion={azure.REGION}",
+            f"-DartifactId={azure.function_artifact_id(args.function_name)}",
         ],
         cwd="modules",
     ).check_returncode()
 
     os.rename(
-        azure.function_artifact_id(args.function_name),
-        azure.function_directory_name(args.function_name),
+        f"modules/{azure.function_artifact_id(args.function_name)}",
+        f"modules/{azure.function_directory_name(args.function_name)}",
     )
 
     with open(
         f"modules/{azure.function_directory_name(args.function_name)}/pom.xml", "rb+"
     ) as f:
         pom = ET.parse(f)
+        name = pom.find("{*}name")
+        name.text = "${project.artifactId}"
         properties = pom.find("{*}properties")
         ET.SubElement(properties, "functionPrincingTier").text = "B1"
         dependencies = pom.find("{*}dependencies")

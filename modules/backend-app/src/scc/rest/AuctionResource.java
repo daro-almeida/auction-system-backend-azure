@@ -34,6 +34,20 @@ public class AuctionResource {
         this.service = service;
     }
 
+    @GET
+    @Path("/{" + AUCTION_ID + "}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public AuctionDTO getAuction(@PathParam(AUCTION_ID) String auctionId) {
+        logger.fine("GET /auction/" + auctionId);
+
+        var result = service.getAuction(auctionId);
+        if (result.isError())
+            ResourceUtils.throwError(result.error(), result.errorMessage());
+
+        logger.fine("GET /auction/" + auctionId + " -> " + result.value());
+        return AuctionDTO.from(result.value());
+    }
+
     public record CreateAuctionRequest(
             @JsonProperty(required = true) String title,
             @JsonProperty(required = true) String description,

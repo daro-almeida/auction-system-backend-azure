@@ -136,15 +136,13 @@ public class AzureRepoCached implements AuctionRepo, BidRepo, QuestionRepo, User
     public Result<BidDAO, ServiceError> insertBid(BidDAO bid) {
         try (var jedis = jedisPool.getResource()) {
             var result = repo.insertBid(bid);
-            if (result.isOk())
+            if (result.isOk()) {
+                // Creating a bid will change the auction so we have to invalidate the cache
+                Redis.removeAuction(jedis, bid.getAuctionId());
                 Redis.setBid(jedis, result.value());
+            }
             return result;
         }
-    }
-
-    @Override
-    public Result<BidDAO, ServiceError> getTopBid(String auctionId) {
-        return this.repo.getTopBid(auctionId);
     }
 
     @Override

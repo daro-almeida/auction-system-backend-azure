@@ -1,3 +1,5 @@
+from datetime import timedelta
+import time
 from typing import Generator
 import recon
 from scc.clients import Client, RawClient
@@ -43,6 +45,18 @@ def get_user_auctions(endpoints: Endpoints):
     response = client.raw.list_user_auctions(user_id)
     with recon.validate(response) as validator:
         validator.status_code(200)
+
+
+@test_case("auction/wait 10s close")
+def wait_10s_close(endpoints: Endpoints):
+    client = Client(endpoints)
+    user_id = client.create_user_and_auth().id
+    request = CreateAuctionRequest.random(user_id)
+    request.endTime = datetime.datetime.now() + timedelta(seconds=5)
+    auction = client.create_auction(request)
+    time.sleep(10)
+    auction = client.get_auction(auction.id)
+    assert auction.status == AuctionStatus.CLOSED
 
 
 @test_case(

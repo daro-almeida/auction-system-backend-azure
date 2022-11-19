@@ -79,6 +79,9 @@ AZURE_REDIS_URL=
 | `AZURE_BLOB_STORAGE_USER_MEDIA_CONTAINER_NAME`
 | The name of the container to store user media files.
 
+| `AZURE_COSMOS_DB_CONNECTION_STRING`
+| The connection string to the Azure Cosmos DB account.
+
 | `AZURE_COSMOS_DB_KEY`
 | The key to the Azure Cosmos DB account.
 

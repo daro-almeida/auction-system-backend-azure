@@ -2,6 +2,9 @@ package scc.azure.dao;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class AuctionDAO {
     public static enum Status {
         OPEN,

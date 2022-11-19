@@ -2,6 +2,7 @@ package scc.azure;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import com.azure.core.credential.AzureKeyCredential;
@@ -112,12 +113,40 @@ public class AzureRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
 
     @Override
     public Result<BidDAO, ServiceError> insertBid(BidDAO bid) {
-        return Cosmos.createBid(bidContainer, bid);
-    }
+        var auctionId = bid.getAuctionId();
 
-    @Override
-    public Result<BidDAO, ServiceError> getTopBid(String auctionId) {
-        return Result.err(ServiceError.INTERNAL_ERROR, "Not implemented");
+        // Get the auction
+        var auctionDaoResult = this.getAuction(auctionId);
+        if (auctionDaoResult.isError())
+            return Result.err(auctionDaoResult.error());
+        var auctionDao = auctionDaoResult.value();
+
+        // Make sure it is open and the bid is higher than the current price
+        if (!auctionDao.getStatus().equals(AuctionDAO.Status.OPEN))
+            return Result.err(ServiceError.AUCTION_NOT_OPEN);
+
+        if (auctionDao.getWinnerBidId() != null) {
+            var highestBidDaoResult = this.getBid(auctionDao.getWinnerBidId());
+            if (highestBidDaoResult.isError())
+                return Result.err(highestBidDaoResult.error());
+
+            var highestBidDao = highestBidDaoResult.value();
+            if (bid.getAmount() <= highestBidDao.getAmount())
+                return Result.err(ServiceError.BID_CONFLICT);
+        }
+
+        // Create the bid and try to update the auction
+        var bidResult = Cosmos.createBid(this.bidContainer, bid);
+        if (bidResult.isError())
+            return Result.err(bidResult.error());
+        var bidDao = bidResult.value();
+
+        var updateResult = Cosmos.tryUpdateAuctionBid(auctionContainer, bidContainer, auctionId, bidDao,
+                Optional.ofNullable(auctionDao.getWinnerBidId()));
+        if (updateResult.isError())
+            return Result.err(updateResult.error());
+
+        return Result.ok(bidDao);
     }
 
     @Override
@@ -162,14 +191,7 @@ public class AzureRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
             return Result.err(listResult.error());
 
         var auctionsIds = listResult.value();
-        var auctionDaos = new ArrayList<AuctionDAO>(auctionsIds.size());
-
-        for (var auctionId : auctionsIds) {
-            var auctionResult = getAuction(auctionId);
-            if (auctionResult.isError())
-                return Result.err(auctionResult.error());
-            auctionDaos.add(auctionResult.value());
-        }
+        var auctionDaos = this.auctionIdsToDaos(auctionsIds);
 
         return Result.ok(auctionDaos);
     }

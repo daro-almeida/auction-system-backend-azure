@@ -13,7 +13,7 @@ from scc.requests import (
     UpdateAuctionRequest,
     UpdateUserRequest,
 )
-from scc.responses import AuctionDTO, CreateUserResponse, QuestionDTO
+from scc.responses import AuctionDTO, BidDTO, CreateUserResponse, QuestionDTO
 
 
 class RawClient:
@@ -51,6 +51,9 @@ class RawClient:
         return self.session.get(self.endpoints.user + "/" + user_id + "/following")
 
     # Auction API
+    def get_auction(self, auction_id: str) -> requests.Response:
+        return self.session.get(self.endpoints.auction + "/" + auction_id)
+
     def create_auction(self, params: CreateAuctionRequest) -> requests.Response:
         return self.session.post(
             self.endpoints.auction,
@@ -158,6 +161,11 @@ class Client:
         assert len(response.text) == 0
 
     # Auction API
+    def get_auction(self, auction_id: str) -> AuctionDTO:
+        response = self.raw.get_auction(auction_id)
+        assert response.status_code == 200
+        return AuctionDTO.parse_obj(response.json())
+
     def create_auction(self, params: CreateAuctionRequest) -> AuctionDTO:
         response = self.raw.create_auction(params)
         assert response.status_code == 200
@@ -171,6 +179,11 @@ class Client:
     def update_auction(self, auction_id: str, params: UpdateAuctionRequest) -> None:
         response = self.raw.update_auction(auction_id, params)
         assert response.status_code == 204
+
+    def create_bid(self, params: CreateBidRequest) -> BidDTO:
+        response = self.raw.create_bid(params)
+        assert response.status_code == 200
+        return BidDTO.parse_obj(response.json())
 
     # Question API
     def create_question(

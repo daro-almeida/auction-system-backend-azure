@@ -1,68 +1,70 @@
 package scc.azure.functions;
 
-import com.azure.messaging.servicebus.ServiceBusClientBuilder;
-import com.azure.messaging.servicebus.ServiceBusMessage;
-import com.azure.messaging.servicebus.ServiceBusSenderClient;
+import com.azure.cosmos.implementation.PreconditionFailedException;
+import com.azure.cosmos.models.CosmosPatchItemRequestOptions;
+import com.azure.cosmos.models.CosmosPatchOperations;
+import com.azure.cosmos.models.PartitionKey;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.microsoft.azure.functions.ExecutionContext;
-import com.microsoft.azure.functions.HttpMethod;
-import com.microsoft.azure.functions.HttpRequestMessage;
-import com.microsoft.azure.functions.HttpResponseMessage;
-import com.microsoft.azure.functions.HttpStatus;
-import com.microsoft.azure.functions.annotation.AuthorizationLevel;
+import com.microsoft.azure.functions.annotation.CosmosDBTrigger;
 import com.microsoft.azure.functions.annotation.FunctionName;
-import com.microsoft.azure.functions.annotation.HttpTrigger;
-import com.microsoft.azure.functions.annotation.ServiceBusQueueTrigger;
+import com.microsoft.azure.functions.annotation.TimerTrigger;
 
 import scc.azure.Azure;
+import scc.azure.Redis;
 import scc.azure.config.AzureEnv;
-import scc.azure.config.MessageBusConfig;
+import scc.azure.dao.BidDAO;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.Optional;
+import java.util.List;
 
 /**
  * Azure Functions with HTTP Trigger.
  */
 public class PopularAuctions {
-    /**
-     * This function listens at endpoint "/api/HttpExample". Two ways to invoke it
-     * using "curl" command in bash:
-     * 1. curl -d "HTTP Body" {your host}/api/HttpExample
-     * 2. curl "{your host}/api/HttpExample?name=HTTP%20Query"
-     */
-    @FunctionName("trigger")
-    public HttpResponseMessage run(
-            @HttpTrigger(name = "req", methods = { HttpMethod.GET,
-                    HttpMethod.POST }, authLevel = AuthorizationLevel.ANONYMOUS) HttpRequestMessage<Optional<String>> request,
-            final ExecutionContext context) {
-        context.getLogger().info("Updating cache with popular auctions");
-        return request.createResponseBuilder(HttpStatus.OK).body("Everything is OK").build();
-    }
+        @FunctionName("reactToBid")
+        public void reactToBid(
+                        @CosmosDBTrigger(name = "bids", databaseName = "scc2223dbd464", collectionName = "bids", connectionStringSetting = "AZURE_COSMOS_DB_CONNECTION_STRING", createLeaseCollectionIfNotExists = true) List<String> bids,
+                        final ExecutionContext context) throws JsonMappingException, JsonProcessingException {
+                context.getLogger().info("Processign bids: " + bids.size());
 
-    @FunctionName("test-receiver")
-    public void testReceiver(
-            @ServiceBusQueueTrigger(name = "message", queueName = MessageBusConfig.QUEUE_CLOSE_AUCTION, connection = AzureEnv.AZURE_MESSAGE_BUS_CONNECTION_STRING) String message,
-            final ExecutionContext context) {
-        context.getLogger().info("Received message: " + message);
-        System.out.println("Received message: " + message);
-    }
+                var redisConfig = AzureEnv.getAzureRedisConfig();
+                var mapper = Azure.createObjectMapper();
+                try (var jedis = Azure.createJedis(redisConfig)) {
+                        for (var bid : bids) {
+                                var bidDao = mapper.readValue(bid, BidDAO.class);
+                                context.getLogger().info("Icrementing auction " + bidDao.getAuctionId());
+                                Redis.incrementPopularAuction(jedis, bidDao.getAuctionId());
+                        }
+                }
+        }
 
-    public static void main(String[] args) {
-        var messageBusConfig = AzureEnv.getAzureMessageBusConfig();
-        ServiceBusSenderClient sender = new ServiceBusClientBuilder()
-                .connectionString(messageBusConfig.connectionString)
-                .sender()
-                .queueName(MessageBusConfig.QUEUE_CLOSE_AUCTION)
-                .buildClient();
+        @FunctionName("updatePopularAuctions")
+        public void updatePopularAuctions(
+                        @TimerTrigger(name = "timerInfo", schedule = "0 */2 * * * *") String timerInfo,
+                        final ExecutionContext context) {
+                context.getLogger().info("Updating most popular auctions");
+                var redisConfig = AzureEnv.getAzureRedisConfig();
+                try (var jedis = Azure.createJedis(redisConfig)) {
+                        Redis.updatePopularAuctions(jedis);
+                }
+        }
 
-        System.out.println("Sending message");
-        sender.sendMessage(
-                new ServiceBusMessage("Hello world!")
-                        .setScheduledEnqueueTime(
-                                LocalDateTime.now().plus(Duration.ofSeconds(3)).atOffset(ZoneOffset.UTC)));
+        public static void main(String[] args) {
+                var cosmosConfig = AzureEnv.getAzureCosmosDbConfig();
+                var cosmosDb = Azure.createCosmosDatabase(cosmosConfig);
+                var container = cosmosDb.getContainer("questions");
+                var questionId = "d1eab198-de64-406f-9765-614510c659d0";
 
-        sender.close();
-    }
+                var ops = CosmosPatchOperations.create()
+                                .set("/reply", "sup4");
+                var opts = new CosmosPatchItemRequestOptions()
+                                .setFilterPredicate("FROM questions q WHERE q.reply = 'sup2'");
+                try {
+                        container.patchItem(questionId, new PartitionKey(questionId), ops, opts, null);
+                } catch (PreconditionFailedException e) {
+                        System.out.println("Precondition failed, but that is not imporant for us");
+                }
+        }
+
 }

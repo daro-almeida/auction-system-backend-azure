@@ -1,7 +1,6 @@
 package scc.rest.dto;
 
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 
 import scc.item.BidItem;
 
@@ -9,13 +8,13 @@ public class BidDTO {
     private String id;
     private String auctionId;
     private String user;
-    private ZonedDateTime time;
+    private String time;
     private double value;
 
     public BidDTO() {
     }
 
-    public BidDTO(String id, String auctionId, String user, ZonedDateTime time, double value) {
+    public BidDTO(String id, String auctionId, String user, String time, double value) {
         this.id = id;
         this.auctionId = auctionId;
         this.user = user;
@@ -47,11 +46,11 @@ public class BidDTO {
         this.user = user;
     }
 
-    public ZonedDateTime getTime() {
+    public String getTime() {
         return time;
     }
 
-    public void setTime(ZonedDateTime time) {
+    public void setTime(String time) {
         this.time = time;
     }
 
@@ -68,7 +67,7 @@ public class BidDTO {
                 item.getId(),
                 item.getAuctionId(),
                 item.getBidderId(),
-                item.getBidTime().atZone(ZoneOffset.UTC),
+                item.getBidTime().atZone(ZoneOffset.UTC).toString(),
                 item.getAmount());
     }
 

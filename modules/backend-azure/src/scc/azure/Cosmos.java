@@ -13,7 +13,9 @@ import com.azure.cosmos.CosmosClientBuilder;
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosDatabase;
 import com.azure.cosmos.CosmosException;
+import com.azure.cosmos.implementation.PreconditionFailedException;
 import com.azure.cosmos.models.CosmosItemRequestOptions;
+import com.azure.cosmos.models.CosmosPatchItemRequestOptions;
 import com.azure.cosmos.models.CosmosPatchOperations;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.PartitionKey;
@@ -29,6 +31,12 @@ import scc.azure.dao.UserDAO;
 public class Cosmos {
 
     private static final Logger logger = Logger.getLogger(Cosmos.class.getName());
+
+    public static enum UpdateAuctionBidResult {
+        SUCCESS,
+        OVERSHADOWED,
+        AUCTION_CLOSED,
+    }
 
     public static CosmosDatabase createDatabase(CosmosDbConfig config) {
         var cosmosClient = new CosmosClientBuilder()
@@ -157,7 +165,7 @@ public class Cosmos {
             CosmosContainer auctionsContainer,
             CosmosContainer bidsContainer,
             String userId) {
-        return null;
+        return Result.ok(new ArrayList<String>()); // TODO: fix this
     }
 
     public static Result<List<AuctionDAO>, ServiceError> listAuctionsAboutToClose(CosmosContainer container) {
@@ -212,14 +220,18 @@ public class Cosmos {
     /**
      * Creates an entry in the database that represents a bid
      * 
-     * @param container bids container
-     * @param bid       Object that represents a bid
+     * @param bidContainer bids container
+     * @param bid          Object that represents a bid
      * @return Ok with new bid or Error
      */
-    public static Result<BidDAO, ServiceError> createBid(CosmosContainer container, BidDAO bid) {
+    public static Result<BidDAO, ServiceError> createBid(
+            CosmosContainer bidContainer,
+            BidDAO bid) {
         if (bid.getId() == null)
             bid.setId(UUID.randomUUID().toString());
-        var response = container.createItem(bid);
+        logger.fine("Creating bid with id: " + bid.getId() + " and parameters: " + bid);
+        var response = bidContainer.createItem(bid);
+        logger.fine("Bid created with: " + response.getItem());
         return Result.ok(response.getItem());
     }
 
@@ -439,6 +451,55 @@ public class Cosmos {
     }
 
     /* ------------------------- Mixed External ------------------------- */
+
+    public static Result<UpdateAuctionBidResult, ServiceError> tryUpdateAuctionBid(
+            CosmosContainer auctionContainer,
+            CosmosContainer bidContainer,
+            String auctionId,
+            BidDAO bid,
+            Optional<String> highestBidId) {
+
+        var auctionPKey = createAuctionPartitionKey(auctionId);
+        var patch = CosmosPatchOperations.create()
+                .set("/winnerBidId", bid.getId());
+        var opts = new CosmosPatchItemRequestOptions();
+
+        while (true) {
+            if (highestBidId.isPresent()) {
+                opts.setFilterPredicate(
+                        "FROM auctions a WHERE a.status = \"OPEN\" and a.winnerBidId = \"" + highestBidId.get()
+                                + "\"");
+                logger.fine("Trying to update auction with winnerBidId " + highestBidId.get());
+            } else {
+                opts.setFilterPredicate("FROM auctions a WHERE a.status=\"OPEN\" and IS_NULL(a.winnerBidId)");
+                logger.fine("Trying to update auction with winnerBidId null");
+            }
+
+            try {
+                auctionContainer.patchItem(auctionId, auctionPKey, patch, opts, AuctionDAO.class);
+                return Result.ok(UpdateAuctionBidResult.SUCCESS);
+            } catch (PreconditionFailedException e) {
+            }
+
+            var auctionOpt = getAuction(auctionContainer, auctionId);
+            if (auctionOpt.isEmpty())
+                return Result.err(ServiceError.INTERNAL_ERROR);
+
+            var auction = auctionOpt.get();
+            if (auction.getStatus() != AuctionDAO.Status.OPEN)
+                return Result.ok(UpdateAuctionBidResult.AUCTION_CLOSED);
+
+            // If it is still open then another bid was placed
+            if (auction.getWinnerBidId() == null)
+                throw new IllegalStateException("Auction should have a winner bid id");
+
+            var newHighestBidDao = getBid(bidContainer, auction.getWinnerBidId()).get();
+            if (newHighestBidDao.getAmount() > bid.getAmount())
+                return Result.ok(UpdateAuctionBidResult.OVERSHADOWED);
+
+            highestBidId = Optional.of(auction.getWinnerBidId());
+        }
+    }
 
     /* ------------------------- Auction Internal ------------------------- */
 

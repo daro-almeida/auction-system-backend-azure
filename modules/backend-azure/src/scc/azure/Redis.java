@@ -1,25 +1,22 @@
 package scc.azure;
 
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
 import java.util.List;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import redis.clients.jedis.Jedis;
 import scc.azure.dao.AuctionDAO;
 import scc.azure.dao.BidDAO;
 import scc.azure.dao.QuestionDAO;
 import scc.azure.dao.UserDAO;
-import scc.azure.utils.LocalDateTimeConverter;
-import scc.azure.utils.ZonedDateTimeConverter;
 
 public class Redis {
     public static final int TTL_DAO = 60 * 60;
     public static final int TTL_SESSION = 30 * 60;
 
     public static final int MAX_RECENT_AUCTIONS = 20;
+    public static final int MAX_MOST_POPULAR_AUCTIONS = 20;
 
     public static final String PREFIX_AUCTION = "auction:";
     public static final String PREFIX_BID = "bid:";
@@ -35,8 +32,9 @@ public class Redis {
     public static final String KEY_AUCTIONS_ABOUNT_TO_CLOSE = "auctions-about-to-close";
     public static final String KEY_RECENT_AUCTIONS = "recent-auctions";
     public static final String KEY_POPULAR_AUCTIONS = "popular-auctions";
+    public static final String KEY_POPULAR_AUCTIONS_RANKING = "popular-auctions-ranking";
 
-    private static final Gson gson = createGson();
+    private static final ObjectMapper mapper = Azure.createObjectMapper();
 
     /* ------------------------- Auction DAO ------------------------- */
 
@@ -209,10 +207,14 @@ public class Redis {
             jedis.rpush(key, auction);
     }
 
+    /* ----------------------- About To Close Tracking ----------------------- */
+
     public static List<String> getAuctionsAboutToClose(Jedis jedis) {
         var key = KEY_AUCTIONS_ABOUNT_TO_CLOSE;
         return jedis.lrange(key, 0, -1);
     }
+
+    /* ------------------------- Recent Tracking ------------------------- */
 
     public static void pushRecentAuction(Jedis jedis, String auctionId) {
         var key = KEY_RECENT_AUCTIONS;
@@ -225,30 +227,49 @@ public class Redis {
         return jedis.lrange(key, 0, -1);
     }
 
+    /* ------------------------- Popularity Tracking ------------------------- */
+
     public static List<String> getPopularAuctions(Jedis jedis) {
         var key = KEY_POPULAR_AUCTIONS;
         return jedis.lrange(key, 0, -1);
     }
 
-    /* ------------------------- Internal Helpers ------------------------- */
-    private static Gson createGson() {
-        return new GsonBuilder()
-                .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeConverter())
-                .registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeConverter())
-                .create();
+    public static void updatePopularAuctions(Jedis jedis) {
+        var mostPopular = jedis.zrevrange(KEY_POPULAR_AUCTIONS_RANKING, 0, MAX_MOST_POPULAR_AUCTIONS);
+        jedis.del(KEY_POPULAR_AUCTIONS_RANKING);
+        if (mostPopular.size() > 0) {
+            jedis.lpush(KEY_POPULAR_AUCTIONS, mostPopular.toArray(new String[mostPopular.size()]));
+            jedis.ltrim(KEY_POPULAR_AUCTIONS, 0, MAX_MOST_POPULAR_AUCTIONS - 1);
+        }
     }
 
+    public static void incrementPopularAuction(Jedis jedis, String auctionId) {
+        jedis.zincrby(KEY_POPULAR_AUCTIONS_RANKING, 1, auctionId);
+    }
+
+    /* ------------------------- Internal Helpers ------------------------- */
+
     private static <T> T getDao(Jedis jedis, String key, Class<T> clazz) {
-        var json = jedis.get(key);
-        if (json == null)
+        try {
+            var json = jedis.get(key);
+            if (json == null)
+                return null;
+            return mapper.readValue(json, clazz);
+        } catch (Exception e) {
+            e.printStackTrace();
             return null;
-        return gson.fromJson(json, clazz);
+        }
     }
 
     private static void setDao(Jedis jedis, String key, Object dao) {
-        var json = gson.toJson(dao);
-        jedis.set(key, json);
-        jedis.expire(key, TTL_DAO);
+        try {
+            var json = mapper.writeValueAsString(dao);
+            jedis.set(key, json);
+            jedis.expire(key, TTL_DAO);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
     }
 
     private static void removeDao(Jedis jedis, String key) {

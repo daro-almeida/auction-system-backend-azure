@@ -424,11 +424,15 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
     }
 
     private Result<AuctionItem, ServiceError> auctionDaoToItem(AuctionDAO auctionDao) {
-        var topBidResult = this.bidRepo.getTopBid(auctionDao.getId());
-        if (topBidResult.isError())
+        if (auctionDao.getWinnerBidId() == null) {
             return Result.ok(DAO.auctionToItem(auctionDao, Optional.empty()));
-        var topBid = Optional.of(topBidResult.value());
-        return Result.ok(DAO.auctionToItem(auctionDao, topBid));
+        } else {
+            var winnerBidResult = this.bidRepo.getBid(auctionDao.getWinnerBidId());
+            if (winnerBidResult.isError())
+                return Result.err(winnerBidResult.error());
+
+            return Result.ok(DAO.auctionToItem(auctionDao, Optional.of(winnerBidResult.value())));
+        }
     }
 
     private Result<QuestionItem, ServiceError> questionDaoToItem(QuestionDAO questionDAO) {

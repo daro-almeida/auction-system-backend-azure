@@ -47,7 +47,7 @@ def create_reply(endpoints: Endpoints):
         validator.equals(response.text, question.id, "question id")
 
 
-@test_case("question/create reply with invalid user")
+@test_case("question/create reply with non owner")
 def create_reply_with_invalid_user(endpoints: Endpoints):
     client1 = Client(endpoints)
     client2 = Client(endpoints)

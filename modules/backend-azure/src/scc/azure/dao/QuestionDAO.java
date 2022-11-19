@@ -1,7 +1,11 @@
 package scc.azure.dao;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class QuestionDAO {
-    public static class Reply {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public static class Reply {
         private String userId;
         private String reply;
 

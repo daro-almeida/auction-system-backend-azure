@@ -84,6 +84,9 @@ public class ResourceUtils {
             case BID_NOT_FOUND -> throw new NotFoundException(message);
             case INTERNAL_ERROR -> throw new InternalError(message);
             case MEDIA_NOT_FOUND -> throw new NotFoundException(message);
+            case AUCTION_NOT_OPEN -> throw new WebApplicationException(message, 409);
+            case BID_CONFLICT -> throw new WebApplicationException(message, 409);
         }
+        throw new IllegalArgumentException("Unexpected value: " + error);
     }
 }

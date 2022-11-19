@@ -49,3 +49,4 @@ from .media import *
 from .user import *
 from .auction import *
 from .question import *
+from .bid import *

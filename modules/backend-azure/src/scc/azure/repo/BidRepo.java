@@ -11,7 +11,5 @@ public interface BidRepo {
 
     public Result<BidDAO, ServiceError> insertBid(BidDAO bid);
 
-    public Result<BidDAO, ServiceError> getTopBid(String auctionId);
-
     public Result<List<BidDAO>, ServiceError> listAuctionBids(String auctionId);
 }
