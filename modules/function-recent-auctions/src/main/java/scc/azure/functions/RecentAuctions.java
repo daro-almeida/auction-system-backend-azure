@@ -25,7 +25,7 @@ public class RecentAuctions {
         public void reactToAuction(
                         @CosmosDBTrigger(name = "auctions", databaseName = "scc2223dbd464", collectionName = "auctions", connectionStringSetting = "AZURE_COSMOS_DB_CONNECTION_STRING", createLeaseCollectionIfNotExists = true) List<String> auctions,
                         final ExecutionContext context) throws JsonMappingException, JsonProcessingException {
-                context.getLogger().info("Processign auctions: " + auctions.size());
+                context.getLogger().info("Processing auctions: " + auctions.size());
 
                 var redisConfig = AzureEnv.getAzureRedisConfig();
                 var mapper = Azure.createObjectMapper();
@@ -33,7 +33,7 @@ public class RecentAuctions {
                         for (var auction : auctions) {
                                 context.getLogger().info("Adding auction " + auction);
                                 var auctionDao = mapper.readValue(auction, AuctionDAO.class);
-                                context.getLogger().info("Icrementing auction " + auctionDao.getId());
+                                context.getLogger().info("Incrementing auction " + auctionDao.getId());
                                 Redis.pushRecentAuction(jedis, auctionDao.getId());
                         }
                 }

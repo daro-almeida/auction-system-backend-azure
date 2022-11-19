@@ -26,14 +26,14 @@ public class PopularAuctions {
         public void reactToBid(
                         @CosmosDBTrigger(name = "bids", databaseName = "scc2223dbd464", collectionName = "bids", connectionStringSetting = "AZURE_COSMOS_DB_CONNECTION_STRING", createLeaseCollectionIfNotExists = true) List<String> bids,
                         final ExecutionContext context) throws JsonMappingException, JsonProcessingException {
-                context.getLogger().info("Processign bids: " + bids.size());
+                context.getLogger().info("Processing bids: " + bids.size());
 
                 var redisConfig = AzureEnv.getAzureRedisConfig();
                 var mapper = Azure.createObjectMapper();
                 try (var jedis = Azure.createJedis(redisConfig)) {
                         for (var bid : bids) {
                                 var bidDao = mapper.readValue(bid, BidDAO.class);
-                                context.getLogger().info("Icrementing auction " + bidDao.getAuctionId());
+                                context.getLogger().info("Incrementing auction " + bidDao.getAuctionId());
                                 Redis.incrementPopularAuction(jedis, bidDao.getAuctionId());
                         }
                 }
@@ -63,7 +63,7 @@ public class PopularAuctions {
                 try {
                         container.patchItem(questionId, new PartitionKey(questionId), ops, opts, null);
                 } catch (PreconditionFailedException e) {
-                        System.out.println("Precondition failed, but that is not imporant for us");
+                        System.out.println("Precondition failed, but that is not important for us");
                 }
         }
 
