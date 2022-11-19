@@ -8,14 +8,9 @@ import scc.azure.MediaStorage;
 import scc.azure.config.AzureEnv;
 
 public class ReplicationBlob {
-    @FunctionName("ReplicationBlob")
-    public void ReplicationBlob(
-            @BlobTrigger(
-                name = "ReplicationBlob",
-                dataType = "binary",
-                path = "images/{name}",
-                connection = "BlobStoreConnection")
-            byte[] content,
+    @FunctionName("blobReplication")
+    public void blobReplication(
+            @BlobTrigger(name = "blobName", dataType = "binary", path = "images/{name}", connection = "BlobStoreConnection") byte[] content,
             @BindingName("name") String blobName,
             final ExecutionContext context) {
         context.getLogger().info("Processing blob replication on blob :" + blobName);

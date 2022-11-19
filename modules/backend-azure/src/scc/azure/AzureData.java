@@ -67,7 +67,7 @@ public class AzureData {
                     return Result.ok(auctionIdsToDaos(config, jedisPool, auctionContainer, auctionIds));
             }
         }
-        var auctionIdsResult = Cosmos.listAuctionsFollowedByUser(auctionContainer, bidContainer, userId);
+        var auctionIdsResult = Cosmos.listAuctionsFollowedByUser(bidContainer, userId);
         if (auctionIdsResult.isError())
             return Result.err(auctionIdsResult);
 
