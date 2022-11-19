@@ -187,7 +187,7 @@ public class AzureRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
 
     @Override
     public Result<List<AuctionDAO>, ServiceError> listAuctionsFollowedByUser(String userId) {
-        var listResult = Cosmos.listAuctionsFollowedByUser(auctionContainer, userId);
+        var listResult = Cosmos.listAuctionsFollowedByUser(bidContainer, userId);
         if (listResult.isError())
             return Result.err(listResult.error());
 
