@@ -5,17 +5,20 @@ public class AzureMonolithConfig {
     private final CosmosDbConfig cosmosDbConfig;
     private final RedisConfig redisConfig;
     private final MessageBusConfig messageBusConfig;
+    private final CognitiveSearchConfig cognitiveSearchConfig;
     private boolean isCachingEnabled;
 
     public AzureMonolithConfig(
             BlobStoreConfig blobStoreConfig,
             CosmosDbConfig cosmosDbConfig,
             RedisConfig redisConfig,
-            MessageBusConfig messageBusConfig) {
+            MessageBusConfig messageBusConfig,
+            CognitiveSearchConfig cognitiveSearchConfig) {
         this.blobStoreConfig = blobStoreConfig;
         this.cosmosDbConfig = cosmosDbConfig;
         this.redisConfig = redisConfig;
         this.messageBusConfig = messageBusConfig;
+        this.cognitiveSearchConfig = cognitiveSearchConfig;
         this.isCachingEnabled = false;
     }
 
@@ -40,6 +43,10 @@ public class AzureMonolithConfig {
         return messageBusConfig;
     }
 
+    public CognitiveSearchConfig getCognitiveSearchConfig() {
+        return cognitiveSearchConfig;
+    }
+
     public boolean isCachingEnabled() {
         return this.isCachingEnabled;
     }
@@ -47,7 +54,8 @@ public class AzureMonolithConfig {
     @Override
     public String toString() {
         return "AzureMonolithConfig [blobStoreConfig=" + blobStoreConfig + ", cosmosDbConfig=" + cosmosDbConfig
-                + ", redisConfig=" + redisConfig + ", messageBusConfig=" + messageBusConfig + ", isCachingEnabled="
-                + isCachingEnabled + "]";
+                + ", redisConfig=" + redisConfig + ", messageBusConfig=" + messageBusConfig + ", cognitiveSearchConfig="
+                + cognitiveSearchConfig + ", isCachingEnabled=" + isCachingEnabled + "]";
     }
+
 }

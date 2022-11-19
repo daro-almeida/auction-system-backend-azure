@@ -47,6 +47,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         var cosmosConfig = config.getCosmosDbConfig();
         var cosmosDb = Azure.createCosmosDatabase(cosmosConfig);
         var redisConfig = config.getRedisConfig();
+        var cognitiveSearchConfig = config.getCognitiveSearchConfig();
         var jedisPool = Azure.createJedisPool(redisConfig);
 
         logger.info("Cosmos Config: " + cosmosConfig);
@@ -54,9 +55,9 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         logger.info("Storage Config: " + config.getBlobStoreConfig());
         logger.info("MessageBus Config: " + config.getMessageBusConfig());
 
-        var cosmosRepo = new CosmosRepo(cosmosConfig, cosmosDb, jedisPool);
+        var cosmosRepo = new AzureRepo(cosmosConfig, cosmosDb, cognitiveSearchConfig, jedisPool);
         if (config.isCachingEnabled()) {
-            var cachedRepo = new CosmosRepoCache(cosmosRepo, jedisPool);
+            var cachedRepo = new AzureRepoCached(cosmosRepo, jedisPool);
             this.auctionRepo = cachedRepo;
             this.bidRepo = cachedRepo;
             this.questionRepo = cachedRepo;

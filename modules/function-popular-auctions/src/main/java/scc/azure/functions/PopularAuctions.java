@@ -14,7 +14,7 @@ import com.microsoft.azure.functions.annotation.HttpTrigger;
 import com.microsoft.azure.functions.annotation.ServiceBusQueueTrigger;
 
 import scc.azure.Azure;
-import scc.azure.AzureEnv;
+import scc.azure.config.AzureEnv;
 import scc.azure.config.MessageBusConfig;
 
 import java.time.Duration;

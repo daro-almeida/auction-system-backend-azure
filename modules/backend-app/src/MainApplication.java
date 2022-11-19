@@ -4,8 +4,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jakarta.ws.rs.core.Application;
-import scc.azure.AzureEnv;
 import scc.azure.AzureMonolithService;
+import scc.azure.config.AzureEnv;
 import scc.rest.AuctionResource;
 import scc.rest.ControlResource;
 import scc.rest.MediaResource;

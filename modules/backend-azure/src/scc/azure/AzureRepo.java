@@ -15,6 +15,7 @@ import com.azure.search.documents.models.SearchResult;
 import redis.clients.jedis.JedisPool;
 import scc.Result;
 import scc.ServiceError;
+import scc.azure.config.CognitiveSearchConfig;
 import scc.azure.config.CosmosDbConfig;
 import scc.azure.dao.AuctionDAO;
 import scc.azure.dao.BidDAO;
@@ -26,14 +27,8 @@ import scc.azure.repo.BidRepo;
 import scc.azure.repo.QuestionRepo;
 import scc.azure.repo.UserRepo;
 
-public class CosmosRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
-    private static final Logger logger = Logger.getLogger(CosmosRepo.class.getName());
-
-    // TODO Not sure if right place to have this
-    private static final String SearchServiceQueryKey = "UXWCEJmyOccoflVnisIkCpcxglF2QTuyMg3ADzVLPOAzSeB5mWt1";
-    private static final String SearchServiceUrl = "https://scc223-cognitive-search-d464.search.windows.net";
-    private static final String IndexNameAuctions =  "cosmosdb-auction-indexer";
-    private static final String IndexNameQuestions = "cosmosdb-questions-indexer";
+public class AzureRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
+    private static final Logger logger = Logger.getLogger(AzureRepo.class.getName());
 
     private final CosmosContainer auctionContainer;
     private final CosmosContainer bidContainer;
@@ -43,21 +38,21 @@ public class CosmosRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo 
     private final SearchClient searchClientQuestions;
     private final JedisPool jedisPool;
 
-    public CosmosRepo(CosmosDbConfig config, CosmosDatabase db, JedisPool jedisPool) {
+    public AzureRepo(CosmosDbConfig config, CosmosDatabase db, CognitiveSearchConfig cogConfig, JedisPool jedisPool) {
         this.auctionContainer = db.getContainer(config.auctionContainer);
         this.bidContainer = db.getContainer(config.bidContainer);
         this.questionContainer = db.getContainer(config.questionContainer);
         this.userContainer = db.getContainer(config.userContainer);
         this.jedisPool = jedisPool;
         this.searchClientAuctions = new SearchClientBuilder()
-                .credential(new AzureKeyCredential(SearchServiceQueryKey))
-                .endpoint(SearchServiceUrl)
-                .indexName(IndexNameAuctions)
+                .credential(new AzureKeyCredential(cogConfig.key))
+                .endpoint(cogConfig.url)
+                .indexName(cogConfig.auctionsIndex)
                 .buildClient();
         this.searchClientQuestions = new SearchClientBuilder()
-                .credential(new AzureKeyCredential(SearchServiceQueryKey))
-                .endpoint(SearchServiceUrl)
-                .indexName(IndexNameQuestions)
+                .credential(new AzureKeyCredential(cogConfig.key))
+                .endpoint(cogConfig.url)
+                .indexName(cogConfig.questionsIndex)
                 .buildClient();
     }
 
@@ -208,34 +203,54 @@ public class CosmosRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo 
 
     @Override
     public Result<List<AuctionDAO>, ServiceError> queryAuctions(String query) {
-        // TODO Test this
         SearchOptions options = new SearchOptions()
                 .setIncludeTotalCount(true)
-                .setSelect("id", "userid", "title", "description")
-                .setSearchFields("title", "description")
-                .setTop(5);
+                .setSelect("id")
+                .setSearchFields("title", "description", "userId")
+                .setTop(20);
 
         var list = new ArrayList<AuctionDAO>();
         for (SearchResult searchResult : searchClientAuctions.search(query, options, null)) {
             AuctionDAO doc = searchResult.getDocument(AuctionDAO.class);
-            list.add(doc);
+            var result = this.getAuction(doc.getId());
+            if (result.isError()) {
+                logger.warning("Error getting auction returned by search: " + result.error());
+                continue;
+            }
+            list.add(result.value());
         }
+
+        logger.fine("Query '" + query + "' returned " + list.size() + " auctions");
+
         return Result.ok(list);
     }
 
     @Override
     public Result<List<QuestionDAO>, ServiceError> queryQuestionsFromAuction(String auctionId, String query) {
-        // TODO Test this
         SearchOptions options = new SearchOptions()
                 .setIncludeTotalCount(true)
-                .setSelect("id", "userId", "question", "reply")
-                .setSearchFields("question")
-                .setTop(5);
+                .setSelect("id")
+                .setSearchFields("question", "reply", "auctionId")
+                .setTop(20);
+        var searchResults = searchClientQuestions.search(
+                String.format("$filter=(auctionId eq '%s')&search='%s'", auctionId, query),
+                options,
+                null);
 
         var list = new ArrayList<QuestionDAO>();
-        for (SearchResult searchResult : searchClientQuestions.search(query, options, null)) {
-            QuestionDAO doc = searchResult.getDocument(QuestionDAO.class);
-            if (doc.getAuctionId().equals(auctionId)) list.add(doc);
+        for (var searchResult : searchResults) {
+            var doc = searchResult.getDocument(QuestionDAO.class);
+            var result = this.getQuestion(doc.getId());
+            if (result.isError()) {
+                logger.warning("Error getting question returned by search: " + result.error());
+                continue;
+            }
+
+            var questionDao = result.value();
+            if (!questionDao.getAuctionId().equals(auctionId))
+                logger.warning("Question returned by search is not from the specified auction");
+
+            list.add(result.value());
         }
         return Result.ok(list);
     }

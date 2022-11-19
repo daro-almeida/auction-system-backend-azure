@@ -108,6 +108,19 @@ AZURE_REDIS_URL=
 
 | `AZURE_REDIS_URL`
 | The URL to the Azure Redis Cache account.
+
+| `AZURE_COGNITIVE_SEARCH_KEY`
+| The key to the Azure Cognitive Search account.
+
+| `AZURE_COGNITIVE_SEARCH_URL`
+| The URL to the Azure Cognitive Search account.
+
+| `AZURE_COGNITIVE_SEARCH_AUCTIONS_INDEX`
+| The name of the auctions index in the Azure Cognitive Search account.
+
+| `AZURE_COGNITIVE_SEARCH_QUESTIONS_INDEX`
+| The name of the questions index in the Azure Cognitive Search account.
+
 |===
 
 == Creating a new Azure Function

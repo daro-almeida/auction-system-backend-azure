@@ -20,7 +20,6 @@ import scc.UpdateAuctionOps;
 import scc.rest.dto.AuctionDTO;
 import scc.rest.dto.BidDTO;
 import scc.rest.dto.QuestionDTO;
-import scc.rest.dto.ReplyDTO;
 
 @Path("/auction")
 public class AuctionResource {
@@ -391,7 +390,7 @@ public class AuctionResource {
 
     @GET
     @Path("/{" + AUCTION_ID + "}/question/any/query")
-    @Produces
+    @Produces(MediaType.APPLICATION_JSON)
     public List<QuestionDTO> queryQuestionsFromAuction(@PathParam(AUCTION_ID) String auctionId,
             @QueryParam("query") String query) {
         if (query == null)

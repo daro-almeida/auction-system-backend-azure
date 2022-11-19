@@ -18,13 +18,13 @@ import scc.azure.repo.BidRepo;
 import scc.azure.repo.QuestionRepo;
 import scc.azure.repo.UserRepo;
 
-public class CosmosRepoCache implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
-    private static final Logger logger = Logger.getLogger(CosmosRepoCache.class.getName());
+public class AzureRepoCached implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
+    private static final Logger logger = Logger.getLogger(AzureRepoCached.class.getName());
 
-    private final CosmosRepo repo;
+    private final AzureRepo repo;
     private final JedisPool jedisPool;
 
-    public CosmosRepoCache(CosmosRepo repo, JedisPool jedisPool) {
+    public AzureRepoCached(AzureRepo repo, JedisPool jedisPool) {
         this.repo = repo;
         this.jedisPool = jedisPool;
 
@@ -265,7 +265,9 @@ public class CosmosRepoCache implements AuctionRepo, BidRepo, QuestionRepo, User
     }
 
     @Override
-    public Result<List<QuestionDAO>, ServiceError> queryQuestionsFromAuction(String auctionId, String query) { return repo.queryQuestionsFromAuction(auctionId, query);}
+    public Result<List<QuestionDAO>, ServiceError> queryQuestionsFromAuction(String auctionId, String query) {
+        return repo.queryQuestionsFromAuction(auctionId, query);
+    }
 
     private List<AuctionDAO> auctionIdsToDaos(Jedis jedis, List<String> ids) {
         var auctions = new ArrayList<AuctionDAO>();

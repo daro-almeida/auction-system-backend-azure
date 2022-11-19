@@ -1,10 +1,4 @@
-package scc.azure;
-
-import scc.azure.config.AzureMonolithConfig;
-import scc.azure.config.BlobStoreConfig;
-import scc.azure.config.CosmosDbConfig;
-import scc.azure.config.MessageBusConfig;
-import scc.azure.config.RedisConfig;
+package scc.azure.config;
 
 public class AzureEnv {
     public static final String BACKEND_KIND = "BACKEND_KIND";
@@ -32,6 +26,11 @@ public class AzureEnv {
 
     public static final String AZURE_MESSAGE_BUS_CONNECTION_STRING = "AZURE_MESSAGE_BUS_CONNECTION_STRING";
 
+    public static final String AZURE_COGNITIVE_SEARCH_KEY = "AZURE_COGNITIVE_SEARCH_KEY";
+    public static final String AZURE_COGNITIVE_SEARCH_URL = "AZURE_COGNITIVE_SEARCH_URL";
+    public static final String AZURE_COGNITIVE_SEARCH_AUCTIONS_INDEX = "AZURE_COGNITIVE_SEARCH_AUCTIONS_INDEX";
+    public static final String AZURE_COGNITIVE_SEARCH_QUESTIONS_INDEX = "AZURE_COGNITIVE_SEARCH_QUESTIONS_INDEX";
+
     public static final String getBackendKind() {
         return getEnvVar(BACKEND_KIND, BACKEND_KIND_MEM);
     }
@@ -41,7 +40,8 @@ public class AzureEnv {
                 getAzureBlobStoreConfig(),
                 getAzureCosmosDbConfig(),
                 getAzureRedisConfig(),
-                getAzureMessageBusConfig());
+                getAzureMessageBusConfig(),
+                getAzureCognitiveSearchConfig());
         var enableCaching = getAzureEnableCaching();
         switch (enableCaching) {
             case AZURE_ENABLE_CACHING_YES:
@@ -101,6 +101,19 @@ public class AzureEnv {
 
     public static final MessageBusConfig getAzureMessageBusConfig() {
         return new MessageBusConfig(getEnvVar(AZURE_MESSAGE_BUS_CONNECTION_STRING));
+    }
+
+    public static final CognitiveSearchConfig getAzureCognitiveSearchConfig() {
+        var azureCognitiveSearchKey = getEnvVar(AZURE_COGNITIVE_SEARCH_KEY);
+        var azureCognitiveSearchUrl = getEnvVar(AZURE_COGNITIVE_SEARCH_URL);
+        var azureCognitiveSearchAuctionsIndex = getEnvVar(AZURE_COGNITIVE_SEARCH_AUCTIONS_INDEX);
+        var azureCognitiveSearchQuestionsIndex = getEnvVar(AZURE_COGNITIVE_SEARCH_QUESTIONS_INDEX);
+
+        return new CognitiveSearchConfig(
+                azureCognitiveSearchKey,
+                azureCognitiveSearchUrl,
+                azureCognitiveSearchAuctionsIndex,
+                azureCognitiveSearchQuestionsIndex);
     }
 
     private static String getEnvVar(String name, String defaultValue) {
