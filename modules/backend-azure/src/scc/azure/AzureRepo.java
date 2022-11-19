@@ -279,8 +279,10 @@ public class AzureRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
 
         for (var auctionId : ids) {
             var auctionResult = this.getAuction(auctionId);
-            if (auctionResult.isError())
-                return null;
+            if (auctionResult.isError()) {
+                logger.warning("Error getting auction with id " + auctionId + ": " + auctionResult.error());
+                continue;
+            }
             auctionDaos.add(auctionResult.value());
         }
 
