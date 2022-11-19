@@ -1,6 +1,5 @@
 package scc.azure;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.logging.Logger;
@@ -26,8 +25,6 @@ import scc.azure.dao.QuestionDAO;
 import scc.azure.dao.UserDAO;
 
 public class Cosmos {
-
-    private static final Duration ABOUT_TO_CLOSE_THRESHOL_DURATION = Duration.ofMinutes(5);
     private static final Logger logger = Logger.getLogger(Cosmos.class.getName());
     private static final String[] PREFERRED_REGIONS = { "East US", "West US" };
 
@@ -197,7 +194,7 @@ public class Cosmos {
     public static Result<List<AuctionDAO>, ServiceError> listAuctionsAboutToClose(
             CosmosContainer container,
             long limit) {
-        var threshold = LocalDateTime.now().plus(ABOUT_TO_CLOSE_THRESHOL_DURATION);
+        var threshold = LocalDateTime.now().plus(AzureLogic.DURATION_ABOUT_TO_CLOSE_THRESHOLD);
         var thresholdStr = Azure.formatDateTime(threshold);
         var query = "SELECT * from auctions auc WHERE auc.status = \"OPEN\" and auc.endTime <= '"
                 + thresholdStr

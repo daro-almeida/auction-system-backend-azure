@@ -17,10 +17,6 @@ public class Redis {
     public static final int TTL_DAO = 60 * 60;
     public static final int TTL_SESSION = 30 * 60;
 
-    public static final int MAX_RECENT_AUCTIONS = 20;
-    public static final int MAX_MOST_POPULAR_AUCTIONS = 20;
-    public static final int MAX_ABOUT_TO_CLOSE_AUCTIONS = 20;
-
     public static final String PREFIX_AUCTION = "auction:";
     public static final String PREFIX_BID = "bid:";
     public static final String PREFIX_QUESTION = "question:";
@@ -219,6 +215,11 @@ public class Redis {
         }
     }
 
+    public static void addAuctionAboutToClose(Jedis jedis, AuctionAboutToClose auction) {
+        var key = KEY_AUCTIONS_ABOUNT_TO_CLOSE;
+        jedis.zadd(key, auction.time.toEpochSecond(ZoneOffset.UTC), auction.auctionId);
+    }
+
     public static void removeAuctionAboutToClose(Jedis jedis, String auctionId) {
         var key = KEY_AUCTIONS_ABOUNT_TO_CLOSE;
         jedis.zrem(key, auctionId);
@@ -226,7 +227,7 @@ public class Redis {
 
     public static List<String> getAuctionsAboutToClose(Jedis jedis) {
         var key = KEY_AUCTIONS_ABOUNT_TO_CLOSE;
-        return jedis.zrevrange(key, 0, MAX_ABOUT_TO_CLOSE_AUCTIONS - 1);
+        return jedis.zrevrange(key, 0, AzureLogic.MAX_ABOUT_TO_CLOSE_AUCTIONS - 1);
     }
 
     /* ------------------------- Recent Tracking ------------------------- */
@@ -234,7 +235,7 @@ public class Redis {
     public static void pushRecentAuction(Jedis jedis, String auctionId) {
         var key = KEY_RECENT_AUCTIONS;
         jedis.lpush(key, auctionId);
-        jedis.ltrim(key, 0, MAX_RECENT_AUCTIONS - 1);
+        jedis.ltrim(key, 0, AzureLogic.MAX_RECENT_AUCTIONS - 1);
     }
 
     public static List<String> getRecentAuctions(Jedis jedis) {
@@ -250,11 +251,11 @@ public class Redis {
     }
 
     public static void updatePopularAuctions(Jedis jedis) {
-        var mostPopular = jedis.zrevrange(KEY_POPULAR_AUCTIONS_RANKING, 0, MAX_MOST_POPULAR_AUCTIONS);
+        var mostPopular = jedis.zrevrange(KEY_POPULAR_AUCTIONS_RANKING, 0, AzureLogic.MAX_MOST_POPULAR_AUCTIONS);
         jedis.del(KEY_POPULAR_AUCTIONS_RANKING);
         if (mostPopular.size() > 0) {
             jedis.lpush(KEY_POPULAR_AUCTIONS, mostPopular.toArray(new String[mostPopular.size()]));
-            jedis.ltrim(KEY_POPULAR_AUCTIONS, 0, MAX_MOST_POPULAR_AUCTIONS - 1);
+            jedis.ltrim(KEY_POPULAR_AUCTIONS, 0, AzureLogic.MAX_MOST_POPULAR_AUCTIONS - 1);
         }
     }
 

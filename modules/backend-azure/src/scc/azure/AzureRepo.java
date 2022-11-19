@@ -199,7 +199,7 @@ public class AzureRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
 
     @Override
     public Result<List<AuctionDAO>, ServiceError> listAuctionsAboutToClose() {
-        return Cosmos.listAuctionsAboutToClose(this.auctionContainer, Redis.MAX_ABOUT_TO_CLOSE_AUCTIONS);
+        return Cosmos.listAuctionsAboutToClose(this.auctionContainer, AzureLogic.MAX_ABOUT_TO_CLOSE_AUCTIONS);
     }
 
     @Override
@@ -226,7 +226,7 @@ public class AzureRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
                 .setIncludeTotalCount(true)
                 .setSelect("id")
                 .setSearchFields("title", "description", "userId")
-                .setTop(20);
+                .setTop(AzureLogic.MAX_AUCTION_QUERY_RESULTS);
 
         var list = new ArrayList<AuctionDAO>();
         for (SearchResult searchResult : searchClientAuctions.search(query, options, null)) {
@@ -250,7 +250,7 @@ public class AzureRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
                 .setIncludeTotalCount(true)
                 .setSelect("id")
                 .setSearchFields("question", "reply", "auctionId")
-                .setTop(20);
+                .setTop(AzureLogic.MAX_QUESTION_QUERY_RESULTS);
         var searchResults = searchClientQuestions.search(
                 String.format("$filter=(auctionId eq '%s')&search='%s'", auctionId, query),
                 options,
