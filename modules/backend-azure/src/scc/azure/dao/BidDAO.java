@@ -1,7 +1,5 @@
 package scc.azure.dao;
 
-import java.time.LocalDateTime;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -12,9 +10,9 @@ public class BidDAO {
     private String auctionId;
     private String userId;
     private double amount;
-    private LocalDateTime time;
+    private String time;
 
-    public BidDAO(String auctionId, String userId, double amount, LocalDateTime time) {
+    public BidDAO(String auctionId, String userId, double amount, String time) {
         this._rid = null;
         this._ts = null;
         this.id = null;
@@ -24,7 +22,7 @@ public class BidDAO {
         this.time = time;
     }
 
-    public BidDAO(String id, String auctionId, String userId, double amount, LocalDateTime time) {
+    public BidDAO(String id, String auctionId, String userId, double amount, String time) {
         this._rid = null;
         this._ts = null;
         this.id = id;
@@ -85,11 +83,11 @@ public class BidDAO {
         this.amount = amount;
     }
 
-    public LocalDateTime getTime() {
+    public String getTime() {
         return time;
     }
 
-    public void setTime(LocalDateTime time) {
+    public void setTime(String time) {
         this.time = time;
     }
 

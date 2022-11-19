@@ -1,7 +1,7 @@
 package scc.azure;
 
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -27,8 +27,10 @@ import scc.azure.dao.UserDAO;
 
 public class Cosmos {
 
+    private static final Duration ABOUT_TO_CLOSE_THRESHOL_DURATION = Duration.ofMinutes(5);
     private static final Logger logger = Logger.getLogger(Cosmos.class.getName());
-    private static final String[] PREFERRED_REGIONS = {"East US", "West US"};
+    private static final String[] PREFERRED_REGIONS = { "East US", "West US" };
+
     public static enum UpdateAuctionBidResult {
         SUCCESS,
         OVERSHADOWED,
@@ -170,7 +172,7 @@ public class Cosmos {
      * 
      * @param auctionsContainer auctions container
      * @param bidsContainer     bids container
-     * @param userId           identifier of the user
+     * @param userId            identifier of the user
      * @return List of auction identifiers
      */
     public static Result<List<String>, ServiceError> listAuctionsFollowedByUser(
@@ -179,28 +181,39 @@ public class Cosmos {
             String userId) {
         var bids = getBidsFromUser(bidsContainer, userId);
         var auctionIds = new HashSet<String>();
-        for (BidDAO dao : bids.value()){
+        for (BidDAO dao : bids.value()) {
             auctionIds.add(dao.getAuctionId());
         }
         return Result.ok(auctionIds.stream().toList());
     }
 
-    public static Result<List<AuctionDAO>, ServiceError> listAuctionsAboutToClose(CosmosContainer container) {
-        var WHAT_IS_RECENT = 60 * 5;
-        // TODO this probably can be optimized
-        var auctions = container
-                .queryItems(
-                        "SELECT * FROM auctions",
-                        new CosmosQueryRequestOptions(),
-                        AuctionDAO.class);
-        var auctionsAboutToClose = new ArrayList<AuctionDAO>();
-        for (AuctionDAO dao : auctions.stream().toList()) {
-            long diffInMilliesButItsActuallySecs = Math.abs(ZonedDateTime.now(ZoneOffset.UTC).toEpochSecond() -
-                    dao.getEndTime().toEpochSecond(ZoneOffset.UTC));
-            if (diffInMilliesButItsActuallySecs < WHAT_IS_RECENT)
-                auctionsAboutToClose.add(dao);
-        }
-        return Result.ok(auctionsAboutToClose);
+    /**
+     * List all the auctions that are currently open and that are about to close
+     * 
+     * @param container auctions container
+     * @param limit     maximum number of auctions to return
+     * @return List of auctions
+     */
+    public static Result<List<AuctionDAO>, ServiceError> listAuctionsAboutToClose(
+            CosmosContainer container,
+            long limit) {
+        var threshold = LocalDateTime.now().plus(ABOUT_TO_CLOSE_THRESHOL_DURATION);
+        var thresholdStr = Azure.formatDateTime(threshold);
+        var query = "SELECT * from auctions auc WHERE auc.status = \"OPEN\" and auc.endTime <= '"
+                + thresholdStr
+                + "'";
+        if (limit != Long.MAX_VALUE)
+            query += " LIMIT " + limit;
+        logger.fine("Querying auctions about to close: " + query);
+        var response = container.queryItems(query, createAuctionQueryOptions(), AuctionDAO.class);
+        var auctionDaos = response.stream().toList();
+        logger.fine("Found " + auctionDaos.size() + " auctions about to close");
+        return Result.ok(auctionDaos);
+    }
+
+    public static Result<List<AuctionDAO>, ServiceError> listAuctionsAboutToClose(
+            CosmosContainer container) {
+        return listAuctionsAboutToClose(container, Long.MAX_VALUE);
     }
 
     /* ------------------------- Bid External ------------------------- */

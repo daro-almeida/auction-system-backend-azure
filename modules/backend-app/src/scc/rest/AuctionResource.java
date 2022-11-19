@@ -335,7 +335,7 @@ public class AuctionResource {
     @Path("/any/soon-to-close")
     @Produces(MediaType.APPLICATION_JSON)
     public List<AuctionDTO> listAuctionsAboutToClose() {
-        logger.fine("GET /auction");
+        logger.fine("GET /auction/any/soon-to-close");
 
         var result = this.service.listAuctionsAboutToClose();
         if (result.isError())

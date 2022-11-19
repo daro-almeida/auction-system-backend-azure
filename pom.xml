@@ -15,7 +15,7 @@
     <module>modules/backend-azure</module>
     <module>modules/function-popular-auctions</module>
     <module>modules/function-recent-auctions</module>
-  <module>modules/function-close-auctions</module></modules>
+  <module>modules/function-close-auctions</module><module>modules/function-auctions-about-to-close</module></modules>
 
   <dependencies>
     <dependency>

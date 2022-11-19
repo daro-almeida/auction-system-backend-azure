@@ -18,7 +18,7 @@ public class DAO {
                 auction.getTitle(),
                 auction.getDescription(),
                 auction.getUserId(),
-                auction.getEndTime(),
+                Azure.parseDateTime(auction.getEndTime()),
                 Optional.ofNullable(auction.getPictureId()).map(Azure::mediaIdFromString),
                 auction.getStartingPrice(),
                 statusToAuctionStatus(auction.getStatus()),
@@ -30,7 +30,7 @@ public class DAO {
                 bid.getId(),
                 bid.getAuctionId(),
                 bid.getUserId(),
-                bid.getTime(),
+                Azure.parseDateTime(bid.getTime()),
                 bid.getAmount());
     }
 

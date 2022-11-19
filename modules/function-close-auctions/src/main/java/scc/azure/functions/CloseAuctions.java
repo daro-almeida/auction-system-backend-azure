@@ -29,6 +29,7 @@ public class CloseAuctions {
             if (result.isOk()) {
                 context.getLogger().info("Auction closed: " + auctionId);
                 Redis.setAuction(jedis, result.value());
+                Redis.removeAuctionAboutToClose(jedis, auctionId);
             } else {
                 context.getLogger().info(
                         "Auction not closed: " + auctionId + " - " + result.error() + " - " + result.errorMessage());

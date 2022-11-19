@@ -1,5 +1,7 @@
 package scc.azure;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -17,6 +19,7 @@ public class Redis {
 
     public static final int MAX_RECENT_AUCTIONS = 20;
     public static final int MAX_MOST_POPULAR_AUCTIONS = 20;
+    public static final int MAX_ABOUT_TO_CLOSE_AUCTIONS = 20;
 
     public static final String PREFIX_AUCTION = "auction:";
     public static final String PREFIX_BID = "bid:";
@@ -201,17 +204,29 @@ public class Redis {
         addDaoId(jedis, key, auctionId);
     }
 
-    public static void setAuctionsAboutToClose(Jedis jedis, List<String> auctions) {
-        var key = KEY_AUCTIONS_ABOUNT_TO_CLOSE;
-        for (var auction : auctions)
-            jedis.rpush(key, auction);
+    /* ----------------------- About To Close Tracking ----------------------- */
+
+    public record AuctionAboutToClose(String auctionId, LocalDateTime time) {
     }
 
-    /* ----------------------- About To Close Tracking ----------------------- */
+    public static void setAuctionsAboutToClose(Jedis jedis, List<AuctionAboutToClose> auctions) {
+        var key = KEY_AUCTIONS_ABOUNT_TO_CLOSE;
+        try (var multi = jedis.multi()) {
+            multi.del(key);
+            for (var auction : auctions)
+                multi.zadd(key, auction.time.toEpochSecond(ZoneOffset.UTC), auction.auctionId);
+            multi.exec();
+        }
+    }
+
+    public static void removeAuctionAboutToClose(Jedis jedis, String auctionId) {
+        var key = KEY_AUCTIONS_ABOUNT_TO_CLOSE;
+        jedis.zrem(key, auctionId);
+    }
 
     public static List<String> getAuctionsAboutToClose(Jedis jedis) {
         var key = KEY_AUCTIONS_ABOUNT_TO_CLOSE;
-        return jedis.lrange(key, 0, -1);
+        return jedis.zrevrange(key, 0, MAX_ABOUT_TO_CLOSE_AUCTIONS - 1);
     }
 
     /* ------------------------- Recent Tracking ------------------------- */

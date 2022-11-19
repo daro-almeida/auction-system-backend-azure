@@ -1,5 +1,10 @@
 package scc.azure;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
 import com.azure.cosmos.CosmosClientBuilder;
 import com.azure.cosmos.CosmosDatabase;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +19,20 @@ import scc.azure.config.RedisConfig;
 import scc.utils.Hash;
 
 public class Azure {
+    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.nX");
+
+    public static LocalDateTime parseDateTime(String dateTime) {
+        return LocalDateTime.parse(dateTime, DATE_TIME_FORMATTER);
+    }
+
+    public static String formatDateTime(LocalDateTime dateTime) {
+        return DATE_TIME_FORMATTER.format(dateTime.atZone(ZoneOffset.UTC));
+    }
+
+    public static String formatDateTime(ZonedDateTime dateTime) {
+        return DATE_TIME_FORMATTER.format(dateTime.withZoneSameInstant(ZoneOffset.UTC));
+    }
+
     public static String hashUserPassword(String password) {
         return Hash.of(password);
     }

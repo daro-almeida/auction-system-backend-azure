@@ -19,7 +19,7 @@ public class AuctionDAO {
     private String description;
     private String pictureId;
     private String userId;
-    private LocalDateTime endTime;
+    private String endTime;
     private double startingPrice;
     private String winnerBidId;
     private Status status;
@@ -29,7 +29,7 @@ public class AuctionDAO {
             String description,
             String pictureId,
             String userId,
-            LocalDateTime endTime,
+            String endTime,
             double startingPrice) {
         this._rid = null;
         this._ts = null;
@@ -49,7 +49,7 @@ public class AuctionDAO {
             String description,
             String pictureId,
             String userId,
-            LocalDateTime endTime,
+            String endTime,
             double startingPrice,
             String winnerBidId,
             Status status) {
@@ -95,7 +95,7 @@ public class AuctionDAO {
         return userId;
     }
 
-    public LocalDateTime getEndTime() {
+    public String getEndTime() {
         return endTime;
     }
 
@@ -135,7 +135,7 @@ public class AuctionDAO {
         this.pictureId = pictureId;
     }
 
-    public void setEndTime(LocalDateTime endTime) {
+    public void setEndTime(String endTime) {
         this.endTime = endTime;
     }
 

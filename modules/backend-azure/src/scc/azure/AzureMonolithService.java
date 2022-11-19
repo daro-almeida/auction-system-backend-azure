@@ -86,7 +86,7 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
                 params.description(),
                 params.mediaId().map(Azure::mediaIdToString).orElse(null),
                 params.owner(),
-                params.endTime(),
+                Azure.formatDateTime(params.endTime()),
                 params.startingPrice()));
         if (result.isError())
             return Result.err(result.error());
@@ -145,12 +145,13 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
         if (authResult.isError())
             return Result.err(authResult.error());
 
+        var now = LocalDateTime.now(ZoneOffset.UTC);
         var result = this.bidRepo.insertBid(
                 new BidDAO(
                         params.auctionId(),
                         params.userId(),
                         params.price(),
-                        LocalDateTime.now(ZoneOffset.UTC)));
+                        Azure.formatDateTime(now)));
         if (result.isError())
             return Result.err(result.error());
 

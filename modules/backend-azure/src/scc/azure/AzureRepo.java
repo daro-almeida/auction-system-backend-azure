@@ -169,7 +169,8 @@ public class AzureRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
             return result;
 
         var auctionDao = result.value();
-        MessageBus.sendCloseAuction(auctionDao.getId(), auctionDao.getEndTime());
+        var endTime = Azure.parseDateTime(auctionDao.getEndTime());
+        MessageBus.sendCloseAuction(auctionDao.getId(), endTime);
 
         return result;
     }
@@ -198,11 +199,7 @@ public class AzureRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
 
     @Override
     public Result<List<AuctionDAO>, ServiceError> listAuctionsAboutToClose() {
-        try (var jedis = jedisPool.getResource()) {
-            var auctionIds = Redis.getAuctionsAboutToClose(jedis);
-            var auctionDaos = this.auctionIdsToDaos(auctionIds);
-            return Result.ok(auctionDaos);
-        }
+        return Cosmos.listAuctionsAboutToClose(this.auctionContainer, Redis.MAX_ABOUT_TO_CLOSE_AUCTIONS);
     }
 
     @Override
@@ -281,7 +278,7 @@ public class AzureRepo implements AuctionRepo, BidRepo, QuestionRepo, UserRepo {
         var auctionDaos = new ArrayList<AuctionDAO>(ids.size());
 
         for (var auctionId : ids) {
-            var auctionResult = getAuction(auctionId);
+            var auctionResult = this.getAuction(auctionId);
             if (auctionResult.isError())
                 return null;
             auctionDaos.add(auctionResult.value());
