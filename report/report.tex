@@ -98,10 +98,17 @@ In this section we provide some details on some relevant highlighted aspects of 
 \subsubsection{Blob Replication}
 
 % explain how we implemented Blob Replication with Azure Functions
+For blob replication through different data centers, our approach was to use an Azure Function where, on Blob creation/update in one data center, it would upload that same blob
+to their respective blob storage center. This way, a client uploading a media resource in one data center, that same
+media resource will be saved in all other data centers.
 
 \subsection{Querying}
 
 % how we used Azure Cognitive Search and for what operations.
+To search for auctions based on the user's text query, we use Azure Cognitive Search where it searchs for an occurence in the documents (this case auctions)
+and returns those documents as a result. 
+The same logic is applied for querying questions from an auction: client provides a text query to which is used to look for an occurence in the auction's questions' descriptions
+and return the gathered documents as a result to the client.
 
 \section{Evaluation}
 
