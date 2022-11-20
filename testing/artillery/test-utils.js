@@ -297,7 +297,7 @@ function decideNextAction(context, events, done) {
 		context.vars.auctionId = auct.id
 		context.vars.imageId = auct.imageId
 	}
-	if (context.vars.nextAction == 5)
+	if (context.vars.nextAction == 6)
 		context.vars.text = `${Faker.lorem.paragraph()}`;
 
 	return done()
