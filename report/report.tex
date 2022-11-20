@@ -118,6 +118,28 @@ Using Redis cache, we keep the session keys of users after they authenticate in 
 
 % what azure functions we used and what utility it provided and what operations it supported
 
+\subsubsection{Auctions about to Close}
+
+Periodically every 2 minutes, makes a query to the database looking for the auctions who are close to be closed and fills the Redis cache with that information
+The application, if it has caching enabled, goes to the Redis fetch these auctions when there's a request on the endpoint /rest/auctions/any/soon-to-close
+These functions are triggered on Cosmos for getting the list and a timer trigger on the updating the list
+
+\subsubsection{Close Auctions}
+
+It's a subscriber of message queues of type "close-auction" and when it receives a message with given auction identifier (this message only comes on the moment that an auction should close), puts the auction state to closed
+
+\subsubsection{Popular Auctions}
+
+This functions does two things.
+1. Whenever a bid is inserted to the database, it increments the amount of bids made to that auction
+2. Periodcally takes off X auctions with highest amount of bids and resets all bid amounts from the auctions. These X auctions are then put into cache as being the most popular auctions
+These functions are triggered on Cosmos for getting the list and a timer trigger on updating the list
+
+\subsubsection{Recent Auctions}
+
+This function is triggered whenever one or more auctions are created in the database.
+These auctions are put into cache and the size of the list is limited. The clients only need to call the redis for the list of most recent auctions
+
 \subsubsection{Blob Replication}
 
 % explain how we implemented Blob Replication with Azure Functions
