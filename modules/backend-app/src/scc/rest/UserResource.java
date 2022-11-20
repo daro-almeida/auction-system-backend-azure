@@ -54,6 +54,7 @@ public class UserResource {
     @GET
     @Path("/{" + USER_ID + "}")
     @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     public UserDTO getUser(@PathParam(USER_ID) String id) {
         logger.fine("GET /user/" + id);
 

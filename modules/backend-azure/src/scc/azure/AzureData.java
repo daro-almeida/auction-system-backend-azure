@@ -3,6 +3,7 @@ package scc.azure;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Logger;
 
 import com.azure.cosmos.CosmosContainer;
 
@@ -22,6 +23,8 @@ import scc.item.ReplyItem;
 import scc.item.UserItem;
 
 public class AzureData {
+
+    private static final Logger logger = Logger.getLogger(AzureData.class.getName());
 
     /* ------------------------- Auction DAO ------------------------- */
 
@@ -173,15 +176,22 @@ public class AzureData {
             CosmosContainer userContainer,
             AuctionDAO auctionDao) {
         var userDaoResult = getUser(config, jedisPool, userContainer, auctionDao.getUserId());
-        if (userDaoResult.isError())
+        if (userDaoResult.isError()) {
+            logger.warning(
+                    "Failed to get user '" + auctionDao.getUserId() + "' for auction '" + auctionDao.getId() + "'");
             return Result.err(userDaoResult);
+        }
         var userDao = userDaoResult.value();
 
         Optional<BidDAO> bidDao = Optional.empty();
         if (auctionDao.getWinnerBidId() != null) {
             var bidResult = getBid(config, jedisPool, bidContainer, auctionDao.getWinnerBidId());
-            if (bidResult.isError())
+            if (bidResult.isError()) {
+                logger.warning(
+                        "Failed to get bid '" + auctionDao.getWinnerBidId() + "' for auction '" + auctionDao.getId()
+                                + "'");
                 return Result.err(bidResult);
+            }
             bidDao = Optional.of(bidResult.value());
         }
 
@@ -340,7 +350,7 @@ public class AzureData {
 
         var userResult = Cosmos.getUser(userContainer, userId);
         if (userResult.isError())
-            return Result.err(ServiceError.USER_NOT_FOUND);
+            return Result.err(userResult);
 
         var userDao = userResult.value();
         setUser(config, jedisPool, userDao);

@@ -92,8 +92,8 @@ public class AzureAuctionService implements AuctionService {
         var auctionItemResult = AzureData.auctionDaoToItem(
                 azureConfig,
                 jedisPool,
-                userContainer,
                 bidContainer,
+                userContainer,
                 auctionDao);
         if (auctionItemResult.isError())
             return Result.err(auctionItemResult);
