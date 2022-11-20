@@ -38,14 +38,17 @@ Diogo Fona\inst{57940}}
 \section{Introduction}
 %briefly explain the context and goal of the system being developed
 The goal of this work is to understand how services available in cloud computing platforms can be used for creating applications that are scalable fast, and highly available.
+
 \subsection{Context}
 This work consists in the design and implementation of the backend for an auction system like E-Bay and companion scripts for testing the system.
 
 The system will manage auctions. Users can create auctions and bid on open auctions. User can also pose question about the product of an auction. A question can only be answered by the user that created the auction, and there can be only one answer for each question.
 
+
 \section{Design}
 
 %introduce the design of the system, including the architecture with its main components and how these components interact for implementing the different features of the system
+
 \subsection{Architecture}
 
 The system mantains the following information:
@@ -78,8 +81,8 @@ The App Service provides the following REST endpoints for communication with cli
     \item \textbf{Auctions} (/rest/auction): Create, get and update an auction. List auctions that were recently created, are closing soon, and popular ones. Query auctions.
     \item \textbf{Bids} (/rest/auction/\{id\}/bid): Bid for an auction or list its bids;
     \item \textbf{Questions} (/rest/auction/\{id\}/question): Post a question on an auction, reply to a question and list an auction's questions. Query questions from an auction.
-
 \end{itemize}
+
 
 \section{Implementation}
 
@@ -87,9 +90,29 @@ The App Service provides the following REST endpoints for communication with cli
 
 In this section we provide some details on some relevant highlighted aspects of the implementation.
 
+\subsection{Database}
+
+% talk about the special treatment of some operations (how we do DELETED USER state and consistency of operation (STRONG for deleteUser and closeAuction and SESSION for every other one)). 
+
 \subsection{Caching}
 
-% which information we cached, and how (what structures we used, for how long we cached, what operations it supported, ...)
+We store in Redis cache all objects (User, Auction, Bid and Question DAOs) until they are invalidated by either timeout, after 1 hour (or another configurable value), or are updated, in which they must be replaced in the cache, or deleted. 
+
+Lists of IDs of these objects are formed in cache with each write operation. These constitute the result of some operations such as listing 1. a user's auctions, 2. a user's followed auctions, 3. an auction's bids and 4. an auction's questions, and also for saving the winning bid of each auction. The objects can then be calculated from their IDs from cache. 
+
+The advantage of this approach is when an object is updated, since the lists are of immutable IDs we don't need to invalidate one which contained that object. 
+
+The disadvantage of this is we need to get each of the objects through their IDs from the cache, or database in the worst case. To amortize this (this isn't currently implemented), we could bundle all IDs and get their respective objects in one request.
+
+Additionally we keep track of results of some listing operations which involve ordering. This is possible with Redis' sorted sets and incrementing scores. Those operations are the listing of the closing auctions (ordered by the closest auction's end time), of the recent auctions (ordered in list on insertion), and of popular auctions (ordered by number of bids on them, which are incremented with every added bid). The top 20 of each operation are returned to the application.
+
+The listing of recent and popular auctions in particular need to have cache enabled to work, meaning these queries are not computed in the database.
+
+
+\subsubsection{Session Keeping}
+
+Using Redis cache, we keep the session keys of users after they authenticate in the system. Each session key expires in 30 minutes, after which users need to authenticate again to use the system. Furthermore some subsystems could be implemented over this: the session key could be removed after the user "logs out"; after each operation the expire time is refreshed (idle logout system).
+
 
 \subsection{Azure Functions}
 
@@ -98,17 +121,14 @@ In this section we provide some details on some relevant highlighted aspects of 
 \subsubsection{Blob Replication}
 
 % explain how we implemented Blob Replication with Azure Functions
-For blob replication through different data centers, our approach was to use an Azure Function where, on Blob creation/update in one data center, it would upload that same blob
-to their respective blob storage center. This way, a client uploading a media resource in one data center, that same
-media resource will be saved in all other data centers.
+For blob replication through different data centers, our approach was to use an Azure Function where, on Blob creation/update in one data center, it would upload that same blob to their respective blob storage center. This way, a client uploading a media resource in one data center, that same media resource will be saved in all other data centers.
 
 \subsection{Querying}
 
 % how we used Azure Cognitive Search and for what operations.
-To search for auctions based on the user's text query, we use Azure Cognitive Search where it searchs for an occurence in the documents (this case auctions)
-and returns those documents as a result. 
-The same logic is applied for querying questions from an auction: client provides a text query to which is used to look for an occurence in the auction's questions' descriptions
-and return the gathered documents as a result to the client.
+To search for auctions based on the user's text query, we use Azure Cognitive Search where it searchs for an occurence in the documents (this case auctions) and returns those documents as a result.
+
+The same logic is applied for querying questions from an auction: client provides a text query to which is used to look for an occurence in the auction's questions' descriptions and return the gathered documents as a result to the client.
 
 \section{Evaluation}
 
