@@ -6,6 +6,9 @@ from scc.requests import *
 from scc.responses import *
 from . import register_test_case_factory, test_case
 
+# TODO:
+#   + test with media id
+
 
 @test_case("user/create user")
 def create_user(endpoints: Endpoints):

@@ -41,6 +41,7 @@ public class Azure {
         return switch (namespace) {
             case User -> "user";
             case Auction -> "auction";
+            default -> throw new IllegalArgumentException("Unknown namespace: " + namespace);
         };
     }
 
@@ -48,12 +49,12 @@ public class Azure {
         return switch (namespace) {
             case "user" -> MediaNamespace.User;
             case "auction" -> MediaNamespace.Auction;
-            default -> throw new IllegalArgumentException("Invalid media namespace: " + namespace);
+            default -> throw new IllegalArgumentException("Unknown namespace: " + namespace);
         };
     }
 
     public static String mediaIdToString(MediaId mediaId) {
-        return mediaId.getNamespace().toString() + "/" + mediaId.getId();
+        return mediaNamespaceToString(mediaId.getNamespace()) + "/" + mediaId.getId();
     }
 
     public static MediaId mediaIdFromString(String mediaId) {

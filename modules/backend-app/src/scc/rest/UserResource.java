@@ -135,7 +135,7 @@ public class UserResource {
                 userItem.getId(),
                 userItem.getName(),
                 request.pwd,
-                userItem.getPhotoId().map(MediaId::toString).orElse(null));
+                userItem.getPhotoId().map(ResourceUtils::mediaIdToString).orElse(null));
     }
 
     public static record AuthenticateUserRequest(
