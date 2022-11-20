@@ -221,7 +221,7 @@ public class AzureAuctionService implements AuctionService {
         var bidItem = AzureData.bidDaoToItem(bidDao, userDao);
 
         // Update user's following auctions
-        try(var jedis = jedisPool.getResource()) {
+        try (var jedis = jedisPool.getResource()) {
             Redis.addUserFollowedAuction(jedis, params.userId(), params.auctionId());
         }
 
@@ -268,14 +268,8 @@ public class AzureAuctionService implements AuctionService {
             return Result.err(createResult);
 
         questionDao = createResult.value();
-        var userDaoResult = AzureData.getUser(this.azureConfig, this.jedisPool, this.userContainer, userId);
-        if (userDaoResult.isError())
-            return Result.err(userDaoResult);
-
-        var userDao = userDaoResult.value();
-        var questionItemResult = AzureData.questionDaoToItem(questionDao, userDao);
-
-        return Result.ok(questionItemResult.value());
+        var questionItemResult = AzureData.questionDaoToItem(azureConfig, jedisPool, userContainer, questionDao);
+        return questionItemResult;
     }
 
     @Override
@@ -301,15 +295,14 @@ public class AzureAuctionService implements AuctionService {
         if (createResult.isError())
             return Result.err(createResult);
 
-        var userDaoResult = AzureData.getUser(this.azureConfig, this.jedisPool, this.userContainer, userId);
-        if (userDaoResult.isError())
-            return Result.err(userDaoResult);
-
-        var userDao = userDaoResult.value();
         var questionDao = createResult.value();
         AzureData.setQuestion(azureConfig, jedisPool, questionDao);
 
-        var questionItemResult = AzureData.questionDaoToItem(questionDao, userDao);
+        var questionItemResult = AzureData.questionDaoToItem(
+                azureConfig,
+                jedisPool,
+                userContainer,
+                questionDao);
         if (questionItemResult.isError())
             return Result.err(questionItemResult);
 
@@ -331,7 +324,6 @@ public class AzureAuctionService implements AuctionService {
                 azureConfig,
                 jedisPool,
                 userContainer,
-                questionContainer,
                 questionDaos);
 
         if (questionItemsResult.isError())
@@ -531,7 +523,6 @@ public class AzureAuctionService implements AuctionService {
                 azureConfig,
                 jedisPool,
                 userContainer,
-                questionContainer,
                 list);
         if (questionItemsResult.isError())
             return Result.err(questionItemsResult);

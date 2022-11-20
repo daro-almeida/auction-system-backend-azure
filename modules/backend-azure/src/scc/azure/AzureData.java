@@ -466,46 +466,71 @@ public class AzureData {
 
     public static Result<QuestionItem, ServiceError> questionDaoToItem(
             QuestionDAO questionDao,
-            UserDAO userDao) {
-        String userId = userDao.getId();
-        if (userDao.getStatus() != UserDAO.Status.ACTIVE)
-            userId = AzureLogic.DELETED_USER_ID;
+            UserDAO questionUserDao,
+            UserDAO replyUserDAO) {
+        if (!questionDao.getUserId().equals(questionUserDao.getId()))
+            throw new IllegalStateException("Question user id does not match question user DAO id");
 
+        var questionUserId = userDaoDisplayId(questionUserDao);
         Optional<ReplyItem> reply = Optional.empty();
         if (questionDao.getReply() != null) {
             var replyDao = questionDao.getReply();
-            if (!replyDao.getUserId().equals(questionDao.getUserId()))
-                throw new IllegalStateException("Reply user id does not match question user id");
+            if (!replyDao.getUserId().equals(replyUserDAO.getId()))
+                throw new IllegalStateException("Reply user id does not match reply user DAO id");
 
+            var replyUserId = userDaoDisplayId(replyUserDAO);
             reply = Optional.of(new ReplyItem(
                     questionDao.getId(),
-                    userId,
+                    replyUserId,
                     replyDao.getReply()));
         }
 
         var questionItem = new QuestionItem(
                 questionDao.getId(),
                 questionDao.getAuctionId(),
-                userId,
+                questionUserId,
                 questionDao.getQuestion(),
                 reply);
 
         return Result.ok(questionItem);
     }
 
+    public static Result<QuestionItem, ServiceError> questionDaoToItem(
+            AzureConfig config,
+            JedisPool jedisPool,
+            CosmosContainer userContainer,
+            QuestionDAO questionDao) {
+        var questionUserResult = getUser(config, jedisPool, userContainer, questionDao.getUserId());
+        if (questionUserResult.isError())
+            return Result.err(questionUserResult.error());
+
+        UserDAO replyUserDao = null;
+        if (questionDao.getReply() != null) {
+            var replyUserResult = getUser(config, jedisPool, userContainer, questionDao.getReply().getUserId());
+            if (replyUserResult.isError())
+                return Result.err(replyUserResult.error());
+
+            replyUserDao = replyUserResult.value();
+        }
+
+        var questionUserDao = questionUserResult.value();
+        var questionItemResult = questionDaoToItem(questionDao, questionUserDao, replyUserDao);
+        return questionItemResult;
+    }
+
     public static Result<List<QuestionItem>, ServiceError> questionDaosToItems(
             AzureConfig config,
             JedisPool jedisPool,
             CosmosContainer userContainer,
-            CosmosContainer questionContainer,
             List<QuestionDAO> questionDaos) {
         var questionItems = new ArrayList<QuestionItem>();
         for (var questionDao : questionDaos) {
-            var userResult = getUser(config, jedisPool, userContainer, questionDao.getUserId());
-            if (userResult.isError())
-                return Result.err(userResult.error());
+            var questionItemResult = questionDaoToItem(
+                    config,
+                    jedisPool,
+                    userContainer,
+                    questionDao);
 
-            var questionItemResult = questionDaoToItem(questionDao, userResult.value());
             if (questionItemResult.isError())
                 return Result.err(questionItemResult.error());
 
@@ -574,5 +599,13 @@ public class AzureData {
             questions.add(questionResult.value());
         }
         return questions;
+    }
+
+    private static String userDaoDisplayId(UserDAO userDao) {
+        return userDao.getStatus() == UserDAO.Status.ACTIVE ? userDao.getId() : AzureLogic.DELETED_USER_ID;
+    }
+
+    private static String userDaoDisplayName(UserDAO userDao) {
+        return userDao.getStatus() == UserDAO.Status.ACTIVE ? userDao.getName() : AzureLogic.DELETED_USER_NAME;
     }
 }
