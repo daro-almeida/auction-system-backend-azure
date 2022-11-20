@@ -3,7 +3,8 @@
 % Version 2.20 of 2017/10/04
 %
 \documentclass[runningheads]{llncs}
-%
+%<
+\renewcommand\labelitemi{$\bullet$}
 \usepackage{graphicx}
 % Used for displaying a sample figure. If possible, figure files should
 % be included in EPS format.
@@ -38,25 +39,78 @@ Diogo Fona\inst{57940}}
 %briefly explain the context and goal of the system being developed
 The goal of this work is to understand how services available in cloud computing platforms can be used for creating applications that are scalable fast, and highly available.
 \subsection{Context}
-This work consists in the design and implementation of the backend for an auction system like EBay and companion scripts for testing the system.
+This work consists in the design and implementation of the backend for an auction system like E-Bay and companion scripts for testing the system.
 
 The system will manage auctions. Users can create auctions and bid on open auctions. User can also pose question about the product of an auction. A question can only be answered by the user that created the auction, and there can be only one answer for each question.
 
 \section{Design}
 
-% probably not mention azure here, but in implementation 
+%introduce the design of the system, including the architecture with its main components and how these components interact for implementing the different features of the system
+\subsection{Architecture}
+
+The system mantains the following information:
+\begin{itemize}
+    \item \textbf{Users}: information about users, including the nickname, name, (hash of the) password, photo;
+    \item \textbf{Media}: manages images and videos used in the system;
+    \item \textbf{Auctions}: information about auctions, including for each auction a title, a description, an image, the owner (the user that created the auction), the end time of the auction (i.e. until when bid can be made), the minimum price, the winner bid for auctions that have been closed, the status of the auction (open, closed, deleted).
+    \item \textbf{Bids}: Each bid includes the auction it belongs to, the user that made the bid and the value of the bid.
+    \item \textbf{Questions}: auctions' questions and replies. Each question includes the auction it refers to, the user that posed the question and the text of the message. 
+\end{itemize}
+
+To support the storage, querying, and processing of this information, we use the following cloud software and hardware components. In our work these are provided by Microsoft Azure.
+
+\begin{description}
+    \item[App Service] which clients interact directly with. Afterwards the service communicates with other components to return information to the clients. The software running in this service is implemented by us in Java.
+    \item[Database] that stores the information of the objects described above in a structured way and allows querying them. In this work we use CosmosDB as the database.
+    \item[Blob Storage] that stores binary data, images and videos of users and auctions in this context.
+    \item[Cache] which stores query and computation results, so later requests of the same information doesn't need to be queried or computed again. In this work we use Redis for caching.
+    \item[App Functions] that do additional computations that don't need to be constantly running in the App Service. We use Azure Functions to provide this service.
+    \item[Search Service] which provides search approaches based on AI, like searching for relevant information based on a text query. We use Azure Cognitive Search for the searching service.
+\end{description}
 
 \subsection{Endpoints}
-\subsection{Architecture}
+
+The App Service provides the following REST endpoints for communication with clients. The descriptions encompass a number of endpoints, having the following as the base ones:
+
+\begin{itemize}
+    \item \textbf{Users} (/rest/user): Create, authenticate, get, delete and update a user. List auctions a user has created and has bidded for;
+    \item \textbf{Media} (/rest/media): Upload and download media;
+    \item \textbf{Auctions} (/rest/auction): Create, get and update an auction. List auctions that were recently created, are closing soon, and popular ones. Query auctions.
+    \item \textbf{Bids} (/rest/auction/\{id\}/bid): Bid for an auction or list its bids;
+    \item \textbf{Questions} (/rest/auction/\{id\}/question): Post a question on an auction, reply to a question and list an auction's questions. Query questions from an auction.
+
+\end{itemize}
+
 \section{Implementation}
 
-% briefly introduce any implementation detail that you think it is
-% worth being highlighted;
+% briefly introduce any implementation detail that you think it is worth being highlighted;
+
+In this section we provide some details on some relevant highlighted aspects of the implementation.
+
+\subsection{Caching}
+
+% which information we cached, and how (what structures we used, for how long we cached, what operations it supported, ...)
+
+\subsection{Azure Functions}
+
+% what azure functions we used and what utility it provided and what operations it supported
+
+\subsubsection{Blob Replication}
+
+% explain how we implemented Blob Replication with Azure Functions
+
+\subsection{Querying}
+
+% how we used Azure Cognitive Search and for what operations.
 
 \section{Evaluation}
+
+In this section we evaluate our work, and demonstrate why the use of technics such as caching and replication are relevant.
 
 % evaluation results (and discussion) using artillery.
 
 \section{Conclusions}
+
+% conclusions on implementation and evaluation.
 
 \end{document}
