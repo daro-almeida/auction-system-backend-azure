@@ -11,7 +11,6 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <authors>57833-57940-58369</authors>
   </properties>
-
   <dependencies>
     <dependency>
       <groupId>scc</groupId>
@@ -29,6 +28,11 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+      <version>4.2.3</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-slf4j-impl</artifactId>
       <version>2.11.0</version>
@@ -44,8 +48,6 @@
       <version>2.19.0</version>
     </dependency>
   </dependencies>
-
-
   <build>
     <sourceDirectory>src</sourceDirectory>
     <plugins>
@@ -70,7 +72,7 @@
         <version>2.6.1</version>
         <configuration>
           <schemaVersion>V2</schemaVersion>
-          <pricingTier>F1</pricingTier>
+          <pricingTier>B1</pricingTier>
           <region>westeurope</region>
           <runtime>
             <os>linux</os>

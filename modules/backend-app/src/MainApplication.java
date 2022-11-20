@@ -32,6 +32,8 @@ public class MainApplication extends Application {
                 singletons.add(new UserResource(service, service, service));
                 singletons.add(new AuctionResource(service));
                 break;
+            default:
+                throw new RuntimeException("Unknown backend kind: " + backendKind);
         }
     }
 
