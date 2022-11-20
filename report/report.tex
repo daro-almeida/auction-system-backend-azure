@@ -1,70 +1,62 @@
-\documentclass{article}
-\usepackage[utf8]{inputenc}
-
-\title{Cloud Computing Systems}
-\author{Bruno Cabrita 57833, Diogo Fona, Diogo Almeida}
-\date{November 2022}
+% This is samplepaper.tex, a sample chapter demonstrating the
+% LLNCS macro package for Springer Computer Science proceedings;
+% Version 2.20 of 2017/10/04
+%
+\documentclass[runningheads]{llncs}
+%
+\usepackage{graphicx}
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following line
+% to display URLs in blue roman font according to Springer's eBook style:
+% \renewcommand\UrlFont{\color{blue}\rmfamily}
 
 \begin{document}
-
-\maketitle
-
-% briefly explain the context and goal of the system being developed
+%
+\title{Cloud Computing Systems Work Report}
+%
+%\titlerunning{Abbreviated paper title}
+% If the paper title is too long for the running head, you can set
+% an abbreviated paper title here
+%
+\author{Bruno Cabrita\inst{57833} \and
+Diogo Almeida\inst{58369} \and
+Diogo Fona\inst{57940}}
+%
+\authorrunning{B. Cabrita, D. Almeida, D. Fona}
+% First names are abbreviated in the running head.
+% If there are more than two authors, 'et al.' is used.
+%
+\institute{NOVA School of Science and Technology - MSc in Computer Engineering 
+\email{\{brm.cabrita,daro.almeida,d.fona\}@campus.fct.unl.pt}}
+%
+\maketitle % typeset the header of the contribution
+%
+%
 \section{Introduction}
-% copy paste do pdf
-The goal of this project is to understand how services available in cloud computing
-platforms can be used for creating applications that are scalable, fast, and highly
-available
+%briefly explain the context and goal of the system being developed
+The goal of this work is to understand how services available in cloud computing platforms can be used for creating applications that are scalable fast, and highly available.
+\subsection{Context}
+This work consists in the design and implementation of the backend for an auction system like EBay and companion scripts for testing the system.
 
-% also copy paste do pdf
-The project will consist in the design and implementation of the backend for an auction
-system like EBay and companion testing scripts.
+The system will manage auctions. Users can create auctions and bid on open auctions. User can also pose question about the product of an auction. A question can only be answered by the user that created the auction, and there can be only one answer for each question.
 
-% also also copy paste do pdf
-The system will manage auctions. Users can create auctions and bid on open auctions.
-User can also pose question about the product of an auction. A question can only be
-answered by the user that created the auction, and there can be only one answer for each
-question.
-
-% introduce the design of the system, including the architecture with its
-% main components and how these components interact for implementing the
-% different features of the system;
 \section{Design}
-For implementing its features, our systems must support the following information:
-\begin{itemize}
-    \item \textbf{Users:} information about users such as nickname, name, (hash of the) password and photo;
-    \item \textbf{Media:} manages images and videos saved in the system
-    \item \textbf{Auctions:} information about auctions, including for each auction a title, a
-description, an image, the owner (the user that created the auction), the end time
-of the auction (i.e. until when bid can be made), the minimum price, the winner
-bid for auctions that have been closed, the status of the auction (open, closed,
-deleted).
-    \item \textbf{Bid:} Each bid must include the auction it belongs to, the user that made the bid
-and the value of the bid.
-    \item \textbf{Questions:} auctions’ questions and replies. Each question must include the
-auction it refers to, the user that posed the question and the text of the message.
-\end{itemize}
 
-Our system currently supports the following endpoints:
-\begin{itemize}
-    \item \textbf{Users}(/rest/users): create user, update user, delete user, get user, authenticate user, get user's auctions and get user's following auctions
-    \item \textbf{Media}(/rest/media): upload and download media
-    \item \textbf{Auction}(/rest/auction): create auction, update auction, list auctions about to close, list recent auctions, list popular auctions, list auctions with given query
-    \item \textbf{Bid}(/rest/auction/\{id\}/bid): create bid, list bids
-    \item \textbf{Questions}(/rest/auction/\{id\}/question): create question and reply, list questions, list questions with given query
-\end{itemize}
+% probably not mention azure here, but in implementation 
+
+\subsection{Endpoints}
+\subsection{Architecture}
+\section{Implementation}
 
 % briefly introduce any implementation detail that you think it is
 % worth being highlighted;
-\section{Implementation}
+
+\section{Evaluation}
 
 % evaluation results (and discussion) using artillery.
-\section{Evaluation}
-\subsection{Application deployed in West Europe, with caching}
-\subsection{Application deployed in West Europe, without caching}
-\subsection{Application deployed in other region other than Europe, with(out) caching}
-% Optional evaluation
-\subsection{Application deployed in multiple data centers}
+
 \section{Conclusions}
 
 \end{document}

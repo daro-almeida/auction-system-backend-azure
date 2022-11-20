@@ -47,3 +47,10 @@ __pycache__/
 # macos cringe
 .DS_Store
 /azure.env
+
+#report
+report/*.aux
+report/*.fdb_latexmk
+report/*.fls
+report/*.log
+report/*.synctex.gz
