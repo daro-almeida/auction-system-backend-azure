@@ -166,19 +166,24 @@ The evaluation was done running workload tests with Artillery from a single clie
     \caption{Average latency in milliseconds of read and write operations to different replicas, in West Europe and Central US regions, with cache enabled or disabled and using or not using geo-replication.} \label{fig:latencies}
 \end{figure}
 
-In Fig.~\ref{fig:latencies} the results of the workload tests are shown. We note that some operations require caching to function as described before (e.g. mantaining user session), and so even in the configuration with cache disabled, those operations are cached while the remaining are not.
+In Fig.~\ref{fig:latencies} the results of the workload tests are shown. We note that some operations require caching to function as described before (e.g., mantaining user session), and so even in the configuration with cache disabled, those operations are cached while the remaining are not.
 
-\textbf{Caveat}: The read latencies are much greater than the write latencies because of implementations details regarding how we treat deleted users, e.g. when listing an auction's questions the app service checks sequentially each user in each question. This can be optimized in some ways, e.g getting the user information in bulk. Anyways, the normal values should be a little lower than the write latency values for each column.
+\textbf{Caveat}: The read latencies are much greater than the write latencies because of implementations details regarding how we treat deleted users, e.g., when listing an auction's questions the app service checks sequentially each user in each question. This can be optimized with some approaches, e.g., getting the user information in bulk, denormalizing the data.
 
-Nonetheless, we can observe that having cache enabled greatly reduces the client perceived latency, in read latency by a factor of 5 and in write of 2. This is because the app service eventually gets most pre-computed information that operations need from cache without the need of querying the database, as is the main goal of caching.
+Nonetheless, we can observe that having cache enabled greatly reduces the client perceived latency, in read latency by a factor of 5 and in write of 2 in this case. This is because the app service eventually gets most pre-computed information that operations need from cache without the need of querying the database, as is the main goal of caching.
 
 It can also be noticed that having geo-redundancy does not affect the perceived latency. This is because all operations have session consistency level, except for the two mentioned before, and so the West Europe replica doesn't need to make sure the Central US replica has received its replicated writes before returning to the client. 
 
-\section{Conclusions}
+\section{Conclusion}
+
+In this work, we presented a backend system for an auction based service like E-Bay operating on cloud infrastruture, taking advantage of cloud  to support its functionality. 
+
+Our system in particular 
+
+Through the evaluation, we conclude that using our system with cache is worthwhile if we want to reduce significantly client perceived latency of operations, and geo-redundancy is also worthwhile if we want to because, causing little to none effect on operation latency. 
 
 
 % conclusions on implementation and evaluation.
 % (why some of our implementation details are cool, why caching is cool, why geo-redundancy is cool)
-% why using more clients might change results and in what ways
 
 \end{document}
