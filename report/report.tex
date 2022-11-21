@@ -47,7 +47,7 @@ The system will manage auctions. Users can create auctions and bid on open aucti
 
 \section{Design}
 
-%introduce the design of the system, including the architecture with its main components and how these components interact for implementing the different features of the system
+In this section we briefly discuss the system's design, explaining what information it holds, what components it uses, and endpoints for client communication.
 
 \subsection{Architecture}
 
@@ -68,7 +68,9 @@ To support the storage, querying, and processing of this information, we use the
     \item[Blob Storage] that stores binary data, images and videos of users and auctions in this context.
     \item[Cache] which stores query and computation results, so later requests of the same information doesn't need to be queried or computed again. In this work we use Redis for caching.
     \item[App Functions] that do additional computations that don't need to be constantly running in the App Service. We use Azure Functions to provide this service.
+    \item[Message Queues] on which the app service sends events to, as the publisher, and some app functions are subscribed to, to support some functionality. These are implemented with Azure's Service Bus Namespace.
     \item[Search Service] which provides search approaches based on AI, like searching for relevant information based on a text query. We use Azure Cognitive Search for the searching service.
+    
 \end{description}
 
 \subsection{Endpoints}
@@ -86,13 +88,17 @@ The App Service provides the following REST endpoints for communication with cli
 
 \section{Implementation}
 
-% briefly introduce any implementation detail that you think it is worth being highlighted;
+In this section we provide some details on some relevant aspects of the implementation in regards to the topic of cloud computing systems.
 
-In this section we provide some details on some relevant highlighted aspects of the implementation.
+\subsection{Database Operations}
 
-\subsection{Database}
+The "delete" operations, deleteUser and closeAuction, are set to strong consistency level, as we want to assure that unwanted operations are not requested on these objects, such as a deleted user being read or a closed auction gettings bids.
 
-% talk about the special treatment of some operations (how we do DELETED USER state and consistency of operation (STRONG for deleteUser and closeAuction and SESSION for every other one)). 
+The remainder of operations are set to session consistency level to assure that a client reads his writes and mantain good availability.
+
+To handle concurrent bids for an auction, we implemented a conditional update where an auction's winning bid is only updated when the previously read one has the same id and the auction is open. If this fails, it retries the operation until it completes or until the auction closes.
+
+Important to note that in our implementation a user isn't truly deleted but "soft deleted", in the same way auctions are updated to "closed". This way, all references to the id of a deleted user are shown as "deleted".
 
 \subsection{Caching}
 
@@ -104,7 +110,7 @@ The advantage of this approach is when an object is updated, since the lists are
 
 The disadvantage of this is we need to get each of the objects through their IDs from the cache, or database in the worst case. To amortize this (this isn't currently implemented), we could bundle all IDs and get their respective objects in one request.
 
-Additionally we keep track of results of some listing operations which involve ordering. This is possible with Redis' sorted sets and incrementing scores. Those operations are the listing of the closing auctions (ordered by the closest auction's end time), of the recent auctions (ordered in list on insertion), and of popular auctions (ordered by number of bids on them, which are incremented with every added bid). The top 20 of each operation are returned to the application.
+Additionally we keep track of results of some listing operations which involve ordering. This is possible with Redis's sorted sets and incrementing scores. Those operations are the listing of the closing auctions (ordered by the closest auction's end time), of the recent auctions (ordered in list on insertion), and of popular auctions (ordered by number of bids on them, which are incremented with every added bid). The top 20 of each operation are returned to the application.
 
 The listing of recent and popular auctions in particular need to have cache enabled to work, meaning these queries are not computed in the database.
 
@@ -113,53 +119,66 @@ The listing of recent and popular auctions in particular need to have cache enab
 
 Using Redis cache, we keep the session keys of users after they authenticate in the system. Each session key expires in 30 minutes, after which users need to authenticate again to use the system. Furthermore some subsystems could be implemented over this: the session key could be removed after the user "logs out"; after each operation the expire time is refreshed (idle logout system).
 
-
 \subsection{Azure Functions}
 
-% what azure functions we used and what utility it provided and what operations it supported
+We implemented some Azure functions that perform some periodic computations as described: 
 
 \subsubsection{Auctions about to Close}
 
-Periodically every 2 minutes, makes a query to the database looking for the auctions who are close to be closed and fills the Redis cache with that information
-The application, if it has caching enabled, goes to the Redis fetch these auctions when there's a request on the endpoint /rest/auctions/any/soon-to-close
-These functions are triggered on Cosmos for getting the list and a timer trigger on the updating the list
+Every 2 minutes, queries the database looking for the auctions that are about to close and fills the Redis cache with that information. The application then requests Redis these auctions when there's a client request as mentioned before.
 
-\subsubsection{Close Auctions}
+\subsubsection{Closed Auctions}
 
-It's a subscriber of message queues of type "close-auction" and when it receives a message with given auction identifier (this message only comes on the moment that an auction should close), puts the auction state to closed
+When an auction is created, the application sends an event to a message queue scheduled to deliver on the time the auction is closing. This function is subscribed to that message queue and when it receives the message corresponding to an auction (only on the moment that the auction should close due to the schedule) it requests the databe to set the auction's state to closed.
 
 \subsubsection{Popular Auctions}
 
-This functions does two things.
-1. Whenever a bid is inserted to the database, it increments the amount of bids made to that auction
-2. Periodcally takes off X auctions with highest amount of bids and resets all bid amounts from the auctions. These X auctions are then put into cache as being the most popular auctions
-These functions are triggered on Cosmos for getting the list and a timer trigger on updating the list
+This functionality is divided in two functions with two separate behaviours:
+\begin{enumerate}
+    \item Whenever a bid is inserted in the database, it increments the amount of bids made to that auction in Redis;
+    \item Every 2 minutes, removes from cache the 20 auctions with the highest amount of bids. This meaning the notion of popularity in our system is temporary.
+\end{enumerate}
 
 \subsubsection{Recent Auctions}
 
-This function is triggered whenever one or more auctions are created in the database.
-These auctions are put into cache and the size of the list is limited. The clients only need to call the redis for the list of most recent auctions
+This function is triggered whenever one or more auctions are created in the database. These auctions are inserted in cache where the size of the list is limited to 20. The application afterwards requests Redis for this list of most recent auctions.
+
+\subsubsection{Delete User}
+
+When a client requests to delete a user the application sends an event to a message queue. This function is subscribed to that message queue and when it receives the messages corresponding to a user it queries the database to delete its object. This way, the operation is assynchronous in the point of view of the user.
 
 \subsubsection{Blob Replication}
 
-% explain how we implemented Blob Replication with Azure Functions
-For blob replication through different data centers, our approach was to use an Azure Function where, on Blob creation/update in one data center, it would upload that same blob to their respective blob storage center. This way, a client uploading a media resource in one data center, that same media resource will be saved in all other data centers.
+To implement blob replication through data centers in different regions, which is not a feature provided by Azure, we use a function that triggers when media is uploaded to a blob in one data center and uploads it to the other blobs in other data centers (in our case one other). Note that in this way the replication is assynchronous.
 
-\subsection{Querying}
+\subsection{Advanced Search}
 
-% how we used Azure Cognitive Search and for what operations.
-To search for auctions based on the user's text query, we use Azure Cognitive Search where it searchs for an occurence in the documents (this case auctions) and returns those documents as a result.
-
-The same logic is applied for querying questions from an auction: client provides a text query to which is used to look for an occurence in the auction's questions' descriptions and return the gathered documents as a result to the client.
+Using Azure Cognitive Search we implement operations that do queries based on text, where relevant results, not necessarily exact text matches, are returned. The operations in question retrieve auctions, and questions of an auction, based on a text search.
 
 \section{Evaluation}
 
-In this section we evaluate our work, and demonstrate why the use of technics such as caching and replication are relevant.
+In this section we evaluate our work, and demonstrate why the use of technics such as caching and geo-replication are opportune.
 
-% evaluation results (and discussion) using artillery.
+The evaluation was done running workload tests with Artillery from a single client located in Lisbon, Portugal. For tests with geo-redundancy, we execute two clients, in the same location, each communicating with a different replica (West Europe or Central US).
+
+\begin{figure}
+    \includegraphics[width=\textwidth]{latencies.pdf}
+    \caption{Average latency in milliseconds of read and write operations to different replicas, in West Europe and Central US regions, with cache enabled or disabled and using or not using geo-replication.} \label{fig:latencies}
+\end{figure}
+
+In Fig.~\ref{fig:latencies} the results of the workload tests are shown. We note that some operations require caching to function as described before (e.g. mantaining user session), and so even in the configuration with cache disabled, those operations are cached while the remaining are not.
+
+\textbf{Caveat}: The read latencies are much greater than the write latencies because of implementations details regarding how we treat deleted users, e.g. when listing an auction's questions the app service checks sequentially each user in each question. This can be optimized in some ways, e.g getting the user information in bulk. Anyways, the normal values should be a little lower than the write latency values for each column.
+
+Nonetheless, we can observe that having cache enabled greatly reduces the client perceived latency, in read latency by a factor of 5 and in write of 2. This is because the app service eventually gets most pre-computed information that operations need from cache without the need of querying the database, as is the main goal of caching.
+
+It can also be noticed that having geo-redundancy does not affect the perceived latency. This is because all operations have session consistency level, except for the two mentioned before, and so the West Europe replica doesn't need to make sure the Central US replica has received its replicated writes before returning to the client. 
 
 \section{Conclusions}
 
+
 % conclusions on implementation and evaluation.
+% (why some of our implementation details are cool, why caching is cool, why geo-redundancy is cool)
+% why using more clients might change results and in what ways
 
 \end{document}
