@@ -42,7 +42,7 @@ The goal of this work is to understand how services available in cloud computing
 \subsection{Context}
 This work consists in the design and implementation of the backend for an auction system like E-Bay and companion scripts for testing the system.
 
-The system will manage auctions. Users can create auctions and bid on open auctions. User can also pose question about the product of an auction. A question can only be answered by the user that created the auction, and there can be only one answer for each question.
+The system will manage auctions. Users can create auctions and bid on open auctions. A user can also pose questions about the product of an auction. A question can only be answered by the user that created the auction, and there can be only one answer for each question.
 
 
 \section{Design}
@@ -67,11 +67,12 @@ To support the storage, querying, and processing of this information, we use the
     \item[Database] that stores the information of the objects described above in a structured way and allows querying them. In this work we use CosmosDB as the database.
     \item[Blob Storage] that stores binary data, images and videos of users and auctions in this context.
     \item[Cache] which stores query and computation results, so later requests of the same information doesn't need to be queried or computed again. In this work we use Redis for caching.
-    \item[App Functions] that do additional computations that don't need to be constantly running in the App Service. We use Azure Functions to provide this service.
+    \item[Serverless Functions] that do additional computations that don't need to be constantly running in the App Service. We use Azure Functions to provide this service.
     \item[Message Queues] on which the app service sends events to, as the publisher, and some app functions are subscribed to, to support some functionality. These are implemented with Azure's Service Bus Namespace.
     \item[Search Service] which provides search approaches based on AI, like searching for relevant information based on a text query. We use Azure Cognitive Search for the searching service.
-    
 \end{description}
+
+Some of these components (App Service, Database, Blob Storage and Cache) can have multiple replicas/instances.
 
 \subsection{Endpoints}
 
@@ -104,7 +105,7 @@ Important to note that in our implementation a user isn't truly deleted but "sof
 
 We store in Redis cache all objects (User, Auction, Bid and Question DAOs) until they are invalidated by either timeout, after 1 hour (or another configurable value), or are updated, in which they must be replaced in the cache, or deleted. 
 
-Lists of IDs of these objects are formed in cache with each write operation. These constitute the result of some operations such as listing 1. a user's auctions, 2. a user's followed auctions, 3. an auction's bids and 4. an auction's questions, and also for saving the winning bid of each auction. The objects can then be calculated from their IDs from cache. 
+Lists of IDs of these objects are formed in cache with each write operation. These constitute the result of some operations such as listing 1. a user's auctions, 2. a user's followed auctions, 3. an auction's bids and 4. an auction's questions, and also for saving the winning bid of each auction. The objects can then be retrieved using their IDs from cache. 
 
 The advantage of this approach is when an object is updated, since the lists are of immutable IDs we don't need to invalidate one which contained that object. 
 
@@ -119,13 +120,13 @@ The listing of recent and popular auctions in particular need to have cache enab
 
 Using Redis cache, we keep the session keys of users after they authenticate in the system. Each session key expires in 30 minutes, after which users need to authenticate again to use the system. Furthermore some subsystems could be implemented over this: the session key could be removed after the user "logs out"; after each operation the expire time is refreshed (idle logout system).
 
-\subsection{Azure Functions}
+\subsection{Serverless Functions}
 
-We implemented some Azure functions that perform some periodic computations as described: 
+We implemented some serverless functionality, using Azure Functions,  that perform some periodic computations as described: 
 
 \subsubsection{Auctions about to Close}
 
-Every 2 minutes, queries the database looking for the auctions that are about to close and fills the Redis cache with that information. The application then requests Redis these auctions when there's a client request as mentioned before.
+Every 2 minutes, queries the database looking for the auctions that are about to close and fills the Redis cache with that information. The application then requests Redis for these auctions when there's a client request as mentioned before.
 
 \subsubsection{Closed Auctions}
 
@@ -145,11 +146,11 @@ This function is triggered whenever one or more auctions are created in the data
 
 \subsubsection{Delete User}
 
-When a client requests to delete a user the application sends an event to a message queue. This function is subscribed to that message queue and when it receives the messages corresponding to a user it queries the database to delete its object. This way, the operation is assynchronous in the point of view of the user.
+When a client requests to delete a user the application sends an event to a message queue. This function is subscribed to that message queue and when it receives the messages corresponding to a user it queries the database to delete its object. This way, the operation is asynchronous in the point of view of the user.
 
 \subsubsection{Blob Replication}
 
-To implement blob replication through data centers in different regions, which is not a feature provided by Azure, we use a function that triggers when media is uploaded to a blob in one data center and uploads it to the other blobs in other data centers (in our case one other). Note that in this way the replication is assynchronous.
+To implement blob replication through data centers in different regions, which is not a feature provided by Azure in our Student Plan, we use a function that triggers when media is uploaded to a blob in one data center and uploads it to the other blobs in other data centers (in our case one other). Note that in this way the replication is asynchronous.
 
 \subsection{Advanced Search}
 
@@ -159,7 +160,7 @@ Using Azure Cognitive Search we implement operations that do queries based on te
 
 In this section we evaluate our work, and demonstrate why the use of technics such as caching and geo-replication are opportune.
 
-The evaluation was done running workload tests with Artillery from a single client located in Lisbon, Portugal. For tests with geo-redundancy, we execute two clients, in the same location, each communicating with a different replica (West Europe or Central US).
+The evaluation was done running workload tests with Artillery from a single client located in Lisbon, Portugal. For tests with geo-replication, we execute two clients, in the same location, each communicating with a different replica (West Europe or Central US).
 
 \begin{figure}
     \includegraphics[width=\textwidth]{latencies.pdf}
@@ -172,18 +173,14 @@ In Fig.~\ref{fig:latencies} the results of the workload tests are shown. We note
 
 Nonetheless, we can observe that having cache enabled greatly reduces the client perceived latency, in read latency by a factor of 5 and in write of 2 in this case. This is because the app service eventually gets most pre-computed information that operations need from cache without the need of querying the database, as is the main goal of caching.
 
-It can also be noticed that having geo-redundancy does not affect the perceived latency. This is because all operations have session consistency level, except for the two mentioned before, and so the West Europe replica doesn't need to make sure the Central US replica has received its replicated writes before returning to the client. 
+It can also be noticed that having geo-replication does not affect the perceived latency. This is because all operations have session consistency level, except for the two mentioned before, and so the West Europe replica doesn't need to make sure the Central US replica has received its replicated writes before returning to the client. 
 
 \section{Conclusion}
 
-In this work, we presented a backend system for an auction based service like E-Bay operating on cloud infrastruture, taking advantage of cloud  to support its functionality. 
+In this work, we presented a backend system for an auction based service like E-Bay operating on cloud infrastruture, taking advantage of cloud computing technics to support its functionality. 
 
-Our system in particular 
+Our system in particular is able to handle concurrent bids using conditional updates, provides caching of previously computed data to speed up operations, uses multiple serverless functions to support some functionality like closing of auctions, and provides advanced search with text based queries.
 
-Through the evaluation, we conclude that using our system with cache is worthwhile if we want to reduce significantly client perceived latency of operations, and geo-redundancy is also worthwhile if we want to because, causing little to none effect on operation latency. 
-
-
-% conclusions on implementation and evaluation.
-% (why some of our implementation details are cool, why caching is cool, why geo-redundancy is cool)
+Through the evaluation, we can conclude that using our system with cache is worthwhile to reduce significantly the latency perceived by clients, and geo-replication is also useful to improve fault tolerance, while causing little to no effect on operation latency. 
 
 \end{document}
