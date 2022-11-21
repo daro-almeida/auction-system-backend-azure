@@ -32,8 +32,14 @@ public class AzureMonolithService implements UserService, MediaService, AuctionS
     private final AuctionService auctionService;
 
     public AzureMonolithService(AzureConfig config) {
+        logger.info("-------------------------- AzureMonolithService --------------------------");
+        logger.info(config.toString());
+
         var jedisPool = Azure.createJedisPool(config.getRedisConfig());
         var database = Azure.createCosmosDatabase(config.getCosmosDbConfig());
+        logger.info(database.read().getDiagnostics().toString());
+        logger.info(database.read().getProperties().toString());
+        logger.info(database.read().getResponseHeaders().toString());
 
         this.userService = new AzureUserService(config, jedisPool, database);
         this.mediaService = new AzureMediaService(config);

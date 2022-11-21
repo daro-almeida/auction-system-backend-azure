@@ -127,8 +127,10 @@ public class UserResource {
                 photoId);
 
         var result = this.service.createUser(createUserParams);
-        if (result.isError())
+        if (result.isError()) {
+            logger.warning("POST /user/ " + request + " -> " + result);
             ResourceUtils.throwError(result.error(), result.errorMessage());
+        }
         var userItem = result.value();
         logger.fine("POST /user/ " + request + " -> " + userItem);
 
