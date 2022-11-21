@@ -6,6 +6,7 @@
 /package.json
 
 # Output of reports
+/reports/
 /*.json
 /*.html
 

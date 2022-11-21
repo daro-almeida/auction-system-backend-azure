@@ -7,6 +7,7 @@ from scc.responses import *
 from . import register_test_case_factory, test_case
 
 # TODO:
+#   + test get user
 #   + test with media id
 
 

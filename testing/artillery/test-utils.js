@@ -262,6 +262,7 @@ function decideNextAction(context, events, done) {
 		context.vars.nextAction = 5; // do a bid
 	else
 		context.vars.nextAction = 6; // post a message
+
 	if (context.vars.nextAction == 2) {
 		if (Math.random() < 0.5)
 			context.vars.user2 = context.vars.user

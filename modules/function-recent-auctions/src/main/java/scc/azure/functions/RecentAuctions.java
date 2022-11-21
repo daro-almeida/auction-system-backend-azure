@@ -57,6 +57,9 @@ public class RecentAuctions {
                                 cosmosConfig.auctionContainer,
                                 cosmosConfig.userContainer, cosmosConfig.questionContainer };
                 var jedis = Azure.createJedis(redisConfig);
+                var userContainer = cosmosDb.getContainer(cosmosConfig.userContainer);
+                var user = Cosmos.getUser(userContainer, "ureed");
+                System.out.println("User: " + user);
 
                 // var bidOpt = Cosmos.getBid(cosmosDb.getContainer("bids"),
                 // "5dc52551-a58a-4f7d-aed1-b79238941c2c");
@@ -68,9 +71,9 @@ public class RecentAuctions {
                 // }
 
                 // Recreate all containers
-                for (var name : containers) {
-                        cosmosDb.getContainer(name).delete();
-                        cosmosDb.createContainer(new CosmosContainerProperties(name, "/id"));
-                }
+                // for (var name : containers) {
+                // cosmosDb.getContainer(name).delete();
+                // //cosmosDb.createContainer(new CosmosContainerProperties(name, "/id"));
+                // }
         }
 }

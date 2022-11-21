@@ -96,10 +96,15 @@ def bid_on_closed_auction(endpoints: Endpoints):
     response = client.raw.create_bid(
         CreateBidRequest(auctionId=auction.id, user=user_id, value=200)
     )
-    auction = client.get_auction(auction.id)
-    assert auction.bid is not None
-    assert auction.bid.value == 100
-    assert auction.bid.id == bid1.id
-    assert auction.status == AuctionStatus.CLOSED
+    response_auction = client.raw.get_auction(auction.id)
+    with recon.validate(response_auction) as validator:
+        validator.status_code(200)
+        auction = AuctionDTO.parse_obj(response_auction.json())
+        validator.not_equals(auction.bid, None, "auction id")
+        assert auction.bid is not None
+        validator.equals(auction.bid.value, bid1.value, "bid value")
+        validator.equals(auction.bid.user, bid1.user, "bid user")
+        validator.equals(auction.bid.auctionId, bid1.auctionId, "bid auction")
+        validator.equals(auction.status, AuctionStatus.CLOSED, "auction status")
     with recon.validate(response) as validator:
         validator.status_code_failure()

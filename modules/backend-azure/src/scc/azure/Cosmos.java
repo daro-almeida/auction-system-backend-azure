@@ -373,7 +373,8 @@ public class Cosmos {
 						UserDAO.class)
 				.stream()
 				.findFirst();
-		if (user.isPresent()) return Result.ok(user.get());
+		if (user.isPresent())
+			return Result.ok(user.get());
 		return Result.err(ServiceError.USER_NOT_FOUND);
 	}
 
@@ -402,7 +403,7 @@ public class Cosmos {
 			return Result.ok(response.getItem());
 		} catch (CosmosException e) {
 			e.printStackTrace();
-			return Result.err(ServiceError.USER_ALREADY_EXISTS);
+			return Result.err(ServiceError.USER_ALREADY_EXISTS, e.toString());
 		}
 	}
 

@@ -6,6 +6,9 @@ from scc.requests import *
 from scc.responses import *
 from . import test_case
 
+# TODO:
+# - reply with user that created auction, should work
+# - reply with user that did not create auction, should fail
 
 @test_case("question/create")
 def create_question(endpoints: Endpoints):
@@ -23,6 +26,7 @@ def create_question(endpoints: Endpoints):
         validator.equals(question.reply, None, "question reply")
 
 
+# TODO: this should actually pass
 @test_case("question/create with invalid user")
 def create_question_with_invalid_user(endpoints: Endpoints):
     client1 = Client(endpoints)

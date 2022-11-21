@@ -71,7 +71,8 @@ public class Azure {
         var cosmosClient = new CosmosClientBuilder()
                 .endpoint(config.dbUrl)
                 .key(config.dbKey)
-                .directMode()
+                // .directMode()
+                .gatewayMode()
                 .connectionSharingAcrossClientsEnabled(true)
                 .contentResponseOnWriteEnabled(true)
                 .buildClient();

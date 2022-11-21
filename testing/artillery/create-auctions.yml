@@ -1,13 +1,15 @@
 config:
-  target: "https://scc-backend-d464.azurewebsites.net/rest"
+  #target: "https://scc-backend-d464.azurewebsites.net/rest"
+  target: "https://scc-backend-d464-centralus.azurewebsites.net/rest"
+  #target: "http://localhost:8080/rest"
   http:
-    timeout: 10
+    timeout: 120
   plugins:
     metrics-by-endpoint:
       useOnlyRequestNames: true # new mode to aggregate metrics in artillery
   processor: "./test-utils.js"
   variables:
-    numAuctions: 300
+    numAuctions: 100
     maxBids: 10 # maximum number of bids to generate for each new auction
     maxQuestions: 2 # maximum number of questions to generate for each new auction
   phases:

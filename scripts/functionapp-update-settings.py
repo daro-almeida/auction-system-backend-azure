@@ -19,7 +19,7 @@ def main():
         if len(args.function_names) == 0
         else args.function_names
     )
-    for appname in functions + ["scc-backend-d464"]:
+    for appname in functions + ["scc-backend-d464", "scc-backend-d464-centralus"]:
         subprocess.run(
             [
                 "az",

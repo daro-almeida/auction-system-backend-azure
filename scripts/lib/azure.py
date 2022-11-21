@@ -14,7 +14,7 @@ def list_function_names() -> list[str]:
 
 
 def function_path(function_name: str) -> str:
-    return f"modules/{function_name(function_name)}"
+    return f"modules/{function_directory_name(function_name)}"
 
 
 def function_artifact_id(name: str) -> str:

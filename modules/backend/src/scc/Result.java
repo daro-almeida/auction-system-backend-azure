@@ -77,7 +77,7 @@ public interface Result<T, E> {
         return new OkResult<>(null);
     }
 
-    static <T, E, S> ErrorResult<T, E> err(Result<S,  E> result) {
+    static <T, E, S> ErrorResult<T, E> err(Result<S, E> result) {
         return err(result.error(), result.errorMessage());
     }
 
@@ -194,7 +194,7 @@ class ErrorResult<T, E> implements Result<T, E> {
     }
 
     public String toString() {
-        return "(" + error + ")";
+        return "(" + error + ": " + message + ")";
     }
 
     @Override
