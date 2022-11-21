@@ -54,7 +54,8 @@ public class AuctionResource {
             @JsonProperty(required = true) String owner,
             @JsonProperty(required = true) String minimumPrice,
             @JsonProperty(required = true) String endTime,
-            String imageId) {
+            String imageId,
+            String status) { 
     }
 
     /**
