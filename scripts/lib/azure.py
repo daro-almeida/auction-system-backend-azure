@@ -2,7 +2,7 @@ import re
 import os
 
 REGION = "westeurope"
-RESOURCE_GROUP = "scc2223-rg-westeurope-d464"
+RESOURCE_GROUP = "scc-backend-d464-rg"
 
 
 def list_function_names() -> list[str]:
