@@ -10,6 +10,8 @@ import scc.rest.MediaResource;
 import scc.rest.UserResource;
 
 public class MainApplication extends Application {
+	private static final Logger logger = Logger.getLogger(MainApplication.class.getName());
+
 	private final Set<Object> singletons = new HashSet<Object>();
 	private final Set<Class<?>> resources = new HashSet<Class<?>>();
 
