@@ -14,12 +14,6 @@
     <module>modules/backend</module>
     <module>modules/backend-app</module>
     <module>modules/backend-azure</module>
-    <module>modules/function-popular-auctions</module>
-    <module>modules/function-recent-auctions</module>
-    <module>modules/function-close-auctions</module>
-    <module>modules/function-auctions-about-to-close</module>
-    <module>modules/function-replication-blobs</module>
-    <module>modules/function-delete-user</module>
   </modules>
 
   <dependencies>
