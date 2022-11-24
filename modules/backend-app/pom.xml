@@ -18,13 +18,8 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jsr310</artifactId>
-      <version>2.14.0</version>
-    </dependency>
-    <dependency>
       <groupId>scc</groupId>
-      <artifactId>scc-backend-azure</artifactId>
+      <artifactId>scc-backend-kube</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -48,6 +43,7 @@
       <version>2.19.0</version>
     </dependency>
   </dependencies>
+
   <build>
     <sourceDirectory>src</sourceDirectory>
     <plugins>
@@ -64,33 +60,6 @@
         <version>3.3.2</version>
         <configuration>
           <warSourceDirectory>WebContent</warSourceDirectory>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>com.microsoft.azure</groupId>
-        <artifactId>azure-webapp-maven-plugin</artifactId>
-        <version>2.6.1</version>
-        <configuration>
-          <schemaVersion>V2</schemaVersion>
-          <pricingTier>B1</pricingTier>
-          <region>westeurope</region>
-          <runtime>
-            <os>linux</os>
-            <javaVersion>Java 17</javaVersion>
-            <webContainer>Tomcat 10.0</webContainer>
-          </runtime>
-          <deployment>
-            <resources>
-              <resource>
-                <directory>${project.basedir}/target</directory>
-                <includes>
-                  <include>*.war</include>
-                </includes>
-              </resource>
-            </resources>
-          </deployment>
-          <resourceGroup>scc2223-rg-westeurope-d464</resourceGroup>
-          <appName>scc-backend-d464</appName>
         </configuration>
       </plugin>
     </plugins>

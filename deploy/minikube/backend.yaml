@@ -1,0 +1,101 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scc-backend-mongodb
+spec:
+  selector:
+    matchLabels:
+      app: scc-backend-mongodb
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: scc-backend-mongodb
+    spec:
+      containers:
+        - name: scc-backend-mongodb
+          image: docker.io/mongo:5.0.14
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "2"
+          ports:
+            - containerPort: 27017
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scc-backend-mongodb
+spec:
+  selector:
+    app: scc-backend-mongodb
+  ports:
+    - port: 27017
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scc-backend-redis
+spec:
+  selector:
+    matchLabels:
+      app: scc-backend-redis
+  template:
+    metadata:
+      labels:
+        app: scc-backend-redis
+    spec:
+      containers:
+        - name: scc-backend-redis
+          image: docker.io/redis:7.0.5
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "1"
+          ports:
+            - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scc-backend-redis
+spec:
+  selector:
+    app: scc-backend-redis
+  ports:
+    - port: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scc-backend-app
+spec:
+  selector:
+    matchLabels:
+      app: scc-backend-app
+  template:
+    metadata:
+      labels:
+        app: scc-backend-app
+    spec:
+      containers:
+        - name: scc-backend-app
+          image: localhost:5000/scc-backend-app
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scc-backend-app
+spec:
+  selector:
+    app: scc-backend-app
+  ports:
+    - port: 8080

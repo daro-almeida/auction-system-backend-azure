@@ -13,7 +13,7 @@
   <modules>
     <module>modules/backend</module>
     <module>modules/backend-app</module>
-    <module>modules/backend-azure</module>
+    <module>modules/backend-kube</module>
   </modules>
 
   <dependencies>
