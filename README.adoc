@@ -60,6 +60,14 @@ AZURE_REDIS_KEY=
 AZURE_REDIS_URL=
 ----
 
+== Minikube
+
+Redirect port 5000 on localhost to minikube registry.
+[source,bash]
+----
+socat TCP-LISTEN:5000,reuseaddr,fork TCP:$(minikube ip):5000
+----
+
 == ENVIRONMENT VARIABLES
 
 [cols="1,2"]
