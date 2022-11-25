@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
+import org.bson.types.ObjectId;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -38,7 +40,7 @@ public class Redis {
 
     /* ------------------------- Auction DAO ------------------------- */
 
-    public static AuctionDao getAuction(Jedis jedis, String auctionId) {
+    public static AuctionDao getAuction(Jedis jedis, ObjectId auctionId) {
         var key = PREFIX_AUCTION + auctionId;
         return getDao(jedis, key, AuctionDao.class);
     }
@@ -48,14 +50,14 @@ public class Redis {
         setDao(jedis, key, AuctionDao);
     }
 
-    public static void removeAuction(Jedis jedis, String auctionId) {
+    public static void removeAuction(Jedis jedis, ObjectId auctionId) {
         var key = PREFIX_AUCTION + auctionId;
         removeDao(jedis, key);
     }
 
     /* ------------------------- Bid DAO ------------------------- */
 
-    public static BidDao getBid(Jedis jedis, String bidId) {
+    public static BidDao getBid(Jedis jedis, ObjectId bidId) {
         var key = PREFIX_BID + bidId;
         return getDao(jedis, key, BidDao.class);
     }
@@ -65,14 +67,14 @@ public class Redis {
         setDao(jedis, key, AuctionDao);
     }
 
-    public static void removeBid(Jedis jedis, String bidId) {
+    public static void removeBid(Jedis jedis, ObjectId bidId) {
         var key = PREFIX_BID + bidId;
         removeDao(jedis, key);
     }
 
     /* ------------------------- Question DAO ------------------------- */
 
-    public static QuestionDao getQuestion(Jedis jedis, String questionId) {
+    public static QuestionDao getQuestion(Jedis jedis, ObjectId questionId) {
         var key = PREFIX_QUESTION + questionId;
         return getDao(jedis, key, QuestionDao.class);
     }
@@ -82,7 +84,7 @@ public class Redis {
         setDao(jedis, key, QuestionDao.class);
     }
 
-    public static void removeQuestion(Jedis jedis, String questionId) {
+    public static void removeQuestion(Jedis jedis, ObjectId questionId) {
         var key = PREFIX_QUESTION + questionId;
         removeDao(jedis, key);
     }
@@ -94,9 +96,9 @@ public class Redis {
         return getDao(jedis, key, UserDao.class);
     }
 
-    public static void setUser(Jedis jedis, UserDao AuctionDao) {
-        var key = PREFIX_USER + AuctionDao.getId();
-        setDao(jedis, key, AuctionDao);
+    public static void setUser(Jedis jedis, UserDao userDao) {
+        var key = PREFIX_USER + userDao.getUserId();
+        setDao(jedis, key, userDao);
     }
 
     public static void removeUser(Jedis jedis, String userId) {
@@ -130,43 +132,43 @@ public class Redis {
 
     /* ------------------------- Mixed ------------------------- */
 
-    public static void setTopBid(Jedis jedis, String auctionId, String bidId) {
+    public static void setTopBid(Jedis jedis, ObjectId auctionId, ObjectId bidId) {
         var key = PREFIX_TOP_BID + auctionId;
-        var value = bidId;
+        var value = bidId.toHexString();
         jedis.setex(key, TTL_DAO, value);
     }
 
-    public static String getTopBid(Jedis jedis, String auctionId) {
+    public static String getTopBid(Jedis jedis, ObjectId auctionId) {
         var key = PREFIX_TOP_BID + auctionId;
         return jedis.get(key);
     }
 
-    public static void setAuctionBids(Jedis jedis, String auctionId, List<String> bids) {
+    public static void setAuctionBids(Jedis jedis, ObjectId auctionId, List<String> bids) {
         var key = PREFIX_AUCTION_BIDS + auctionId;
         setDaoIdList(jedis, key, bids);
     }
 
-    public static List<String> getAuctionBids(Jedis jedis, String auctionId) {
+    public static List<String> getAuctionBids(Jedis jedis, ObjectId auctionId) {
         var key = PREFIX_AUCTION_BIDS + auctionId;
         return getDaoIdList(jedis, key);
     }
 
-    public static void addAuctionBid(Jedis jedis, String auctionId, String bidId) {
+    public static void addAuctionBid(Jedis jedis, ObjectId auctionId, ObjectId bidId) {
         var key = PREFIX_AUCTION_BIDS + auctionId;
         addDaoId(jedis, key, bidId);
     }
 
-    public static void setAuctionQuestions(Jedis jedis, String auctionId, List<String> questions) {
+    public static void setAuctionQuestions(Jedis jedis, ObjectId auctionId, List<ObjectId> questions) {
         var key = PREFIX_AUCTION_QUESTIONS + auctionId;
-        setDaoIdList(jedis, key, questions);
+        setDaoIdList(jedis, key, questions.stream().map(ObjectId::toHexString).toList());
     }
 
-    public static List<String> getAuctionQuestions(Jedis jedis, String auctionId) {
+    public static List<String> getAuctionQuestions(Jedis jedis, ObjectId auctionId) {
         var key = PREFIX_AUCTION_QUESTIONS + auctionId;
         return getDaoIdList(jedis, key);
     }
 
-    public static void addAuctionQuestion(Jedis jedis, String auctionId, String questionId) {
+    public static void addAuctionQuestion(Jedis jedis, ObjectId auctionId, String questionId) {
         var key = PREFIX_AUCTION_QUESTIONS + auctionId;
         addDaoId(jedis, key, questionId);
     }
@@ -181,7 +183,7 @@ public class Redis {
         return getDaoIdList(jedis, key);
     }
 
-    public static void addUserAuction(Jedis jedis, String userId, String auctionId) {
+    public static void addUserAuction(Jedis jedis, String userId, ObjectId auctionId) {
         var key = PREFIX_USER_AUCTIONS + userId;
         addDaoId(jedis, key, auctionId);
     }
@@ -196,17 +198,17 @@ public class Redis {
         return getDaoIdList(jedis, key);
     }
 
-    public static void addUserFollowedAuction(Jedis jedis, String userId, String auctionId) {
+    public static void addUserFollowedAuction(Jedis jedis, String userId, ObjectId auctionId) {
         var key = PREFIX_USER_FOLLOWED_AUCTIONS + userId;
         addDaoId(jedis, key, auctionId);
     }
 
-    /* ----------------------- About To Close Tracking ----------------------- */
+    /* ----------------------- Soon To Close Tracking ----------------------- */
 
-    public record AuctionAboutToClose(String auctionId, LocalDateTime time) {
+    public record AuctionSoonToClose(String auctionId, LocalDateTime time) {
     }
 
-    public static void setAuctionsAboutToClose(Jedis jedis, List<AuctionAboutToClose> auctions) {
+    public static void setAuctionsSoonToClose(Jedis jedis, List<AuctionSoonToClose> auctions) {
         var key = KEY_AUCTIONS_ABOUNT_TO_CLOSE;
         try (var multi = jedis.multi()) {
             multi.del(key);
@@ -216,17 +218,17 @@ public class Redis {
         }
     }
 
-    public static void addAuctionAboutToClose(Jedis jedis, AuctionAboutToClose auction) {
+    public static void addAuctionSoonToClose(Jedis jedis, AuctionSoonToClose auction) {
         var key = KEY_AUCTIONS_ABOUNT_TO_CLOSE;
         jedis.zadd(key, auction.time.toEpochSecond(ZoneOffset.UTC), auction.auctionId);
     }
 
-    public static void removeAuctionAboutToClose(Jedis jedis, String auctionId) {
+    public static void removeAuctionSoonToClose(Jedis jedis, String auctionId) {
         var key = KEY_AUCTIONS_ABOUNT_TO_CLOSE;
         jedis.zrem(key, auctionId);
     }
 
-    public static List<String> getAuctionsAboutToClose(Jedis jedis) {
+    public static List<String> getAuctionsSoonToClose(Jedis jedis) {
         var key = KEY_AUCTIONS_ABOUNT_TO_CLOSE;
         return jedis.zrevrange(key, 0, AppLogic.MAX_ABOUT_TO_CLOSE_AUCTIONS - 1);
     }
@@ -297,6 +299,10 @@ public class Redis {
         for (var id : ids)
             jedis.rpush(key, id);
         jedis.expire(key, TTL_DAO);
+    }
+
+    private static void addDaoId(Jedis jedis, String key, ObjectId id) {
+        addDaoId(jedis, key, id.toHexString());
     }
 
     private static void addDaoId(Jedis jedis, String key, String id) {

@@ -5,13 +5,20 @@ import java.time.LocalDateTime;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class BidDao {
     // Mandatory fields
     private ObjectId id;
+
+    @JsonProperty("auction_id")
     @BsonProperty(value = "auction_id")
     private ObjectId auctionId;
+
+    @JsonProperty("user_id")
     @BsonProperty(value = "user_id")
     private ObjectId userId;
+
     private Double value;
     private LocalDateTime time;
 

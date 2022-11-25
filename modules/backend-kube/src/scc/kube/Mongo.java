@@ -11,6 +11,7 @@ import org.bson.codecs.pojo.PojoCodecProvider;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
+import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
@@ -23,6 +24,7 @@ import scc.kube.dao.QuestionDao;
 import scc.kube.dao.UserDao;
 
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.Updates;
@@ -59,6 +61,8 @@ public class Mongo {
         this.bidCollection.createIndex(Indexes.hashed("auction_id"));
 
         this.questionCollection.createIndex(Indexes.hashed("auction_id"));
+
+        this.userCollection.createIndex(Indexes.text("user_id"), new IndexOptions().unique(true));
     }
 
     public void close() {
@@ -170,7 +174,7 @@ public class Mongo {
                         Filters.lt("close_time", future)))
                 .skip(skip).limit(limit);
         var auctions = new ArrayList<AuctionDao>();
-        iter.forEach((AuctionDao a) -> auctions.add(a));
+        iter.iterator().forEachRemaining(auctions::add);
         logger.fine("listAuctionsSoonToClose: " + auctions);
         return auctions;
     }
@@ -214,7 +218,7 @@ public class Mongo {
                 Filters.eq("auction_id", auctionId))
                 .skip(skip).limit(limit).sort(Sorts.descending("value"));
         var bids = new ArrayList<BidDao>();
-        iter.forEach((BidDao b) -> bids.add(b));
+        iter.iterator().forEachRemaining(bids::add);
         logger.fine("listAuctionBids: " + bids);
         return bids;
     }
@@ -278,23 +282,44 @@ public class Mongo {
                 Filters.eq("auction_id", auctionId))
                 .skip(skip).limit(limit);
         var questions = new ArrayList<QuestionDao>();
-        iter.forEach((QuestionDao q) -> questions.add(q));
+        iter.iterator().forEachRemaining(questions::add);
         logger.fine("listAuctionQuestions: " + questions);
         return questions;
     }
 
     /* ------------------------- User ------------------------- */
 
-    public UserDao getUser(ObjectId userId) {
-        var user = this.userCollection.find(Filters.eq("_id", userId)).first();
+    public UserDao getUser(String userId) {
+        var user = this.userCollection.find(Filters.eq("user_id", userId)).first();
         logger.fine("getUser: " + user);
         return user;
     }
 
-    public UserDao createUser(UserDao user) {
-        this.userCollection.insertOne(user);
-        logger.fine("createUser: " + user);
-        return user;
+    public Result<UserDao, ServiceError> createUser(UserDao user) {
+        try {
+            this.userCollection.insertOne(user);
+            logger.fine("createUser: " + user);
+            return Result.ok(user);
+        } catch (MongoWriteException e) {
+            logger.fine("createUser: user already exists");
+            logger.fine(e.toString());
+            return Result.err(ServiceError.USER_ALREADY_EXISTS);
+        }
+    }
+
+    public Result<UserDao, ServiceError> updateUser(UserDao userDao) {
+        var updates = new ArrayList<Bson>();
+
+        if (userDao.getName() != null)
+            updates.add(Updates.set("name", userDao.getName()));
+        if (userDao.getHashedPassword() != null)
+            updates.add(Updates.set("hashed_password", userDao.getHashedPassword()));
+        // if (userDao.getImageId() != null) // TODO: fix this
+        // updates.add(Updates.set("image_id", auctionDao.getImageId()));
+
+        var updated = this.userCollection.findOneAndUpdate(Filters.eq("user_id", userDao.getUserId()), updates);
+        logger.fine("updateUser: " + updated);
+        return Result.ok(updated);
     }
 
     public Result<UserDao, ServiceError> deactivateUser(ObjectId userId) {

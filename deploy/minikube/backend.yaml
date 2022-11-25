@@ -78,6 +78,33 @@ spec:
   ports:
     - port: 6379
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scc-backend-redis-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: scc-backend-redis
+  ports:
+    - port: 6379
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scc-backend-app-cmap
+data:
+  KUBE_CACHING_ENABLED: "true"
+  KUBE_MEDIA_DATA_DIRECTORY: /var/data
+  KUBE_MONGO_CONNECTION_URI: mongodb://scc-backend-mongodb:27017
+  KUBE_MONGO_DATABASE_NAME: scc-backend
+  KUBE_MONGO_AUCTION_COLLECTION: auctions
+  KUBE_MONGO_BID_COLLECTION: bids
+  KUBE_MONGO_QUESTION_COLLECTION: questions
+  KUBE_MONGO_USER_COLLECTION: users
+  KUBE_REDIS_URL: scc-backend-redis
+  KUBE_REDIS_PORT: "6379"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -100,6 +127,9 @@ spec:
               cpu: "500m"
           ports:
             - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: scc-backend-app-cmap
 ---
 apiVersion: v1
 kind: Service

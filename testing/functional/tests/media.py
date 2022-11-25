@@ -7,8 +7,8 @@ from . import test_case
 
 @test_case("media/upload image")
 def upload_image(endpoints: Endpoints):
-    rclient = RawClient(endpoints)
-    response = rclient.upload_media(scc.random_image())
+    client = Client(endpoints)
+    response = client.raw.upload_media(scc.random_image())
     with recon.validate(response) as validator:
         validator.status_code(200)
 
@@ -28,7 +28,7 @@ def upload_image_and_verify(endpoints: Endpoints):
 
 @test_case("media/download missing image")
 def download_missing_image(endpoints: Endpoints):
-    rclient = RawClient(endpoints)
-    response = rclient.download_media("missing")
+    client = Client(endpoints)
+    response = client.raw.download_media("missing")
     with recon.validate(response) as validator:
         validator.status_code([400, 404])  # missing is an invalid media id

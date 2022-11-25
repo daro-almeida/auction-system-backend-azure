@@ -17,4 +17,11 @@ public class MongoConfig {
         this.questionCollection = questionCollection;
         this.userCollection = userCollection;
     }
+
+    @Override
+    public String toString() {
+        return "MongoConfig [connectionUri=" + connectionUri + ", databaseName=" + databaseName + ", auctionCollection="
+                + auctionCollection + ", bidCollection=" + bidCollection + ", questionCollection=" + questionCollection
+                + ", userCollection=" + userCollection + "]";
+    }
 }

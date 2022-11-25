@@ -1,7 +1,8 @@
 package scc.kube.dao;
 
 import org.bson.codecs.pojo.annotations.BsonProperty;
-import org.bson.types.ObjectId;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class UserDao {
     public static enum Status {
@@ -9,16 +10,24 @@ public class UserDao {
         INACTIVE
     }
 
-    private ObjectId id;
+    @JsonProperty("user_id")
+    @BsonProperty(value = "user_id")
+    private String userId;
+
     private String name;
+
+    @JsonProperty("hashed_password")
     @BsonProperty(value = "hashed_password")
     private String hashedPassword;
+
+    @JsonProperty("profile_picture_id")
     @BsonProperty(value = "profile_picture_id")
     private String profilePictureId;
+
     private Status status;
 
-    public UserDao(ObjectId id, String name, String hashedPassword, String profilePictureId, Status status) {
-        this.id = id;
+    public UserDao(String userId, String name, String hashedPassword, String profilePictureId, Status status) {
+        this.userId = userId;
         this.name = name;
         this.hashedPassword = hashedPassword;
         this.profilePictureId = profilePictureId;
@@ -28,12 +37,12 @@ public class UserDao {
     public UserDao() {
     }
 
-    public ObjectId getId() {
-        return id;
+    public String getUserId() {
+        return userId;
     }
 
-    public void setId(ObjectId id) {
-        this.id = id;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public String getName() {
@@ -70,7 +79,8 @@ public class UserDao {
 
     @Override
     public String toString() {
-        return "UserDao [id=" + id + ", name=" + name + ", hashedPassword=" + hashedPassword + ", profilePictureId="
-                + profilePictureId + ", status=" + status + "]";
+        return "UserDao [userId=" + userId + ", name=" + name + ", hashedPassword=" + hashedPassword
+                + ", profilePictureId=" + profilePictureId + ", status=" + status + "]";
     }
+
 }

@@ -5,18 +5,27 @@ import java.time.LocalDateTime;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class QuestionDao {
 
     private ObjectId id;
+
+    @JsonProperty("auction_id")
     @BsonProperty(value = "auction_id")
     private ObjectId auctionId;
+
+    @JsonProperty("user_id")
     @BsonProperty(value = "user_id")
     private ObjectId userId;
+
     private String question;
     private LocalDateTime time;
 
     // Reply may not exist
     private String reply;
+
+    @JsonProperty("reply_time")
     @BsonProperty(value = "reply_time")
     private LocalDateTime replyTime;
 

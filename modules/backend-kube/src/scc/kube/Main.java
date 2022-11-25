@@ -1,33 +1,30 @@
 package scc.kube;
 
-import java.time.LocalDateTime;
-
-import org.bson.codecs.configuration.CodecRegistries;
-import org.bson.codecs.configuration.CodecRegistry;
-import org.bson.codecs.pojo.PojoCodecProvider;
-import org.bson.types.ObjectId;
-
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-import com.mongodb.client.MongoClients;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import scc.kube.config.MongoConfig;
+import scc.kube.config.RedisConfig;
 import scc.kube.dao.AuctionDao;
 import scc.kube.dao.BidDao;
-import scc.kube.dao.UserDao;
 
 public class Main {
     public static void main(String[] args) {
         System.out.println("Hello, World!");
 
-        var config = new MongoConfig(
+        Logger rootLog = Logger.getLogger("");
+        rootLog.setLevel(Level.FINE);
+        rootLog.getHandlers()[0].setLevel(Level.FINE);
+
+        var mongoConfig = new MongoConfig(
                 "mongodb://localhost:27017",
                 "scc-backend",
                 "auctions",
                 "bids",
                 "questions",
                 "users");
-        var mongo = new Mongo(config);
+        var redisConfig = new RedisConfig("localhost", 6379);
+        var mongo = new Mongo(mongoConfig);
 
         var auction = new AuctionDao();
         auction.setStatus(AuctionDao.Status.OPEN);
@@ -46,6 +43,11 @@ public class Main {
 
         mongo.updateHighestBid(auction, bid2);
         System.out.println("After update 2: " + auction);
+
+        var jedis = Kube.createJedis(redisConfig);
+        Redis.setBid(jedis, bid2);
+        System.out.println("Bid2 = " + bid2);
+        System.out.println("Bid2 from redis = " + Redis.getBid(jedis, bid2.getId()));
 
         mongo.close();
 

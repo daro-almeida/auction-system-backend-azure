@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class AuctionDao {
     public static enum Status {
         OPEN,
@@ -15,20 +17,32 @@ public class AuctionDao {
     private ObjectId id;
     private String title;
     private String description;
+
+    @JsonProperty("image_id")
     @BsonProperty(value = "image_id")
     private String imageId;
+
+    @JsonProperty("user_id")
     @BsonProperty(value = "user_id")
     private ObjectId userId;
+
+    @JsonProperty("create_time")
     @BsonProperty(value = "create_time")
     private LocalDateTime createTime;
+
+    @JsonProperty("close_time")
     @BsonProperty(value = "close_time")
     private LocalDateTime closeTime;
+
+    @JsonProperty("initial_price")
     @BsonProperty(value = "initial_price")
     private Double initialPrice;
+
     private Status status;
 
     // May not exist.
     // It is the winning bid if the status is CLOSED.
+    @JsonProperty("highest_bid")
     @BsonProperty(value = "highest_bid")
     private ObjectId highestBid;
 

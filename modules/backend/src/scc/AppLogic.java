@@ -55,4 +55,3 @@ public class AppLogic {
         return isAuctionEndTimeAboutToClose(LocalDateTime.now(), auctionEndTime);
     }
 }
-}
