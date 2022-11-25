@@ -5,7 +5,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jakarta.ws.rs.core.Application;
+import redis.clients.jedis.JedisPool;
+import scc.kube.Kube;
 import scc.kube.KubeMediaService;
+import scc.kube.KubeServiceFactory;
+import scc.kube.KubeUserService;
+import scc.kube.Mongo;
 import scc.kube.config.KubeEnv;
 import scc.rest.AuctionResource;
 import scc.rest.ControlResource;
@@ -29,8 +34,12 @@ public class MainApplication extends Application {
 		var config = KubeEnv.getKubeConfig();
 		logger.info("Kube config: " + config);
 
-		var mediaService = new KubeMediaService(config.getMediaConfig());
+		var factory = new KubeServiceFactory();
+		var mediaService = factory.createMediaService(config.getMediaConfig());
 		singletons.add(new MediaResource(mediaService));
+
+		var userService = factory.createUserService(config);
+		singletons.add(new UserResource(userService, null, mediaService));
 	}
 
 	@Override

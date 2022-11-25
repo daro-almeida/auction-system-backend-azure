@@ -3,6 +3,8 @@ package scc.kube;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -11,6 +13,7 @@ import org.bson.codecs.pojo.PojoCodecProvider;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
+import com.mongodb.ConnectionString;
 import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -45,6 +48,7 @@ public class Mongo {
                 pojoCodecRegistry);
         var clientSettings = com.mongodb.MongoClientSettings.builder()
                 .codecRegistry(codecRegistry)
+                .applyConnectionString(new ConnectionString(config.connectionUri))
                 .build();
         var client = MongoClients.create(clientSettings);
         var database = client.getDatabase(config.databaseName);
@@ -193,6 +197,14 @@ public class Mongo {
         return bid;
     }
 
+    public HashMap<ObjectId, BidDao> getBidMany(List<ObjectId> bidIds) {
+        var bids = this.bidCollection.find(Filters.in("_id", bidIds));
+        var result = new HashMap<ObjectId, BidDao>();
+        bids.iterator().forEachRemaining(bid -> result.put(bid.getId(), bid));
+        logger.fine("getBidMany: " + result);
+        return result;
+    }
+
     /**
      * Create a new bid.
      * 
@@ -293,6 +305,15 @@ public class Mongo {
         var user = this.userCollection.find(Filters.eq("user_id", userId)).first();
         logger.fine("getUser: " + user);
         return user;
+    }
+
+    public HashMap<String, UserDao> getUserMany(List<String> userIds) {
+        var users = this.userCollection.find(Filters.in("user_id", userIds));
+        var map = new HashMap<String, UserDao>();
+        for (var user : users)
+            map.put(user.getUserId(), user);
+        logger.fine("getUserMany: " + users);
+        return map;
     }
 
     public Result<UserDao, ServiceError> createUser(UserDao user) {

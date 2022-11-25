@@ -2,6 +2,7 @@ package scc.kube;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
 
 import org.bson.types.ObjectId;
@@ -10,6 +11,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Response;
 import scc.AppLogic;
 import scc.kube.dao.AuctionDao;
 import scc.kube.dao.BidDao;
@@ -36,20 +38,42 @@ public class Redis {
     public static final String KEY_POPULAR_AUCTIONS = "popular-auctions";
     public static final String KEY_POPULAR_AUCTIONS_RANKING = "popular-auctions-ranking";
 
+    private static final int MAX_AUCTION_BIDS_LIST_SIZE = 256;
+
     private static final ObjectMapper mapper = Kube.createObjectMapper();
 
     /* ------------------------- Auction DAO ------------------------- */
 
+    /**
+     * Get the auction DAO from the cache.
+     * 
+     * @param jedis     The Redis client.
+     * @param auctionId The auction id.
+     * @return The auction DAO or null if not found.
+     */
     public static AuctionDao getAuction(Jedis jedis, ObjectId auctionId) {
         var key = PREFIX_AUCTION + auctionId;
         return getDao(jedis, key, AuctionDao.class);
     }
 
+    /**
+     * Set the auction DAO in the cache.
+     * 
+     * 
+     * @param jedis      The Redis client.
+     * @param AuctionDao The auction DAO.
+     */
     public static void setAuction(Jedis jedis, AuctionDao AuctionDao) {
         var key = PREFIX_AUCTION + AuctionDao.getId();
         setDao(jedis, key, AuctionDao);
     }
 
+    /**
+     * Delete the auction DAO from the cache.
+     * 
+     * @param jedis     The Redis client.
+     * @param auctionId The auction id.
+     */
     public static void removeAuction(Jedis jedis, ObjectId auctionId) {
         var key = PREFIX_AUCTION + auctionId;
         removeDao(jedis, key);
@@ -57,16 +81,57 @@ public class Redis {
 
     /* ------------------------- Bid DAO ------------------------- */
 
+    /**
+     * Get the bid DAO from the cache.
+     * 
+     * @param jedis The Redis client.
+     * @param bidId The bid id.
+     * @return The bid DAO or null if not found.
+     */
     public static BidDao getBid(Jedis jedis, ObjectId bidId) {
         var key = PREFIX_BID + bidId;
         return getDao(jedis, key, BidDao.class);
     }
 
+    public static HashMap<ObjectId, BidDao> getBidMany(Jedis jedis, List<ObjectId> bidIds) {
+        var bidResponses = new HashMap<ObjectId, Response<String>>(bidIds.size());
+        try (var pipeline = jedis.pipelined()) {
+            for (var bidId : bidIds) {
+                var bidKey = PREFIX_BID + bidId;
+                bidResponses.put(bidId, pipeline.get(bidKey));
+            }
+        }
+
+        var bids = new HashMap<ObjectId, BidDao>(bidIds.size());
+        for (var entry : bidResponses.entrySet()) {
+            var bidId = entry.getKey();
+            var bidStr = entry.getValue().get();
+            var bidDao = bidStr == null ? null : getDaoFromString(bidStr, BidDao.class);
+            if (bidDao == null)
+                continue;
+            bids.put(bidId, bidDao);
+        }
+
+        return bids;
+    }
+
+    /**
+     * Set the bid DAO in the cache.
+     * 
+     * @param jedis      The Redis client.
+     * @param AuctionDao The bid DAO.
+     */
     public static void setBid(Jedis jedis, BidDao AuctionDao) {
         var key = PREFIX_BID + AuctionDao.getId();
         setDao(jedis, key, AuctionDao);
     }
 
+    /**
+     * Delete the bid DAO from the cache.
+     * 
+     * @param jedis The Redis client.
+     * @param bidId The bid id.
+     */
     public static void removeBid(Jedis jedis, ObjectId bidId) {
         var key = PREFIX_BID + bidId;
         removeDao(jedis, key);
@@ -74,16 +139,35 @@ public class Redis {
 
     /* ------------------------- Question DAO ------------------------- */
 
+    /**
+     * Get the question DAO from the cache.
+     * 
+     * @param jedis      The Redis client.
+     * @param questionId The question id.
+     * @return The question DAO or null if not found.
+     */
     public static QuestionDao getQuestion(Jedis jedis, ObjectId questionId) {
         var key = PREFIX_QUESTION + questionId;
         return getDao(jedis, key, QuestionDao.class);
     }
 
+    /**
+     * Set the question DAO in the cache.
+     * 
+     * @param jedis      The Redis client.
+     * @param AuctionDao The question DAO.
+     */
     public static void setQuestion(Jedis jedis, QuestionDao questionDao) {
         var key = PREFIX_QUESTION + questionDao.getId();
         setDao(jedis, key, QuestionDao.class);
     }
 
+    /**
+     * Delete the question DAO from the cache.
+     * 
+     * @param jedis      The Redis client.
+     * @param questionId The question id.
+     */
     public static void removeQuestion(Jedis jedis, ObjectId questionId) {
         var key = PREFIX_QUESTION + questionId;
         removeDao(jedis, key);
@@ -91,16 +175,57 @@ public class Redis {
 
     /* ------------------------- User DAO ------------------------- */
 
+    /**
+     * Get the user DAO from the cache.
+     * 
+     * @param jedis  The Redis client.
+     * @param userId The user id.
+     * @return The user DAO or null if not found.
+     */
     public static UserDao getUser(Jedis jedis, String userId) {
         var key = PREFIX_USER + userId;
         return getDao(jedis, key, UserDao.class);
     }
 
+    public static HashMap<String, UserDao> getUserMany(Jedis jedis, List<String> userIds) {
+        var userResponses = new HashMap<String, Response<String>>(userIds.size());
+        try (var pipeline = jedis.pipelined()) {
+            for (var userId : userIds) {
+                var userKey = PREFIX_USER + userId;
+                userResponses.put(userId, pipeline.get(userKey));
+            }
+        }
+
+        var users = new HashMap<String, UserDao>(userIds.size());
+        for (var entry : userResponses.entrySet()) {
+            var userId = entry.getKey();
+            var userStr = entry.getValue().get();
+            var userDao = userStr == null ? null : getDaoFromString(userStr, UserDao.class);
+            if (userDao == null)
+                continue;
+            users.put(userId, userDao);
+        }
+
+        return users;
+    }
+
+    /**
+     * Set the user DAO in the cache.
+     * 
+     * @param jedis The Redis client.
+     * @param user  The user DAO.
+     */
     public static void setUser(Jedis jedis, UserDao userDao) {
         var key = PREFIX_USER + userDao.getUserId();
         setDao(jedis, key, userDao);
     }
 
+    /**
+     * Delete the user DAO from the cache.
+     * 
+     * @param jedis  The Redis client.
+     * @param userId The user id.
+     */
     public static void removeUser(Jedis jedis, String userId) {
         var key = PREFIX_USER + userId;
         removeDao(jedis, key);
@@ -130,7 +255,7 @@ public class Redis {
         jedis.del(key);
     }
 
-    /* ------------------------- Mixed ------------------------- */
+    /* ------------------------- Top Bid ------------------------- */
 
     public static void setTopBid(Jedis jedis, ObjectId auctionId, ObjectId bidId) {
         var key = PREFIX_TOP_BID + auctionId;
@@ -143,15 +268,44 @@ public class Redis {
         return jedis.get(key);
     }
 
-    public static void setAuctionBids(Jedis jedis, ObjectId auctionId, List<String> bids) {
+    /* ------------------------- Auction Bids ------------------------- */
+
+    /**
+     * Add a list of bids to the auction bids.
+     * The amount of bids in cache is limited and any new bids will replace the
+     * oldest ones.
+     * 
+     * @param jedis     The Redis client.
+     * @param auctionId The auction id.
+     * @param bidIds    The list of bid ids.
+     */
+    public static void pushAuctionBids(Jedis jedis, ObjectId auctionId, List<ObjectId> bidIds) {
         var key = PREFIX_AUCTION_BIDS + auctionId;
-        setDaoIdList(jedis, key, bids);
+        var bidIdsStr = (String[]) bidIds.stream().map(ObjectId::toHexString).toArray();
+        jedis.lpush(key, bidIdsStr);
+        jedis.ltrim(key, 0, MAX_AUCTION_BIDS_LIST_SIZE);
     }
 
-    public static List<String> getAuctionBids(Jedis jedis, ObjectId auctionId) {
+    /**
+     * Request a list of bids from the auction bids.
+     * If the requested bids are not all in cache, null is returned and they should
+     * be fetched from the database.
+     * 
+     * @param jedis     The Redis client.
+     * @param auctionId The auction id.
+     * @param skip      The number of bids to skip.
+     * @param limit     The number of bids to return.
+     * @return The list of bid ids or null if not all bids are in cache.
+     */
+    public static List<ObjectId> getAuctionBids(Jedis jedis, ObjectId auctionId, int skip, int limit) {
         var key = PREFIX_AUCTION_BIDS + auctionId;
-        return getDaoIdList(jedis, key);
+        var bidIdsStr = jedis.lrange(key, skip, skip + limit - 1);
+        if (bidIdsStr.size() != limit)
+            return null;
+        return bidIdsStr.stream().map(ObjectId::new).toList();
     }
+
+    /* ------------------------- Mixed ------------------------- */
 
     public static void addAuctionBid(Jedis jedis, ObjectId auctionId, ObjectId bidId) {
         var key = PREFIX_AUCTION_BIDS + auctionId;
@@ -163,9 +317,9 @@ public class Redis {
         setDaoIdList(jedis, key, questions.stream().map(ObjectId::toHexString).toList());
     }
 
-    public static List<String> getAuctionQuestions(Jedis jedis, ObjectId auctionId) {
+    public static List<ObjectId> getAuctionQuestions(Jedis jedis, ObjectId auctionId) {
         var key = PREFIX_AUCTION_QUESTIONS + auctionId;
-        return getDaoIdList(jedis, key);
+        return getDaoIdList(jedis, key).stream().map(ObjectId::new).toList();
     }
 
     public static void addAuctionQuestion(Jedis jedis, ObjectId auctionId, String questionId) {
@@ -178,9 +332,9 @@ public class Redis {
         setDaoIdList(jedis, key, auctions);
     }
 
-    public static List<String> getUserAuctions(Jedis jedis, String userId) {
+    public static List<ObjectId> getUserAuctions(Jedis jedis, String userId) {
         var key = PREFIX_USER_AUCTIONS + userId;
-        return getDaoIdList(jedis, key);
+        return getDaoIdList(jedis, key).stream().map(ObjectId::new).toList();
     }
 
     public static void addUserAuction(Jedis jedis, String userId, ObjectId auctionId) {
@@ -193,9 +347,9 @@ public class Redis {
         setDaoIdList(jedis, key, auctions);
     }
 
-    public static List<String> getUserFollowedAuctions(Jedis jedis, String userId) {
+    public static List<ObjectId> getUserFollowedAuctions(Jedis jedis, String userId) {
         var key = PREFIX_USER_FOLLOWED_AUCTIONS + userId;
-        return getDaoIdList(jedis, key);
+        return getDaoIdList(jedis, key).stream().map(ObjectId::new).toList();
     }
 
     public static void addUserFollowedAuction(Jedis jedis, String userId, ObjectId auctionId) {
@@ -228,9 +382,10 @@ public class Redis {
         jedis.zrem(key, auctionId);
     }
 
-    public static List<String> getAuctionsSoonToClose(Jedis jedis) {
+    public static List<ObjectId> getAuctionsSoonToClose(Jedis jedis) {
         var key = KEY_AUCTIONS_ABOUNT_TO_CLOSE;
-        return jedis.zrevrange(key, 0, AppLogic.MAX_ABOUT_TO_CLOSE_AUCTIONS - 1);
+        return jedis.zrevrange(key, 0, AppLogic.MAX_ABOUT_TO_CLOSE_AUCTIONS - 1)
+                .stream().map(ObjectId::new).toList();
     }
 
     /* ------------------------- Recent Tracking ------------------------- */
@@ -248,9 +403,9 @@ public class Redis {
 
     /* ------------------------- Popularity Tracking ------------------------- */
 
-    public static List<String> getPopularAuctions(Jedis jedis) {
+    public static List<ObjectId> getPopularAuctions(Jedis jedis) {
         var key = KEY_POPULAR_AUCTIONS;
-        return jedis.lrange(key, 0, -1);
+        return jedis.lrange(key, 0, -1).stream().map(ObjectId::new).toList();
     }
 
     public static void updatePopularAuctions(Jedis jedis) {
@@ -273,6 +428,15 @@ public class Redis {
             var json = jedis.get(key);
             if (json == null)
                 return null;
+            return mapper.readValue(json, clazz);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private static <T> T getDaoFromString(String json, Class<T> clazz) {
+        try {
             return mapper.readValue(json, clazz);
         } catch (Exception e) {
             e.printStackTrace();

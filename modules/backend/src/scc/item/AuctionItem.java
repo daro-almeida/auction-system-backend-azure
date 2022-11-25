@@ -11,6 +11,7 @@ public class AuctionItem {
     private String title;
     private String description;
     private String ownerId;
+    // TODO: add start time
     private LocalDateTime endTime;
     private Optional<MediaId> imageId;
     private double startingPrice;

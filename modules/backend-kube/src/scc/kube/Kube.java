@@ -10,7 +10,7 @@ import scc.kube.config.RedisConfig;
 import scc.kube.utils.ObjectIdModule;
 import scc.utils.Hash;
 
-class Kube {
+public class Kube {
     public static Jedis createJedis(RedisConfig config) {
         var jedis = new Jedis(config.url, config.port);
         return jedis;
@@ -29,16 +29,14 @@ class Kube {
         return new JedisPool(poolConfig, config.url, config.port, 1000);
     }
 
-    public static ObjectMapper createObjectMapper() {
+    static ObjectMapper createObjectMapper() {
         var objectMapper = new ObjectMapper();
         objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
         objectMapper.registerModule(new ObjectIdModule());
-        // objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
-        // false);
         return objectMapper;
     }
 
-    public static String hashUserPassword(String password) {
+    static String hashUserPassword(String password) {
         return Hash.of(password);
     }
 }

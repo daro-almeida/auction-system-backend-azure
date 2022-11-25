@@ -1,55 +1,75 @@
 package scc.kube;
 
+import java.io.IOException;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import scc.UserService.CreateUserParams;
+import scc.kube.config.KubeEnv;
 import scc.kube.config.MongoConfig;
 import scc.kube.config.RedisConfig;
 import scc.kube.dao.AuctionDao;
 import scc.kube.dao.BidDao;
 
+class Mongo2 {
+}
+
 public class Main {
-    public static void main(String[] args) {
-        System.out.println("Hello, World!");
+    public static void main(String[] args) throws IOException, InterruptedException {
+        var config = KubeEnv.getKubeConfig();
+        var factory = new KubeServiceFactory();
+        System.out.println("Kube config: " + config);
 
-        Logger rootLog = Logger.getLogger("");
-        rootLog.setLevel(Level.FINE);
-        rootLog.getHandlers()[0].setLevel(Level.FINE);
+        var mediaService = factory.createMediaService(config.getMediaConfig());
+        var userService = factory.createUserService(config);
 
-        var mongoConfig = new MongoConfig(
-                "mongodb://localhost:27017",
-                "scc-backend",
-                "auctions",
-                "bids",
-                "questions",
-                "users");
-        var redisConfig = new RedisConfig("localhost", 6379);
-        var mongo = new Mongo(mongoConfig);
+        userService.createUser(new CreateUserParams("id5", "name", "password", Optional.empty()));
 
-        var auction = new AuctionDao();
-        auction.setStatus(AuctionDao.Status.OPEN);
+        System.out.println("Started");
+        Thread.sleep(5000);
+        return;
 
-        var bid1 = new BidDao();
-        bid1.setValue(10.0);
-        var bid2 = new BidDao();
-        bid2.setValue(20.0);
+        // System.out.println("Hello, World!");
 
-        mongo.createAuction(auction);
-        mongo.createBid(bid1);
-        mongo.createBid(bid2);
+        // Logger rootLog = Logger.getLogger("");
+        // rootLog.setLevel(Level.FINE);
+        // rootLog.getHandlers()[0].setLevel(Level.FINE);
 
-        mongo.updateHighestBid(auction, bid1);
-        System.out.println("After update 1: " + auction);
+        // var mongoConfig = new MongoConfig(
+        // "mongodb://localhost:27017",
+        // "scc-backend",
+        // "auctions",
+        // "bids",
+        // "questions",
+        // "users");
+        // var redisConfig = new RedisConfig("localhost", 6379);
+        // var mongo = new Mongo(mongoConfig);
 
-        mongo.updateHighestBid(auction, bid2);
-        System.out.println("After update 2: " + auction);
+        // var auction = new AuctionDao();
+        // auction.setStatus(AuctionDao.Status.OPEN);
 
-        var jedis = Kube.createJedis(redisConfig);
-        Redis.setBid(jedis, bid2);
-        System.out.println("Bid2 = " + bid2);
-        System.out.println("Bid2 from redis = " + Redis.getBid(jedis, bid2.getId()));
+        // var bid1 = new BidDao();
+        // bid1.setValue(10.0);
+        // var bid2 = new BidDao();
+        // bid2.setValue(20.0);
 
-        mongo.close();
+        // mongo.createAuction(auction);
+        // mongo.createBid(bid1);
+        // mongo.createBid(bid2);
+
+        // mongo.updateHighestBid(auction, bid1);
+        // System.out.println("After update 1: " + auction);
+
+        // mongo.updateHighestBid(auction, bid2);
+        // System.out.println("After update 2: " + auction);
+
+        // var jedis = Kube.createJedis(redisConfig);
+        // Redis.setBid(jedis, bid2);
+        // System.out.println("Bid2 = " + bid2);
+        // System.out.println("Bid2 from redis = " + Redis.getBid(jedis, bid2.getId()));
+
+        // mongo.close();
 
         // var pojoCodecRegistry =
         // CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).build());

@@ -1,0 +1,59 @@
+== Test schema
+
+.auction
+[source,json]
+----
+{
+    "_id": "ObjectId",
+    "title": "string",
+    "description": "string",
+    "image_id": "ImageId",
+    "create_time": "DateTime",
+    "close_time": "DateTime",
+    "initial_price": "double",
+    "status": "OPEN" | "CLOSED",
+    "bids": [
+        {
+            "_id": "ObjectId",
+            "user_id": "ObjectId",
+            "user_id_display": "string", // User's ID or 'deleted'
+            "price": "double",
+            "create_time": "DateTime"
+        }
+    ]
+}
+----
+
+.question
+[source,json]
+----
+{
+    "_id": "ObjectId",
+    "auction_id": "ObjectId",
+    "user_id": "ObjectId",
+    "user_id_display": "string", // User's ID or 'deleted'
+    "question": "string",
+    "create_time": "DateTime",
+    "reply" : { // Can be null if there is no reply
+        "reply": "string",
+        "create_time": "DateTime",
+        "user_display_id": "string", // User's ID or 'deleted'
+    }
+}
+----
+
+.user
+[source,json]
+----
+{
+    "_id": "ObjectId",
+    "username": "string", // Unique username in the system
+    "name": "string", // User's name
+    "hashed_password": "string", // SHA-512 hash of the password
+    "profile_image_id": "ImageId",
+    "status": "ACTIVE" | "INACTIVE",
+    "create_time": "DateTime",
+    "created_auctions": "[ObjectId]", // List of auctions created by the user
+    "created_bids": "[ObjectId]" // List of bids created by the user
+}
+----

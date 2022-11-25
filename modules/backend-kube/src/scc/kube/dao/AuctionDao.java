@@ -24,7 +24,7 @@ public class AuctionDao {
 
     @JsonProperty("user_id")
     @BsonProperty(value = "user_id")
-    private ObjectId userId;
+    private String userId;
 
     @JsonProperty("create_time")
     @BsonProperty(value = "create_time")
@@ -46,8 +46,16 @@ public class AuctionDao {
     @BsonProperty(value = "highest_bid")
     private ObjectId highestBid;
 
-    public AuctionDao(ObjectId id, String title, String description, String imageId, ObjectId userId,
-            LocalDateTime createTime, LocalDateTime closeTime, Double initialPrice, Status status,
+    public AuctionDao(
+            ObjectId id,
+            String title,
+            String description,
+            String imageId,
+            String userId,
+            LocalDateTime createTime,
+            LocalDateTime closeTime,
+            Double initialPrice,
+            Status status,
             ObjectId highestBid) {
         this.id = id;
         this.title = title;
@@ -96,11 +104,11 @@ public class AuctionDao {
         this.imageId = imageId;
     }
 
-    public ObjectId getUserId() {
+    public String getUserId() {
         return userId;
     }
 
-    public void setUserId(ObjectId userId) {
+    public void setUserId(String userId) {
         this.userId = userId;
     }
 

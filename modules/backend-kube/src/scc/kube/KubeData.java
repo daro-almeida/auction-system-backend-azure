@@ -1,14 +1,22 @@
 package scc.kube;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.bson.types.ObjectId;
 
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import scc.AppLogic;
+import scc.AuctionStatus;
 import scc.Result;
 import scc.ServiceError;
+import scc.item.AuctionItem;
+import scc.item.BidItem;
 import scc.item.UserItem;
 import scc.kube.config.KubeConfig;
 import scc.kube.dao.*;
@@ -55,6 +63,40 @@ public class KubeData {
         return Result.ok(auctionDao);
     }
 
+    public void invalidateAuction(ObjectId auctionId) {
+        if (this.config.isCachingEnabled()) {
+            try (var jedis = this.jedisPool.getResource()) {
+                Redis.removeAuction(jedis, auctionId);
+            }
+        }
+    }
+
+    /* ------------------------- Auction Item ------------------------- */
+
+    public Result<AuctionItem, ServiceError> auctionDaoToItem(AuctionDao auctionDao) {
+        var item = new AuctionItem(
+                auctionDao.getId().toHexString(),
+                auctionDao.getTitle(),
+                auctionDao.getDescription(),
+                auctionDao.getUserId(),
+                auctionDao.getCloseTime(),
+                Optional.empty(), // TODO: fix this
+                auctionDao.getInitialPrice(),
+                auctionDaoStatusToAuctionStatus(auctionDao.getStatus()),
+                Optional.empty() // TODO: fix this
+        );
+        return Result.ok(item);
+    }
+
+    public static AuctionStatus auctionDaoStatusToAuctionStatus(AuctionDao.Status status) {
+        return switch (status) {
+            case CLOSED -> AuctionStatus.CLOSED;
+            case DELETED -> AuctionStatus.CLOSED;
+            case OPEN -> AuctionStatus.OPEN;
+            default -> throw new IllegalStateException("Unknown auction status: " + status);
+        };
+    }
+
     /* ------------------------- Bid DAO ------------------------- */
 
     public void setBid(BidDao bidDao) {
@@ -82,6 +124,56 @@ public class KubeData {
 
         this.setBid(bidDao);
         return Result.ok(bidDao);
+    }
+
+    private static List<BidDao> getBidMany(Mongo mongo, Jedis jedis, List<ObjectId> bidIds) {
+        var auctionBidIdsSet = new HashSet<>(bidIds);
+        var cachedBidDaos = Redis.getBidMany(jedis, bidIds);
+        var missingBidIds = cachedBidDaos.keySet().stream()
+                .filter(nullBidId -> !auctionBidIdsSet.contains(nullBidId)).toList();
+        var missingBidDaos = mongo.getBidMany(missingBidIds);
+        return Stream.concat(cachedBidDaos.values().stream(), missingBidDaos.values().stream())
+                .collect(Collectors.toList());
+    }
+
+    /* ------------------------- Bid Item ------------------------- */
+
+    public BidItem bidDaoToItem(BidDao bidDao, UserDao userDao) {
+        var item = new BidItem(
+                bidDao.getId().toHexString(),
+                bidDao.getAuctionId().toHexString(),
+                userDaoDisplayId(userDao),
+                bidDao.getTime(),
+                bidDao.getValue().doubleValue());
+        return item;
+    }
+
+    public Result<List<BidItem>, ServiceError> listAuctionBidItems(ObjectId auctionId, int skip, int limit) {
+        // Database Only
+        if (!this.config.isCachingEnabled())
+            return this.listAuctionBidItemsFromDatabase(auctionId, skip, limit);
+
+        // Cache Assisted
+        try (var jedis = this.jedisPool.getResource()) {
+            var auctionBidIds = Redis.getAuctionBids(jedis, auctionId, skip, limit);
+            if (auctionBidIds == null)
+                return this.listAuctionBidItemsFromDatabase(auctionId, skip, limit);
+
+            var bidDaos = getBidMany(this.mongo, jedis, auctionBidIds);
+            var requiredUserIds = bidDaos.stream().map(BidDao::getUserId).collect(Collectors.toSet()).stream().toList();
+
+        }
+
+        return null;
+    }
+
+    private Result<List<BidItem>, ServiceError> listAuctionBidItemsFromDatabase(ObjectId auctionId, int skip,
+            int limit) {
+        var bidDaos = this.mongo.listAuctionBids(auctionId, skip, limit);
+        var userIds = bidDaos.stream().map(BidDao::getUserId).toList();
+        var userDaos = this.mongo.getUserMany(userIds);
+        var bidItems = bidDaos.stream().map(b -> bidDaoToItem(b, userDaos.get(b.getUserId()))).toList();
+        return Result.ok(bidItems);
     }
 
     /* ------------------------- User DAO ------------------------- */
@@ -115,12 +207,12 @@ public class KubeData {
 
     /* ------------------------- User Item ------------------------- */
 
-    public UserItem userDaoToItem(UserDao userDao) {
+    public static UserItem userDaoToItem(UserDao userDao) {
         if (userDao.getStatus() == UserDao.Status.ACTIVE) {
             return new UserItem(
                     userDao.getUserId(),
                     userDao.getName(),
-                    null); // TODO: Fix this
+                    Optional.empty()); // TODO: Fix this
         } else {
             return new UserItem(
                     AppLogic.DELETED_USER_ID,
@@ -156,5 +248,11 @@ public class KubeData {
 
         this.setQuestion(questionDao);
         return Result.ok(questionDao);
+    }
+
+    /* ------------------------- Internal ------------------------- */
+
+    private static String userDaoDisplayId(UserDao userDao) {
+        return userDao.getStatus() == UserDao.Status.ACTIVE ? userDao.getUserId() : AppLogic.DELETED_USER_ID;
     }
 }

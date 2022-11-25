@@ -17,12 +17,12 @@ public class BidDao {
 
     @JsonProperty("user_id")
     @BsonProperty(value = "user_id")
-    private ObjectId userId;
+    private String userId;
 
     private Double value;
     private LocalDateTime time;
 
-    public BidDao(ObjectId id, ObjectId auctionId, ObjectId userId, Double value, LocalDateTime time) {
+    public BidDao(ObjectId id, ObjectId auctionId, String userId, Double value, LocalDateTime time) {
         this.id = id;
         this.auctionId = auctionId;
         this.userId = userId;
@@ -49,11 +49,11 @@ public class BidDao {
         this.auctionId = auctionId;
     }
 
-    public ObjectId getUserId() {
+    public String getUserId() {
         return userId;
     }
 
-    public void setUserId(ObjectId userId) {
+    public void setUserId(String userId) {
         this.userId = userId;
     }
 
