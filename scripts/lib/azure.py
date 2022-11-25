@@ -2,4 +2,5 @@ import re
 import os
 
 REGION = "westeurope"
-RESOURCE_GROUP = "scc-backend-d464-rg"
+RESOURCE_GROUP = "scc2223-rg-westeurope-d464"
+
