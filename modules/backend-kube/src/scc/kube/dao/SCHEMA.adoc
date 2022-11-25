@@ -8,16 +8,18 @@
     "title": "string",
     "description": "string",
     "image_id": "ImageId",
-    "create_time": "DateTime",
-    "close_time": "DateTime",
+	"user_id": "ObjectId",			// Indexed
+	"user_id_display": "string", 	// User's ID or 'deleted'
+    "create_time": "DateTime",		// Indexed sort descend
+    "close_time": "DateTime",		// Indexed sort descend
     "initial_price": "double",
     "status": "OPEN" | "CLOSED",
     "bids": [
         {
-            "_id": "ObjectId",
+            "_id": "ObjectId",				// Indexed
             "user_id": "ObjectId",
-            "user_id_display": "string", // User's ID or 'deleted'
-            "price": "double",
+            "user_id_display": "string", 	// User's ID or 'deleted'
+            "amount": "double",
             "create_time": "DateTime"
         }
     ]
@@ -29,11 +31,11 @@
 ----
 {
     "_id": "ObjectId",
-    "auction_id": "ObjectId",
-    "user_id": "ObjectId",
-    "user_id_display": "string", // User's ID or 'deleted'
+    "auction_id": "ObjectId",		// Indexed
+    "user_id": "ObjectId",			// Indexed
+    "user_id_display": "string", 	// User's ID or 'deleted'
     "question": "string",
-    "create_time": "DateTime",
+    "create_time": "DateTime", 		// Indexed sort descend
     "reply" : { // Can be null if there is no reply
         "reply": "string",
         "create_time": "DateTime",
@@ -47,13 +49,12 @@
 ----
 {
     "_id": "ObjectId",
-    "username": "string", // Unique username in the system
+    "username": "string", 			// Indexed, Unique username in the system
     "name": "string", // User's name
-    "hashed_password": "string", // SHA-512 hash of the password
+    "hashed_password": "string",	// SHA-512 hash of the password
     "profile_image_id": "ImageId",
     "status": "ACTIVE" | "INACTIVE",
     "create_time": "DateTime",
-    "created_auctions": "[ObjectId]", // List of auctions created by the user
-    "created_bids": "[ObjectId]" // List of bids created by the user
+    "created_bids": "[ObjectId]" 		// List of bids created by the user
 }
 ----

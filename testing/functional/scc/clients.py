@@ -13,7 +13,7 @@ from scc.requests import (
     UpdateAuctionRequest,
     UpdateUserRequest,
 )
-from scc.responses import AuctionDTO, BidDTO, CreateUserResponse, QuestionDTO
+from scc.responses import AuctionDTO, BidDTO, CreateUserResponse, QuestionDTO, UserDAO
 
 
 class RawClient:
@@ -126,6 +126,11 @@ class Client:
         return response.content
 
     # User API
+    def get_user(self, user_id: str) -> UserDAO:
+        response = self.raw.get_user(user_id)
+        assert response.status_code == 200
+        return UserDAO.parse_obj(response.json())
+
     def create_user(
         self, params: CreateUserRequest | None = None
     ) -> CreateUserResponse:

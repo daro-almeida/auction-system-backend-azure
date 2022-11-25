@@ -28,4 +28,14 @@ public class KubeServiceFactory {
 
         return new KubeUserService(config, this.jedisPool, this.mongo);
     }
+
+    public KubeAuctionService createAuctionService(KubeConfig config) {
+        if (this.mongo == null)
+            this.mongo = new Mongo(config.getMongoConfig());
+
+        if (this.jedisPool == null)
+            this.jedisPool = Kube.createJedisPool(config.getRedisConfig());
+
+        return new KubeAuctionService(config, this.jedisPool, this.mongo);
+    }
 }

@@ -119,7 +119,7 @@ public class AuctionDTO {
                 item.getDescription(),
                 item.getOwnerId(),
                 item.getImageId().map(ResourceUtils::mediaIdToString).orElse(null),
-                item.getEndTime().atZone(ZoneOffset.UTC).toString(),
+                item.getCloseTime().atZone(ZoneOffset.UTC).toString(),
                 item.getStartingPrice(),
                 item.getStatus().toString(),
                 item.getTopBid().map(BidDTO::from).orElse(null));

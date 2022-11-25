@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import scc.MediaId;
 import scc.kube.config.RedisConfig;
 import scc.kube.utils.ObjectIdModule;
 import scc.utils.Hash;
@@ -38,5 +39,13 @@ public class Kube {
 
     static String hashUserPassword(String password) {
         return Hash.of(password);
+    }
+
+    static String mediaIdToString(MediaId mediaId) {
+        return mediaId.getId();
+    }
+
+    static MediaId stringToMediaId(String mediaId) {
+        return new MediaId(mediaId);
     }
 }

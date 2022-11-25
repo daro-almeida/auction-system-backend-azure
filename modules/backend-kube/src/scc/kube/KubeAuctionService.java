@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import org.bson.types.ObjectId;
 
+import redis.clients.jedis.JedisPool;
 import scc.AuctionService;
 import scc.Result;
 import scc.ServiceError;
@@ -16,171 +17,239 @@ import scc.item.AuctionItem;
 import scc.item.BidItem;
 import scc.item.QuestionItem;
 import scc.item.ReplyItem;
+import scc.kube.config.KubeConfig;
 import scc.kube.dao.AuctionDao;
 import scc.kube.dao.BidDao;
+import scc.kube.dao.QuestionDao;
 
 public class KubeAuctionService implements AuctionService {
 
-    private KubeData data;
-    private Mongo mongo;
-    private Auth auth;
+    private final KubeConfig config;
+    private final JedisPool jedisPool;
+    private final Mongo mongo;
+
+    public KubeAuctionService(KubeConfig config, JedisPool jedisPool, Mongo mongo) {
+        this.config = config;
+        this.jedisPool = jedisPool;
+        this.mongo = mongo;
+    }
 
     @Override
     public Result<AuctionItem, ServiceError> createAuction(SessionToken token, CreateAuctionParams params) {
-        var authResult = this.auth.match(token, params.owner());
-        if (authResult.isError())
-            return Result.err(authResult);
-
         if (params.title().isBlank() || params.description().isBlank() || params.startingPrice() <= 0)
             return Result.err(ServiceError.BAD_REQUEST);
 
-        var auctionDao = new AuctionDao(
-                null,
-                params.title(),
-                params.description(),
-                null, // TODO: fix this
-                params.owner(),
-                LocalDateTime.now(ZoneOffset.UTC),
-                params.endTime(),
-                params.startingPrice(),
-                AuctionDao.Status.OPEN,
-                null);
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+            var authResult = data.validate(token);
+            if (authResult.isError())
+                return Result.err(authResult);
 
-        auctionDao = this.mongo.createAuction(auctionDao);
-        var auctionItemResult = this.data.auctionDaoToItem(auctionDao);
-        if (auctionItemResult.isError())
-            return Result.err(auctionItemResult);
+            var userId = authResult.value();
+            var userDaoResult = data.getUser(userId);
+            if (userDaoResult.isError())
+                return Result.err(userDaoResult);
+            var userDao = userDaoResult.value();
 
-        var auctionItem = auctionItemResult.value();
-        this.data.setAuction(auctionDao);
+            if (!userDao.username.equals(params.owner()))
+                return Result.err(ServiceError.UNAUTHORIZED);
 
-        return Result.ok(auctionItem);
+            var auctionDao = new AuctionDao();
+            auctionDao.title = params.title();
+            auctionDao.description = params.description();
+            auctionDao.userId = userId;
+            auctionDao.userIdDisplay = userDao.username;
+            auctionDao.createTime = LocalDateTime.now(ZoneOffset.UTC);
+            auctionDao.closeTime = params.endTime();
+            auctionDao.initialPrice = params.startingPrice();
+            auctionDao.status = AuctionDao.Status.OPEN;
+
+            var createResult = data.createAuction(auctionDao);
+            if (createResult.isError())
+                return Result.err(createResult);
+
+            auctionDao = createResult.value();
+            var auctionItem = data.auctionDaoToItem(auctionDao, Optional.empty());
+
+            return Result.ok(auctionItem);
+        }
     }
 
     @Override
     public Result<AuctionItem, ServiceError> getAuction(String auctionIdStr) {
         if (!ObjectId.isValid(auctionIdStr))
             return Result.err(ServiceError.BAD_REQUEST);
-
         var auctionId = new ObjectId(auctionIdStr);
-        var auctionResult = this.data.getAuction(auctionId);
-        if (auctionResult.isError())
-            return Result.err(auctionResult);
-        var auctioDao = auctionResult.value();
 
-        var auctionItemResult = this.data.auctionDaoToItem(auctioDao);
-        if (auctionItemResult.isError())
-            return Result.err(auctionItemResult);
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+            var auctionDaoResult = data.getAuction(auctionId);
+            if (auctionDaoResult.isError())
+                return Result.err(auctionDaoResult);
+            var auctionDao = auctionDaoResult.value();
 
-        return Result.ok(auctionItemResult.value());
+            var auctionItem = data.auctionDaoToItem(auctionDao);
+            return Result.ok(auctionItem);
+        }
     }
 
     @Override
     public Result<Void, ServiceError> updateAuction(SessionToken token, String auctionIdStr, UpdateAuctionOps ops) {
         if (!ObjectId.isValid(auctionIdStr))
             return Result.err(ServiceError.BAD_REQUEST);
-
         var auctionId = new ObjectId(auctionIdStr);
-        var authResult = this.auth.validate(token);
-        if (authResult.isError())
-            return Result.err(authResult);
-        var userId = authResult.value();
 
-        var auctionGetResult = this.data.getAuction(auctionId);
-        if (auctionGetResult.isError())
-            return Result.err(auctionGetResult);
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+            var authResult = data.validate(token);
+            if (authResult.isError())
+                return Result.err(authResult);
+            var userId = authResult.value();
 
-        var auctionDao = auctionGetResult.value();
-        if (!auctionDao.getUserId().equals(userId))
-            return Result.err(ServiceError.UNAUTHORIZED);
+            var auctionDaoResult = data.getAuction(auctionId);
+            if (auctionDaoResult.isError())
+                return Result.err(auctionDaoResult);
+            var auctionDao = auctionDaoResult.value();
 
-        if (ops.shouldUpdateTitle())
-            auctionDao.setTitle(ops.getTitle());
-        if (ops.shouldUpdateDescription())
-            auctionDao.setDescription(ops.getDescription());
-        // if (ops.shouldUpdateImage()) // TODO: fix this
-        // auctionDao.setPictureId(Azure.mediaIdToString(ops.getImage()));
+            if (!auctionDao.userId.equals(userId))
+                return Result.err(ServiceError.UNAUTHORIZED);
 
-        auctionDao = this.mongo.updateAuction(auctionId, auctionDao);
-        this.data.setAuction(auctionDao);
+            var updateDao = new AuctionDao();
+            if (ops.shouldUpdateTitle())
+                updateDao.title = ops.getTitle();
+            if (ops.shouldUpdateDescription())
+                updateDao.description = ops.getDescription();
+            if (ops.shouldUpdateImage())
+                updateDao.imageId = Kube.mediaIdToString(ops.getImage());
 
-        return Result.ok();
+            var updateResult = data.updateAuction(auctionId, updateDao);
+            if (updateResult.isError())
+                return Result.err(updateResult);
+
+            return Result.ok();
+        }
     }
 
     @Override
     public Result<BidItem, ServiceError> createBid(SessionToken token, CreateBidParams params) {
-        if (!ObjectId.isValid(params.auctionId()))
+        if (!ObjectId.isValid(params.auctionId()) || params.price() <= 0)
             return Result.err(ServiceError.BAD_REQUEST);
-
-        var authResult = this.auth.match(token, params.userId());
-        if (authResult.isError())
-            return Result.err(authResult);
-
         var auctionId = new ObjectId(params.auctionId());
-        var bidDao = new BidDao(
-                null,
-                auctionId,
-                params.userId(),
-                params.price(),
-                LocalDateTime.now(ZoneOffset.UTC));
-        bidDao = this.mongo.createBid(bidDao);
 
-        var auctionDaoResult = this.data.getAuction(auctionId);
-        if (auctionDaoResult.isError())
-            return Result.err(auctionDaoResult);
-        var auctionDao = auctionDaoResult.value();
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+            var authResult = data.validate(token);
+            if (authResult.isError())
+                return Result.err(authResult);
+            var userId = authResult.value();
+            var userDao = data.getUser(userId).value();
 
-        if (!auctionDao.getStatus().equals(AuctionDao.Status.OPEN))
-            return Result.err(ServiceError.AUCTION_NOT_OPEN);
+            var bidDao = new BidDao();
+            bidDao.userId = userId;
+            bidDao.userIdDisplay = userDao.username;
+            bidDao.amount = params.price();
+            bidDao.createTime = LocalDateTime.now(ZoneOffset.UTC);
 
-        if (auctionDao.getHighestBid() != null) {
-            var highestBidDaoResult = this.data.getBid(auctionDao.getHighestBid());
-            if (highestBidDaoResult.isError())
-                return Result.err(highestBidDaoResult.error());
+            var createResult = data.createBid(auctionId, bidDao);
+            if (createResult.isError())
+                return Result.err(createResult);
+            bidDao = createResult.value();
 
-            var highestBidDao = highestBidDaoResult.value();
-            if (bidDao.getValue() <= highestBidDao.getValue())
-                return Result.err(ServiceError.BID_CONFLICT);
+            var bidItem = data.bidDaoToItem(auctionId, bidDao);
+            return Result.ok(bidItem);
         }
-
-        var updateResult = this.mongo.updateHighestBid(auctionDao, bidDao);
-        if (updateResult.isError())
-            return Result.err(updateResult.error());
-        this.data.invalidateAuction(auctionDao.getId());
-
-        var userDaoResult = this.data.getUser(params.userId());
-        if (userDaoResult.isError())
-            return Result.err(userDaoResult);
-        var userDao = userDaoResult.value();
-        var bidItem = this.data.bidDaoToItem(bidDao, userDao);
-
-        // Update user's following auctions
-        // TODO: Update user's following auctions
-
-        return Result.ok(bidItem);
     }
 
     @Override
-    public Result<List<BidItem>, ServiceError> listAuctionBids(String auctionIdStr) {
+    public Result<List<BidItem>, ServiceError> listAuctionBids(String auctionIdStr, int skip, int limit) {
         if (!ObjectId.isValid(auctionIdStr))
             return Result.err(ServiceError.BAD_REQUEST);
-
         var auctionId = new ObjectId(auctionIdStr);
-        var listResult = this.data.listAuctionBidItems(auctionId, 0, Integer.MAX_VALUE);
 
-        return listResult;
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+            var result = data.getAuctionBids(auctionId, skip, limit);
+            if (result.isError())
+                return Result.err(result);
+
+            var bidDaos = result.value();
+            var bidItems = bidDaos.stream().map(b -> data.bidDaoToItem(auctionId, b)).toList();
+            return Result.ok(bidItems);
+        }
     }
 
     @Override
     public Result<QuestionItem, ServiceError> createQuestion(SessionToken token, CreateQuestionParams params) {
-        // TODO Auto-generated method stub
-        return null;
+        if (!ObjectId.isValid(params.auctionId()))
+            return Result.err(ServiceError.BAD_REQUEST);
+        var auctionId = new ObjectId(params.auctionId());
+
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+            var authResult = data.validate(token);
+            if (authResult.isError())
+                return Result.err(authResult);
+            var userId = authResult.value();
+            var userDao = data.getUser(userId).value();
+
+            var questionDao = new QuestionDao();
+            questionDao.auctionId = auctionId;
+            questionDao.userId = userId;
+            questionDao.userIdDisplay = userDao.username;
+            questionDao.question = params.question();
+            questionDao.createTime = LocalDateTime.now(ZoneOffset.UTC);
+
+            var createResult = data.createQuestion(questionDao);
+            if (createResult.isError())
+                return Result.err(createResult);
+            questionDao = createResult.value();
+
+            var questionItem = data.questionDaoToItem(questionDao);
+            return Result.ok(questionItem);
+        }
     }
 
     @Override
     public Result<ReplyItem, ServiceError> createReply(SessionToken token, CreateReplyParams params) {
-        // TODO Auto-generated method stub
-        return null;
+        if (!ObjectId.isValid(params.auctionId()) || !ObjectId.isValid(params.questionId()) || params.reply().isBlank())
+            return Result.err(ServiceError.BAD_REQUEST);
+        var auctionId = new ObjectId(params.auctionId());
+        var questionId = new ObjectId(params.questionId());
+
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+
+            var authResult = data.validate(token);
+            if (authResult.isError())
+                return Result.err(authResult);
+            var userId = authResult.value();
+
+            var auctionDaoResult = data.getAuction(auctionId);
+            if (auctionDaoResult.isError())
+                return Result.err(auctionDaoResult);
+            var auctionDao = auctionDaoResult.value();
+
+            if (!auctionDao.userId.equals(userId))
+                return Result.err(ServiceError.UNAUTHORIZED);
+
+            var ownerDaoResult = data.getUser(auctionDao.userId);
+            if (ownerDaoResult.isError())
+                return Result.err(ownerDaoResult);
+            var ownerDao = ownerDaoResult.value();
+
+            var replyDao = new QuestionDao.Reply();
+            replyDao.reply = params.reply();
+            replyDao.createTime = LocalDateTime.now(ZoneOffset.UTC);
+            replyDao.userIdDisplay = ownerDao.username;
+
+            var createResult = data.createReply(questionId, replyDao);
+            if (createResult.isError())
+                return Result.err(createResult);
+            var questionDao = createResult.value();
+
+            var replyItem = data.questionDaoToReplyItem(questionDao);
+            return Result.ok(replyItem);
+        }
     }
 
     @Override
@@ -190,9 +259,29 @@ public class KubeAuctionService implements AuctionService {
     }
 
     @Override
-    public Result<List<AuctionItem>, ServiceError> listAuctionsOfUser(String userId, boolean open) {
-        // TODO Auto-generated method stub
-        return null;
+    public Result<List<AuctionItem>, ServiceError> listUserAuctions(String username, boolean open) {
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+
+            var userDaoResult = data.getUserByUsername(username);
+            if (userDaoResult.isError())
+                return Result.err(userDaoResult);
+            var userDao = userDaoResult.value();
+            var userId = userDao.id;
+
+            var result = data.getUserAuctions(userId);
+            if (result.isError())
+                return Result.err(result);
+
+            var auctionDaos = result.value();
+            var auctionItems = auctionDaos
+                    .stream()
+                    .filter(a -> a.status.equals(AuctionDao.Status.OPEN) || !open)
+                    .map(a -> data.auctionDaoToItem(a))
+                    .toList();
+
+            return Result.ok(auctionItems);
+        }
     }
 
     @Override

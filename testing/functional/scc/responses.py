@@ -12,6 +12,12 @@ class CreateUserResponse(BaseModel):
     photoId: str | None = None
 
 
+class UserDAO(BaseModel):
+    id: str
+    name: str
+    photoId: str | None = None
+
+
 class AuctionStatus(StrEnum):
     OPEN = "OPEN"
     CLOSED = "CLOSED"

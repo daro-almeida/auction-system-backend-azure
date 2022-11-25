@@ -55,7 +55,7 @@ public class AuctionResource {
             @JsonProperty(required = true) String minimumPrice,
             @JsonProperty(required = true) String endTime,
             String imageId,
-            String status) { 
+            String status) {
     }
 
     /**
@@ -199,7 +199,7 @@ public class AuctionResource {
         if (auctionId == null)
             throw new BadRequestException("Auction id must be provided");
 
-        var result = this.service.listAuctionBids(auctionId);
+        var result = this.service.listAuctionBids(auctionId, 0, 20);
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
 

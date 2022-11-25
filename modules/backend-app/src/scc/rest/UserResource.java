@@ -243,7 +243,7 @@ public class UserResource {
         if (id == null)
             throw new BadRequestException("User id cannot be null");
 
-        var result = this.auctionService.listAuctionsOfUser(id, "OPEN".equals(status));
+        var result = this.auctionService.listUserAuctions(id, "OPEN".equals(status));
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
 

@@ -26,7 +26,7 @@ public class KubeMediaService implements MediaService {
     @Override
     public Result<MediaId, ServiceError> uploadMedia(MediaNamespace namespace, byte[] contents) {
         var hash = Hash.of(contents);
-        var mediaId = new MediaId(MediaNamespace.Auction, hash);
+        var mediaId = new MediaId(hash);
         var path = this.mediaIdToPath(mediaId);
 
         try {

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>scc-backend-azure</name>
+	<name>scc-backend-kube</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -22,7 +22,7 @@
 	</natures>
 	<filteredResources>
 		<filter>
-			<id>1668894590808</id>
+			<id>1669398995947</id>
 			<name></name>
 			<type>30</type>
 			<matcher>

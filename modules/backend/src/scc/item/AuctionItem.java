@@ -11,8 +11,8 @@ public class AuctionItem {
     private String title;
     private String description;
     private String ownerId;
-    // TODO: add start time
-    private LocalDateTime endTime;
+    private LocalDateTime openTime;
+    private LocalDateTime closeTime;
     private Optional<MediaId> imageId;
     private double startingPrice;
     private AuctionStatus status;
@@ -22,7 +22,8 @@ public class AuctionItem {
             String title,
             String description,
             String ownerId,
-            LocalDateTime endTime,
+            LocalDateTime openTime,
+            LocalDateTime closeTime,
             Optional<MediaId> imageId,
             double startingPrice,
             AuctionStatus status,
@@ -31,7 +32,8 @@ public class AuctionItem {
         this.title = title;
         this.description = description;
         this.ownerId = ownerId;
-        this.endTime = endTime;
+        this.openTime = openTime;
+        this.closeTime = closeTime;
         this.imageId = imageId;
         this.startingPrice = startingPrice;
         this.status = status;
@@ -70,12 +72,20 @@ public class AuctionItem {
         this.ownerId = ownerId;
     }
 
-    public LocalDateTime getEndTime() {
-        return endTime;
+    public LocalDateTime getOpenTime() {
+        return openTime;
     }
 
-    public void setEndTime(LocalDateTime endTime) {
-        this.endTime = endTime;
+    public void setOpenTime(LocalDateTime openTime) {
+        this.openTime = openTime;
+    }
+
+    public LocalDateTime getCloseTime() {
+        return closeTime;
+    }
+
+    public void setcloseTime(LocalDateTime closeTime) {
+        this.closeTime = closeTime;
     }
 
     public Optional<MediaId> getImageId() {

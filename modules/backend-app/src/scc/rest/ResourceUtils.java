@@ -56,19 +56,11 @@ public class ResourceUtils {
     }
 
     public static String mediaIdToString(MediaId mediaId) {
-        return mediaNamespaceToString(mediaId.getNamespace()) + ":" + mediaId.getId();
+        return mediaId.getId();
     }
 
     public static MediaId stringToMediaId(String mediaId) {
-        String[] parts = mediaId.split(":");
-        if (parts.length != 2)
-            throw new BadRequestException("Invalid media id");
-        MediaNamespace namespace = switch (parts[0]) {
-            case "user" -> MediaNamespace.User;
-            case "auction" -> MediaNamespace.Auction;
-            default -> throw new BadRequestException("Invalid media id");
-        };
-        return new MediaId(namespace, parts[1]);
+        return new MediaId(mediaId);
     }
 
     public static void throwError(ServiceError error, String message) {

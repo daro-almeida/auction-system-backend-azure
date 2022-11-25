@@ -73,9 +73,11 @@ public interface AuctionService {
          * Lists all bids for the auction with the given id.
          * 
          * @param auctionId the id of the auction to list bids for
+         * @param skip      the number of bids to skip
+         * @param limit     the maximum number of bids to return
          * @return the bids for the auction with the given id
          */
-        Result<List<BidItem>, ServiceError> listAuctionBids(String auctionId);
+        Result<List<BidItem>, ServiceError> listAuctionBids(String auctionId, int skip, int limit);
 
         record CreateQuestionParams(
                         String auctionId,
@@ -127,7 +129,7 @@ public interface AuctionService {
          * @param open   whether to list only open auctions
          * @return the auctions created by the user with the given id
          */
-        Result<List<AuctionItem>, ServiceError> listAuctionsOfUser(String userId, boolean open);
+        Result<List<AuctionItem>, ServiceError> listUserAuctions(String userId, boolean open);
 
         /**
          * Lists all auctions that are currently open and the user with the given id has

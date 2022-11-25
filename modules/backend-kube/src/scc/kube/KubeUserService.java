@@ -1,5 +1,8 @@
 package scc.kube;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+
 import redis.clients.jedis.JedisPool;
 import scc.Result;
 import scc.ServiceError;
@@ -12,14 +15,14 @@ import scc.kube.dao.UserDao;
 
 public class KubeUserService implements UserService {
 
+    private final KubeConfig config;
+    private final JedisPool jedisPool;
     private final Mongo mongo;
-    private final KubeData data;
-    private final Auth auth;
 
     public KubeUserService(KubeConfig config, JedisPool jedisPool, Mongo mongo) {
+        this.config = config;
+        this.jedisPool = jedisPool;
         this.mongo = mongo;
-        this.data = new KubeData(config, mongo, jedisPool);
-        this.auth = new Auth(config, jedisPool, this.data);
     }
 
     @Override
@@ -27,81 +30,100 @@ public class KubeUserService implements UserService {
         if (params.id().isBlank() || params.name().isBlank() || params.password().isBlank())
             return Result.err(ServiceError.BAD_REQUEST);
 
-        var userDao = new UserDao(
-                params.id(),
-                params.name(),
-                Kube.hashUserPassword(params.password()),
-                null,
-                UserDao.Status.ACTIVE);
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
 
-        var createResult = this.mongo.createUser(userDao);
-        if (createResult.isError())
-            return Result.err(createResult);
+            var userDao = new UserDao();
+            userDao.username = params.id();
+            userDao.name = params.name();
+            userDao.hashedPassword = Kube.hashUserPassword(params.password());
+            userDao.status = UserDao.Status.ACTIVE;
+            userDao.createTime = LocalDateTime.now(ZoneOffset.UTC);
 
-        this.data.setUser(userDao);
-        var userItem = this.data.userDaoToItem(userDao);
+            var result = data.createUser(userDao);
+            if (result.isError())
+                return Result.err(result);
 
-        return Result.ok(userItem);
+            userDao = result.value();
+            var userItem = data.userDaoToItem(userDao);
+
+            return Result.ok(userItem);
+        }
     }
 
     @Override
-    public Result<UserItem, ServiceError> getUser(String userId) {
-        if (userId.isBlank())
+    public Result<UserItem, ServiceError> getUser(String username) {
+        if (username.isBlank())
             return Result.err(ServiceError.BAD_REQUEST);
 
-        var userResult = this.data.getUser(userId);
-        if (userResult.isError())
-            return Result.err(userResult);
-
-        var userDao = userResult.value();
-        var userItem = this.data.userDaoToItem(userDao);
-
-        return Result.ok(userItem);
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+            var result = data.getUserByUsername(username);
+            if (result.isError())
+                return Result.err(result);
+            var userDao = result.value();
+            var userItem = data.userDaoToItem(userDao);
+            return Result.ok(userItem);
+        }
     }
 
     @Override
-    public Result<UserItem, ServiceError> deleteUser(SessionToken token, String userId) {
-        var result = this.data.getUser(userId);
-        if (result.isError())
-            return Result.err(result);
-
-        var userDao = result.value();
-        var userItem = this.data.userDaoToItem(userDao);
-        // TODO: message queue
-
-        return Result.ok(userItem);
-    }
-
-    @Override
-    public Result<UserItem, ServiceError> updateUser(SessionToken token, String userId, UpdateUserOps ops) {
-        var authResult = this.auth.match(token, userId);
-        if (authResult.isError())
-            return Result.err(authResult);
-
-        var userDao = new UserDao();
-        if (ops.shouldUpdateName())
-            userDao.setName(ops.getName());
-        if (ops.shouldUpdatePassword())
-            userDao.setHashedPassword(Kube.hashUserPassword(ops.getPassword()));
-        // if (ops.shouldUpdateImage()) // TODO: fix this
-        // userDao.setPhotoId(K.mediaIdToString(ops.getImageId()));
-
-        var updateResult = this.mongo.updateUser(userDao);
-        if (updateResult.isError())
-            return Result.err(updateResult);
-
-        userDao = updateResult.value();
-        this.data.setUser(userDao);
-        var userItem = this.data.userDaoToItem(userDao);
-
-        return Result.ok(userItem);
-    }
-
-    @Override
-    public Result<SessionToken, ServiceError> authenticateUser(String userId, String password) {
-        if (userId.isBlank() || password.isBlank())
+    public Result<UserItem, ServiceError> deleteUser(SessionToken token, String userName) {
+        if (userName.isBlank())
             return Result.err(ServiceError.BAD_REQUEST);
-        return this.auth.authenticate(userId, password);
+
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+            var authResult = data.validate(token);
+            if (authResult.isError())
+                return Result.err(authResult);
+            var userId = authResult.value();
+
+            var result = data.deactivateUser(userId);
+            if (result.isError())
+                return Result.err(result);
+            var userDao = result.value();
+            var userItem = data.userDaoToItem(userDao);
+            return Result.ok(userItem);
+        }
+    }
+
+    @Override
+    public Result<UserItem, ServiceError> updateUser(SessionToken token, String userName, UpdateUserOps ops) {
+        if (userName.isBlank())
+            return Result.err(ServiceError.BAD_REQUEST);
+
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+            var authResult = data.validate(token);
+            if (authResult.isError())
+                return Result.err(authResult);
+            var userId = authResult.value();
+
+            var userDao = new UserDao();
+            if (ops.shouldUpdateName())
+                userDao.name = ops.getName();
+            if (ops.shouldUpdatePassword())
+                userDao.hashedPassword = Kube.hashUserPassword(ops.getPassword());
+            if (ops.shouldUpdateImage())
+                userDao.profileImageId = Kube.mediaIdToString(ops.getImageId());
+
+            var updateResult = data.updateUser(userId, userDao);
+            if (updateResult.isError())
+                return Result.err(updateResult);
+
+            userDao = updateResult.value();
+            var userItem = data.userDaoToItem(userDao);
+            return Result.ok(userItem);
+        }
+    }
+
+    @Override
+    public Result<SessionToken, ServiceError> authenticateUser(String userName, String password) {
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+            return data.authenticate(userName, password);
+        }
     }
 
 }

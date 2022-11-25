@@ -5,12 +5,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jakarta.ws.rs.core.Application;
-import redis.clients.jedis.JedisPool;
-import scc.kube.Kube;
-import scc.kube.KubeMediaService;
 import scc.kube.KubeServiceFactory;
-import scc.kube.KubeUserService;
-import scc.kube.Mongo;
 import scc.kube.config.KubeEnv;
 import scc.rest.AuctionResource;
 import scc.rest.ControlResource;
@@ -24,6 +19,12 @@ public class MainApplication extends Application {
 	private final Set<Class<?>> resources = new HashSet<Class<?>>();
 
 	public MainApplication() throws IOException {
+		try {
+			assert true == false;
+			throw new RuntimeException("Enable assertions with flag '-ea'");
+		} catch (AssertionError e) {
+		}
+
 		Logger rootLog = Logger.getLogger("");
 		rootLog.setLevel(Level.FINE);
 		rootLog.getHandlers()[0].setLevel(Level.FINE);
@@ -32,14 +33,18 @@ public class MainApplication extends Application {
 		resources.add(GenericExceptionMapper.class);
 
 		var config = KubeEnv.getKubeConfig();
+		var factory = new KubeServiceFactory();
 		logger.info("Kube config: " + config);
 
-		var factory = new KubeServiceFactory();
 		var mediaService = factory.createMediaService(config.getMediaConfig());
 		singletons.add(new MediaResource(mediaService));
 
+		var auctionService = factory.createAuctionService(config);
+		singletons.add(new AuctionResource(auctionService));
+
 		var userService = factory.createUserService(config);
-		singletons.add(new UserResource(userService, null, mediaService));
+		singletons.add(new UserResource(userService, auctionService, mediaService));
+
 	}
 
 	@Override

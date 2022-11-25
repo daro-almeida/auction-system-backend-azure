@@ -45,6 +45,18 @@ def create_duplicate_user(endpoints: Endpoints):
         validator.status_code(409)
 
 
+@test_case("user/get user")
+def get_user(endpoints: Endpoints):
+    client = Client(endpoints)
+    create_user = client.create_user()
+    response = client.raw.get_user(create_user.id)
+    with recon.validate(response) as validator:
+        validator.status_code(200)
+        user = UserDAO.parse_obj(response.json())
+        validator.equals(create_user.id, user.id, "user id")
+        validator.equals(create_user.name, user.name, "user name")
+
+
 @test_case("user/delete user")
 def delete_user(endpoints: Endpoints):
     client = Client(endpoints)
