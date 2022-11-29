@@ -120,7 +120,7 @@ public interface AuctionService {
          * @param auctionId the id of the auction to list questions for
          * @return the questions for the auction with the given id
          */
-        Result<List<QuestionItem>, ServiceError> listAuctionQuestions(String auctionId);
+        Result<List<QuestionItem>, ServiceError> listAuctionQuestions(String auctionId, PagingWindow window);
 
         /**
          * Lists all auctions created by the user with the given id.

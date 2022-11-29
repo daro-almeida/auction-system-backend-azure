@@ -16,6 +16,7 @@ import jakarta.ws.rs.core.MediaType;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import scc.AuctionService;
+import scc.PagingWindow;
 import scc.UpdateAuctionOps;
 import scc.rest.dto.AuctionDTO;
 import scc.rest.dto.BidDTO;
@@ -310,13 +311,17 @@ public class AuctionResource {
     @GET
     @Path("/{" + AUCTION_ID + "}/question")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<QuestionDTO> listQuestions(@PathParam(AUCTION_ID) String auctionId) {
+    public List<QuestionDTO> listQuestions(
+            @PathParam(AUCTION_ID) String auctionId,
+            @QueryParam("skip") @DefaultValue("0") int skip,
+            @QueryParam("limit") @DefaultValue("20") int limit) {
         logger.fine("GET /auction/" + auctionId + "/question");
 
         if (auctionId == null)
             throw new BadRequestException("Auction id must be provided");
 
-        var result = this.service.listAuctionQuestions(auctionId);
+        var window = new PagingWindow(skip, limit);
+        var result = this.service.listAuctionQuestions(auctionId, window);
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
 

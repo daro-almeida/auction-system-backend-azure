@@ -25,6 +25,7 @@ def main():
         default="http://localhost:8080",
         help="The base url of the host to test",
     )
+    parser.add_argument("--ignore-errors", action="store_true")
     parser.add_argument("--testing", action="store_true")
     parser.add_argument("filter", nargs="?", help="Regex to filter test cases")
     args = parser.parse_args()
@@ -33,7 +34,11 @@ def main():
     if args.testing:
         testing(endpoints)
     else:
-        recon.run(tests.create_test_cases(endpoints), filter=args.filter)
+        recon.run(
+            tests.create_test_cases(endpoints),
+            filter=args.filter,
+            ignore_errors=args.ignore_errors,
+        )
 
 
 if __name__ == "__main__":

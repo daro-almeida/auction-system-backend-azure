@@ -26,6 +26,7 @@ import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Updates;
 
+import scc.PagingWindow;
 import scc.Result;
 import scc.ServiceError;
 import scc.kube.config.MongoConfig;
@@ -193,7 +194,7 @@ public class Mongo implements Closeable {
         assert bidDao.createTime != null : "Bid create time must not be null";
 
         bidDao.id = new ObjectId();
-        var filter = new Document().append("$expr", new Document("$gt", Arrays.asList(
+        var filter = new Document().append("$expr", new Document("$lt", Arrays.asList(
                 new Document().append("$getField", new Document("field", "amount").append("input", new Document(
                         "$arrayElemAt", Arrays.asList("$bids", -1)))),
                 bidDao.amount)));
@@ -280,8 +281,9 @@ public class Mongo implements Closeable {
         return this.getQuestion(questionId);
     }
 
-    public Result<List<QuestionDao>, ServiceError> getAuctionQuestions(ObjectId auctionId) {
-        var questions = this.questionCollection.find(Filters.eq("auction_id", auctionId)).into(new ArrayList<>());
+    public Result<List<QuestionDao>, ServiceError> getAuctionQuestions(ObjectId auctionId, PagingWindow window) {
+        var questions = this.questionCollection.find(Filters.eq("auction_id", auctionId))
+                .skip(window.skip).limit(window.limit).into(new ArrayList<>());
         return Result.ok(questions);
     }
 
@@ -370,6 +372,16 @@ public class Mongo implements Closeable {
     public Result<List<AuctionDao>, ServiceError> getUserAuctions(ObjectId userId) {
         var auctions = this.auctionCollection.find(Filters.eq("user_id", userId)).into(new ArrayList<>());
         return Result.ok(auctions);
+    }
+
+    public Result<List<ObjectId>, ServiceError> getUserBidIds(ObjectId userId) {
+        var pipeline = Arrays.asList(
+                Aggregates.match(Filters.eq("_id", userId)),
+                Aggregates.project(Projections.include("bids")),
+                Aggregates.unwind("$bids"),
+                Aggregates.replaceRoot("$bids"));
+        var bidIds = this.userCollection.aggregate(pipeline, ObjectId.class).into(new ArrayList<ObjectId>());
+        return Result.ok(bidIds);
     }
 
     /* ------------------------- Internal ------------------------- */

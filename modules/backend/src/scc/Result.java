@@ -1,5 +1,6 @@
 package scc;
 
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -38,6 +39,16 @@ public interface Result<T, E> {
      * 
      */
     E error();
+
+    /**
+     * Get the value of this result it exists.
+     */
+    Optional<T> toOk();
+
+    /**
+     * Get the error of this result it exists.
+     */
+    Optional<E> toErr();
 
     /**
      * obtains the error message of this result
@@ -133,6 +144,16 @@ class OkResult<T, E> implements Result<T, E> {
     }
 
     @Override
+    public Optional<T> toOk() {
+        return Optional.ofNullable(result);
+    }
+
+    @Override
+    public Optional<E> toErr() {
+        return Optional.empty();
+    }
+
+    @Override
     public String errorMessage() {
         throw new IllegalStateException("Cannot unwrap error from Ok result");
     }
@@ -186,6 +207,16 @@ class ErrorResult<T, E> implements Result<T, E> {
     @Override
     public E error() {
         return error;
+    }
+
+    @Override
+    public Optional<T> toOk() {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<E> toErr() {
+        return Optional.ofNullable(error);
     }
 
     @Override

@@ -4,11 +4,13 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Logger;
 
 import org.bson.types.ObjectId;
 
 import redis.clients.jedis.JedisPool;
 import scc.AuctionService;
+import scc.PagingWindow;
 import scc.Result;
 import scc.ServiceError;
 import scc.SessionToken;
@@ -23,6 +25,7 @@ import scc.kube.dao.BidDao;
 import scc.kube.dao.QuestionDao;
 
 public class KubeAuctionService implements AuctionService {
+    private static final Logger logger = Logger.getLogger(KubeAuctionService.class.getName());
 
     private final KubeConfig config;
     private final JedisPool jedisPool;
@@ -139,8 +142,10 @@ public class KubeAuctionService implements AuctionService {
         try (var jedis = this.jedisPool.getResource()) {
             var data = new KubeData(this.config, this.mongo, jedis);
             var authResult = data.validate(token);
-            if (authResult.isError())
+            if (authResult.isError()) {
+                logger.info("createBid: authResult.isError()");
                 return Result.err(authResult);
+            }
             var userId = authResult.value();
             var userDao = data.getUser(userId).value();
 
@@ -253,9 +258,21 @@ public class KubeAuctionService implements AuctionService {
     }
 
     @Override
-    public Result<List<QuestionItem>, ServiceError> listAuctionQuestions(String auctionId) {
-        // TODO Auto-generated method stub
-        return null;
+    public Result<List<QuestionItem>, ServiceError> listAuctionQuestions(String auctionIdStr, PagingWindow window) {
+        if (!ObjectId.isValid(auctionIdStr))
+            return Result.err(ServiceError.BAD_REQUEST);
+        var auctionId = new ObjectId(auctionIdStr);
+
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+            var result = data.getAuctionQuestions(auctionId, window);
+            if (result.isError())
+                return Result.err(result);
+
+            var questionDaos = result.value();
+            var questionItems = questionDaos.stream().map(data::questionDaoToItem).toList();
+            return Result.ok(questionItems);
+        }
     }
 
     @Override
@@ -285,9 +302,21 @@ public class KubeAuctionService implements AuctionService {
     }
 
     @Override
-    public Result<List<AuctionItem>, ServiceError> listAuctionsFollowedByUser(String userId) {
-        // TODO Auto-generated method stub
-        return null;
+    public Result<List<AuctionItem>, ServiceError> listAuctionsFollowedByUser(String userIdStr) {
+        if (!ObjectId.isValid(userIdStr))
+            return Result.err(ServiceError.BAD_REQUEST);
+        var userId = new ObjectId(userIdStr);
+
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+            var result = data.getAuctionsFollowedByUser(userId);
+            if (result.isError())
+                return Result.err(result);
+
+            var auctionDaos = result.value();
+            var auctionItems = auctionDaos.stream().map(a -> data.auctionDaoToItem(a)).toList();
+            return Result.ok(auctionItems);
+        }
     }
 
     @Override

@@ -36,10 +36,10 @@ class Validator:
         self.response = response
 
     def status_code_failure(self):
-        if not (self.response.status_code >= 400 and self.response.status_code < 600):
+        if not (self.response.status_code >= 400 and self.response.status_code < 500):
             raise AssertionError(
                 self.response,
-                f"Expected status code to be in range 400-599, got {self.response.status_code}",
+                f"Expected status code to be in range 400-499, got {self.response.status_code}",
             )
 
     def status_code_success(self):
@@ -153,7 +153,8 @@ def run(
         except Exception as e:
             if _last_validator is None:
                 print(f"[{Fore.RED}FAIL{Style.RESET_ALL}] {test_case.name}")
-                raise e
+                if not ignore_errors:
+                    raise e
             else:
                 response = _last_validator.response
                 print(f"[{Fore.RED}FAIL{Style.RESET_ALL}] {test_case.name}")

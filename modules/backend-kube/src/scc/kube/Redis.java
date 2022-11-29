@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Response;
+import scc.PagingWindow;
 import scc.kube.dao.AuctionDao;
 import scc.kube.dao.BidDao;
 import scc.kube.dao.QuestionDao;
@@ -67,26 +68,7 @@ public class Redis {
     }
 
     public static HashMap<ObjectId, AuctionDao> getAuctionMany(Jedis jedis, List<ObjectId> auctionIds) {
-        var auctionResponses = new HashMap<ObjectId, Response<String>>();
-        try (var pipeline = jedis.pipelined()) {
-            for (var auctionId : auctionIds) {
-                var key = PREFIX_AUCTION + auctionId;
-                auctionResponses.put(auctionId, pipeline.get(key));
-            }
-        }
-
-        var auctions = new HashMap<ObjectId, AuctionDao>();
-        for (var entry : auctionResponses.entrySet()) {
-            var auctionId = entry.getKey();
-            var auctionResponse = entry.getValue();
-            if (auctionResponse == null)
-                continue;
-            var auctionDao = stringToDao(auctionResponse.get(), AuctionDao.class);
-            if (auctionDao != null)
-                auctions.put(auctionId, auctionDao);
-        }
-
-        return auctions;
+        return getDaoMany(jedis, PREFIX_AUCTION, auctionIds, AuctionDao.class);
     }
 
     public static void pushAuctionBid(Jedis jedis, ObjectId auctionId, ObjectId bidId) {
@@ -104,6 +86,19 @@ public class Redis {
         if (bidIds.size() < limit)
             return null;
         return bidIds;
+    }
+
+    public static void setAuctionTopBid(Jedis jedis, ObjectId auctionId, ObjectId bidId) {
+        var key = PREFIX_TOP_BID + auctionId;
+        jedis.set(key, bidId.toHexString());
+    }
+
+    public static ObjectId getAuctionTopBid(Jedis jedis, ObjectId auctionId) {
+        var key = PREFIX_TOP_BID + auctionId;
+        var bidId = jedis.get(key);
+        if (bidId == null)
+            return null;
+        return new ObjectId(bidId);
     }
 
     /* ------------------------- Bid ------------------------- */
@@ -124,26 +119,7 @@ public class Redis {
     }
 
     public static HashMap<ObjectId, BidDao> getBidMany(Jedis jedis, List<ObjectId> bidIds) {
-        var bidResponses = new HashMap<ObjectId, Response<String>>(bidIds.size());
-        try (var pipeline = jedis.pipelined()) {
-            for (var bidId : bidIds) {
-                var key = PREFIX_BID + bidId;
-                var response = pipeline.get(key);
-                bidResponses.put(bidId, response);
-            }
-        }
-
-        var bidDaos = new HashMap<ObjectId, BidDao>(bidIds.size());
-        for (var entry : bidResponses.entrySet()) {
-            var bidId = entry.getKey();
-            var response = entry.getValue();
-            if (response.get() == null)
-                continue;
-            var bidDao = stringToDao(response.get(), BidDao.class);
-            bidDaos.put(bidId, bidDao);
-        }
-
-        return bidDaos;
+        return getDaoMany(jedis, PREFIX_BID, bidIds, BidDao.class);
     }
 
     /* ------------------------- Question ------------------------- */
@@ -161,6 +137,10 @@ public class Redis {
     public static QuestionDao getQuestion(Jedis jedis, ObjectId questionId) {
         var key = PREFIX_QUESTION + questionId;
         return getDao(jedis, key, QuestionDao.class);
+    }
+
+    public static HashMap<ObjectId, QuestionDao> getQuestionMany(Jedis jedis, List<ObjectId> questionIds) {
+        return getDaoMany(jedis, PREFIX_QUESTION, questionIds, QuestionDao.class);
     }
 
     /* ------------------------- User ------------------------- */
@@ -199,6 +179,27 @@ public class Redis {
         return auctionIds;
     }
 
+    public static void addUserFollowedAuction(Jedis jedis, ObjectId userId, ObjectId auctionId) {
+        addUserFollowedAuctions(jedis, userId, List.of(auctionId));
+    }
+
+    public static void addUserFollowedAuctions(Jedis jedis, ObjectId userId, List<ObjectId> auctionIds) {
+        try (var pipeline = jedis.pipelined()) {
+            for (var auctionId : auctionIds) {
+                var key = PREFIX_USER_FOLLOWED_AUCTIONS + userId;
+                jedis.sadd(key, auctionId.toString());
+                jedis.expire(key, TTL_DAO);
+            }
+        }
+    }
+
+    public static List<ObjectId> getUserFollowedAuctions(Jedis jedis, ObjectId userId) {
+        // TODO: use ordered set here
+        var key = PREFIX_USER_FOLLOWED_AUCTIONS + userId;
+        var auctionIds = jedis.smembers(key).stream().map(ObjectId::new).toList();
+        return auctionIds;
+    }
+
     /* ------------------------- Session ------------------------- */
 
     public static void setSession(Jedis jedis, ObjectId userId, String token) {
@@ -222,7 +223,7 @@ public class Redis {
         jedis.del(key);
     }
 
-    /* ------------------------- Session ------------------------- */
+    /* ------------------------- Internal ------------------------- */
 
     private static <T> String daoToString(T dao) {
         try {
@@ -266,5 +267,28 @@ public class Redis {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
+    }
+
+    private static <T> HashMap<ObjectId, T> getDaoMany(Jedis jedis, String prefix, List<ObjectId> ids, Class<T> clazz) {
+        var bidResponses = new HashMap<ObjectId, Response<String>>(ids.size());
+        try (var pipeline = jedis.pipelined()) {
+            for (var id : ids) {
+                var key = PREFIX_BID + id;
+                var response = pipeline.get(key);
+                bidResponses.put(id, response);
+            }
+        }
+
+        var daos = new HashMap<ObjectId, T>(ids.size());
+        for (var entry : bidResponses.entrySet()) {
+            var bidId = entry.getKey();
+            var response = entry.getValue();
+            if (response.get() == null)
+                continue;
+            var dao = stringToDao(response.get(), clazz);
+            daos.put(bidId, dao);
+        }
+
+        return daos;
     }
 }

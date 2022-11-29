@@ -12,6 +12,7 @@ import org.bson.types.ObjectId;
 
 import redis.clients.jedis.Jedis;
 import scc.AuctionStatus;
+import scc.PagingWindow;
 import scc.Result;
 import scc.ServiceError;
 import scc.SessionToken;
@@ -127,13 +128,9 @@ public class KubeData {
     }
 
     public AuctionItem auctionDaoToItem(AuctionDao auctionDao) {
-        // TODO: fix this
-        // + Add a set/getAuctionTopBid method to Redis
-        // + Add a set/getAuctionTopMany method to Redis
-        // + Add these methods to Mongo
-        // + ???
-        // + Profit
-        return auctionDaoToItem(auctionDao, Optional.empty());
+        var topBidId = Redis.getAuctionTopBid(this.jedis, auctionDao.id);
+        var topBid = topBidId == null ? Optional.<BidDao>empty() : this.getAuctionBid(auctionDao.id, topBidId);
+        return auctionDaoToItem(auctionDao, topBid);
     }
 
     public AuctionItem auctionDaoToItem(AuctionDao auctionDao, Optional<BidDao> highestBidDao) {
@@ -169,7 +166,28 @@ public class KubeData {
         if (this.config.isCachingEnabled())
             Redis.setBid(this.jedis, bidDao);
 
+        // This is always used, with caching or not
+        Redis.setAuctionTopBid(jedis, auctionId, bidDao.id);
+
         return Result.ok(bidDao);
+    }
+
+    public Optional<BidDao> getAuctionBid(ObjectId auctionId, ObjectId bidId) {
+        if (this.config.isCachingEnabled()) {
+            var bidDao = Redis.getBid(this.jedis, bidId);
+            if (bidDao != null)
+                return Optional.of(bidDao);
+        }
+
+        var result = this.mongo.getBid(auctionId, bidId);
+        if (result.isError())
+            return Optional.empty();
+
+        var bidDao = result.value();
+        if (this.config.isCachingEnabled())
+            Redis.setBid(this.jedis, bidDao);
+
+        return Optional.of(bidDao);
     }
 
     public BidItem bidDaoToItem(ObjectId auctionId, BidDao bidDao) {
@@ -205,6 +223,11 @@ public class KubeData {
             Redis.setQuestion(this.jedis, questionDao);
 
         return Result.ok(questionDao);
+    }
+
+    public Result<List<QuestionDao>, ServiceError> getAuctionQuestions(ObjectId auctionId, PagingWindow window) {
+        // TODO: maybe cache this?
+        return this.mongo.getAuctionQuestions(auctionId, window);
     }
 
     public QuestionItem questionDaoToItem(QuestionDao questionDao) {
@@ -312,6 +335,35 @@ public class KubeData {
         }
 
         return Result.ok(auctionDaos);
+    }
+
+    public Result<List<AuctionDao>, ServiceError> getAuctionsFollowedByUser(ObjectId userId) {
+        // Redis either stores all user followed auctions or none of them
+        if (this.config.isCachingEnabled()) {
+            var auctionIds = Redis.getUserFollowedAuctions(this.jedis, userId);
+            if (!auctionIds.isEmpty())
+                return this.getAuctionMany(auctionIds).map(map -> new ArrayList<>(map.values()));
+        }
+
+        var result = this.mongo.getUserBidIds(userId);
+        if (result.isError())
+            return Result.err(result);
+
+        var auctionIds = result.value();
+        if (auctionIds.isEmpty())
+            return Result.ok(List.of());
+
+        Redis.addUserFollowedAuctions(this.jedis, userId, auctionIds);
+
+        var auctionsResult = this.getAuctionMany(auctionIds);
+        if (auctionsResult.isError())
+            return Result.err(auctionsResult);
+
+        var auctions = new ArrayList<>(auctionsResult.value().values());
+        if (this.config.isCachingEnabled())
+            Redis.setAuctionMany(this.jedis, auctions);
+
+        return Result.ok(auctions);
     }
 
     public UserItem userDaoToItem(UserDao userDao) {
