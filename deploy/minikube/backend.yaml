@@ -1,180 +1,8 @@
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: scc-backend-mongodb
-spec:
-  selector:
-    matchLabels:
-      app: scc-backend-mongodb
-  strategy:
-    type: Recreate
-  template:
-    metadata:
-      labels:
-        app: scc-backend-mongodb
-    spec:
-      containers:
-        - name: scc-backend-mongodb
-          image: docker.io/mongo:5.0.14
-          resources:
-            limits:
-              memory: "1Gi"
-              cpu: "2"
-          ports:
-            - containerPort: 27017
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: scc-backend-mongodb
-spec:
-  selector:
-    app: scc-backend-mongodb
-  ports:
-    - port: 27017
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: scc-backend-mongodb-ld
-spec:
-  type: LoadBalancer
-  selector:
-    app: scc-backend-mongodb
-  ports:
-    - port: 27017
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: scc-backend-redis
-spec:
-  selector:
-    matchLabels:
-      app: scc-backend-redis
-  template:
-    metadata:
-      labels:
-        app: scc-backend-redis
-    spec:
-      containers:
-        - name: scc-backend-redis
-          image: docker.io/redis:7.0.5
-          resources:
-            limits:
-              memory: "512Mi"
-              cpu: "1"
-          ports:
-            - containerPort: 6379
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: scc-backend-redis
-spec:
-  selector:
-    app: scc-backend-redis
-  ports:
-    - port: 6379
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: scc-backend-redis-lb
-spec:
-  type: LoadBalancer
-  selector:
-    app: scc-backend-redis
-  ports:
-    - port: 6379
----
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: scc-rabbitmq-cmap
-data:
-  config: ""
-  plugins: |
-    [rabbitmq_management,rabbitmq_management_agent].
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: scc-rabbitmq-cmap-env
-data:
-  RABBITMQ_ENABLED_PLUGINS_FILE: /usr/local/configs/enabled_plugins
-  #RABBITMQ_CONFIG_FILE: /usr/local/configs/rabbitmq
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: scc-rabbitmq
-spec:
-  selector:
-    matchLabels:
-      app: scc-rabbitmq
-  template:
-    metadata:
-      labels:
-        app: scc-rabbitmq
-    spec:
-      containers:
-        - name: scc-rabbitmq
-          image: rabbitmq
-          resources:
-            limits:
-              memory: "1Gi"
-              cpu: "2"
-          ports:
-            - containerPort: 5672
-            - containerPort: 15672
-          volumeMounts:
-            - mountPath: /usr/local/configs
-              name: scc-rabbitmq-config-vol
-          envFrom:
-            - configMapRef:
-                name: scc-rabbitmq-cmap-env
-      volumes:
-        - name: scc-rabbitmq-config-vol
-          configMap:
-            name: scc-rabbitmq-cmap
-            items:
-              - key: config
-                path: rabbitmq.config
-              - key: plugins
-                path: enabled_plugins
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: scc-rabbitmq
-spec:
-  selector:
-    app: scc-rabbitmq
-  ports:
-    - port: 5672
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: scc-rabbitmq-lb
-spec:
-  selector:
-    app: scc-rabbitmq
-  type: LoadBalancer
-  ports:
-    - port: 5672
-      targetPort: 5672
-      name: rabbitmq
-    - port: 15672
-      targetPort: 15672
-      name: rabbitmq-management
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: scc-backend-app-cmap
+  name: scc-backend-cmap
 data:
   KUBE_CACHING_ENABLED: "true"
   KUBE_MEDIA_DATA_DIRECTORY: /var/data
@@ -186,6 +14,8 @@ data:
   KUBE_MONGO_USER_COLLECTION: users
   KUBE_REDIS_URL: scc-backend-redis
   KUBE_REDIS_PORT: "6379"
+  KUBE_RABBITMQ_HOST: "scc-rabbitmq"
+  KUBE_RABBITMQ_PORT: "5672"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -202,7 +32,7 @@ spec:
     spec:
       containers:
         - name: scc-backend-app
-          image: localhost:5000/scc-backend-app
+          image: git.d464.sh/diogo464/scc-backend-app
           resources:
             limits:
               memory: "2Gi"
@@ -211,7 +41,7 @@ spec:
             - containerPort: 8080
           envFrom:
             - configMapRef:
-                name: scc-backend-app-cmap
+                name: scc-backend-cmap
 ---
 apiVersion: v1
 kind: Service
@@ -223,3 +53,78 @@ spec:
     app: scc-backend-app
   ports:
     - port: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scc-worker-user-scrub
+spec:
+  selector:
+    matchLabels:
+      app: scc-worker-user-scrub
+  template:
+    metadata:
+      labels:
+        app: scc-worker-user-scrub
+    spec:
+      containers:
+        - name: scc-worker-user-scrub
+          image: git.d464.sh/diogo464/scc-worker
+          args: [scc.worker.UserScrub]
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          envFrom:
+            - configMapRef:
+                name: scc-backend-cmap
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scc-worker-auction-close
+spec:
+  selector:
+    matchLabels:
+      app: scc-worker-auction-close
+  template:
+    metadata:
+      labels:
+        app: scc-worker-auction-close
+    spec:
+      containers:
+        - name: scc-worker-auction-close
+          image: git.d464.sh/diogo464/scc-worker
+          args: [scc.worker.AuctionClose]
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          envFrom:
+            - configMapRef:
+                name: scc-backend-cmap
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scc-worker-auction-popularity
+spec:
+  selector:
+    matchLabels:
+      app: scc-worker-auction-popularity
+  template:
+    metadata:
+      labels:
+        app: scc-worker-auction-popularity
+    spec:
+      containers:
+        - name: scc-worker-auction-popularity
+          image: git.d464.sh/diogo464/scc-worker
+          args: [scc.worker.AuctionPopularity]
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          envFrom:
+            - configMapRef:
+                name: scc-backend-cmap

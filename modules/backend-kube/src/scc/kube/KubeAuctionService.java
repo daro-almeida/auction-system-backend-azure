@@ -30,11 +30,13 @@ public class KubeAuctionService implements AuctionService {
     private final KubeConfig config;
     private final JedisPool jedisPool;
     private final Mongo mongo;
+    private final Rabbitmq rabbitmq;
 
-    public KubeAuctionService(KubeConfig config, JedisPool jedisPool, Mongo mongo) {
+    public KubeAuctionService(KubeConfig config, JedisPool jedisPool, Mongo mongo, Rabbitmq rabbitmq) {
         this.config = config;
         this.jedisPool = jedisPool;
         this.mongo = mongo;
+        this.rabbitmq = rabbitmq;
     }
 
     @Override
@@ -159,6 +161,7 @@ public class KubeAuctionService implements AuctionService {
             if (createResult.isError())
                 return Result.err(createResult);
             bidDao = createResult.value();
+            this.rabbitmq.broadcastCreatedBid(auctionId, bidDao.id);
 
             var bidItem = data.bidDaoToItem(auctionId, bidDao);
             return Result.ok(bidItem);
@@ -291,11 +294,11 @@ public class KubeAuctionService implements AuctionService {
                 return Result.err(result);
 
             var auctionDaos = result.value();
-            var auctionItems = auctionDaos
+            var auctionItems = data.auctionDaoToItemMany(auctionDaos
                     .stream()
                     .filter(a -> a.status.equals(AuctionDao.Status.OPEN) || !open)
-                    .map(a -> data.auctionDaoToItem(a))
-                    .toList();
+                    .toList())
+                    .values().stream().toList();
 
             return Result.ok(auctionItems);
         }
@@ -314,27 +317,51 @@ public class KubeAuctionService implements AuctionService {
                 return Result.err(result);
 
             var auctionDaos = result.value();
-            var auctionItems = auctionDaos.stream().map(a -> data.auctionDaoToItem(a)).toList();
+            var auctionItems = data.auctionDaoToItemMany(auctionDaos).values().stream().toList();
             return Result.ok(auctionItems);
         }
     }
 
     @Override
     public Result<List<AuctionItem>, ServiceError> listAuctionsAboutToClose() {
-        // TODO Auto-generated method stub
-        return null;
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+            var result = data.getAuctionsSoonToClose();
+            if (result.isError())
+                return Result.err(result);
+
+            var auctionDaos = result.value();
+            var auctionItems = data.auctionDaoToItemMany(auctionDaos).values().stream().toList();
+            return Result.ok(auctionItems);
+        }
     }
 
     @Override
     public Result<List<AuctionItem>, ServiceError> listRecentAuctions() {
-        // TODO Auto-generated method stub
-        return null;
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+            var result = data.getRecentAuctions();
+            if (result.isError())
+                return Result.err(result);
+
+            var auctionDaos = result.value();
+            var auctionItems = data.auctionDaoToItemMany(auctionDaos).values().stream().toList();
+            return Result.ok(auctionItems);
+        }
     }
 
     @Override
     public Result<List<AuctionItem>, ServiceError> listPopularAuctions() {
-        // TODO Auto-generated method stub
-        return null;
+        try (var jedis = this.jedisPool.getResource()) {
+            var data = new KubeData(this.config, this.mongo, jedis);
+            var result = data.getPopularAuctions();
+            if (result.isError())
+                return Result.err(result);
+
+            var auctionDaos = result.value();
+            var auctionItems = data.auctionDaoToItemMany(auctionDaos).values().stream().toList();
+            return Result.ok(auctionItems);
+        }
     }
 
     @Override

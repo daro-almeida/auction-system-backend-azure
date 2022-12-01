@@ -1,6 +1,7 @@
 package scc.kube;
 
 import java.io.Closeable;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,12 +27,14 @@ import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Updates;
 
+import scc.AppLogic;
 import scc.PagingWindow;
 import scc.Result;
 import scc.ServiceError;
 import scc.kube.config.MongoConfig;
 import scc.kube.dao.AuctionDao;
 import scc.kube.dao.BidDao;
+import scc.kube.dao.ObjectIdDao;
 import scc.kube.dao.QuestionDao;
 import scc.kube.dao.UserDao;
 
@@ -155,13 +158,28 @@ public class Mongo implements Closeable {
 
     public Result<AuctionDao, ServiceError> closeAuction(ObjectId auctionId) {
         logger.fine("closeAuction: trying to close" + auctionId);
-        var updated = this.auctionCollection.findOneAndUpdate(Filters.eq("_id", auctionId),
-                Updates.set("state", AuctionDao.Status.CLOSED));
+        var updated = this.auctionCollection.findOneAndUpdate(
+                Filters.eq("_id", auctionId),
+                Updates.set("status", AuctionDao.Status.CLOSED.toString()));
         if (updated == null)
             return Result.err(ServiceError.AUCTION_NOT_FOUND);
         updated.status = AuctionDao.Status.CLOSED;
         logger.fine("closeAuction: closed " + updated);
         return Result.ok(updated);
+    }
+
+    /**
+     * Get all auctions that are currently open and should close before `before`.
+     * 
+     * @param before The time before which auctions should close.
+     * @return A list of auctions that are about to close.
+     */
+    public List<AuctionDao> getAuctionSoonToClose(LocalDateTime before) {
+        var filter = Filters.and(
+                Filters.eq("status", AuctionDao.Status.OPEN.toString()),
+                Filters.lt("close_time", before));
+        var projection = auctionDaoProjection();
+        return this.auctionCollection.find(filter).projection(projection).into(new ArrayList<AuctionDao>());
     }
 
     /* ------------------------- Bid ------------------------- */
@@ -194,10 +212,15 @@ public class Mongo implements Closeable {
         assert bidDao.createTime != null : "Bid create time must not be null";
 
         bidDao.id = new ObjectId();
-        var filter = new Document().append("$expr", new Document("$lt", Arrays.asList(
+        var filterLess = new Document().append("$expr", new Document("$lt", Arrays.asList(
                 new Document().append("$getField", new Document("field", "amount").append("input", new Document(
                         "$arrayElemAt", Arrays.asList("$bids", -1)))),
                 bidDao.amount)));
+
+        var filter = Filters.and(
+                Filters.eq("_id", auctionId),
+                Filters.or(filterLess, Filters.exists("bids", false)),
+                Filters.eq("status", AuctionDao.Status.OPEN.toString()));
 
         var updated = this.auctionCollection.findOneAndUpdate(filter, Updates.push("bids", bidDao));
         if (updated == null)
@@ -382,6 +405,37 @@ public class Mongo implements Closeable {
                 Aggregates.replaceRoot("$bids"));
         var bidIds = this.userCollection.aggregate(pipeline, ObjectId.class).into(new ArrayList<ObjectId>());
         return Result.ok(bidIds);
+    }
+
+    // Record with id's of all the documents that were modified by the update.
+    public record UserScrubeResult(List<ObjectId> auctionIds, List<ObjectId> bidIds, List<ObjectId> questionIds) {
+    }
+
+    public UserScrubeResult scrubUser(ObjectId userId) {
+        var idProjection = Projections.include("_id");
+
+        // Update auctions
+        var auctionFilter = Filters.eq("user_id", userId);
+        var auctionUpdate = Updates.set("user_id_display", AppLogic.DELETED_USER_ID);
+        var modifiedAuctionIds = this.auctionCollection.find(auctionFilter)
+                .projection(idProjection).into(new ArrayList<>())
+                .stream().map(a -> a.id).toList();
+        this.auctionCollection.updateMany(auctionFilter, auctionUpdate);
+
+        // Update bids
+        var modifiedBidIds = this.getUserBidIds(userId).value();
+        var bidFilter = Filters.in("bids._id", modifiedBidIds);
+        var bidUpdate = Updates.set("bids.$.user_id_display", AppLogic.DELETED_USER_ID);
+        this.auctionCollection.updateMany(bidFilter, bidUpdate);
+
+        // Update questions
+        var questionFilter = Filters.eq("user_id", userId);
+        var questionUpdate = Updates.set("user_id_display", AppLogic.DELETED_USER_ID);
+        var modifiedQuestions = this.questionCollection.find(questionFilter, ObjectIdDao.class).projection(idProjection)
+                .into(new ArrayList<>()).stream().map(dao -> dao.id).toList();
+        this.questionCollection.updateMany(questionFilter, questionUpdate);
+
+        return new UserScrubeResult(modifiedAuctionIds, modifiedBidIds, modifiedQuestions);
     }
 
     /* ------------------------- Internal ------------------------- */

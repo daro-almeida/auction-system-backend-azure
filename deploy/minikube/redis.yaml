@@ -1,0 +1,44 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scc-backend-redis
+spec:
+  selector:
+    matchLabels:
+      app: scc-backend-redis
+  template:
+    metadata:
+      labels:
+        app: scc-backend-redis
+    spec:
+      containers:
+        - name: scc-backend-redis
+          image: docker.io/redis:7.0.5
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "1"
+          ports:
+            - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scc-backend-redis
+spec:
+  selector:
+    app: scc-backend-redis
+  ports:
+    - port: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scc-backend-redis-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: scc-backend-redis
+  ports:
+    - port: 6379

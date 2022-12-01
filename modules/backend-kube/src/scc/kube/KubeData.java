@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -60,7 +62,7 @@ public class KubeData {
         return Result.ok(auctionDao);
     }
 
-    public Result<HashMap<ObjectId, AuctionDao>, ServiceError> getAuctionMany(List<ObjectId> auctionIds) {
+    public Result<Map<ObjectId, AuctionDao>, ServiceError> getAuctionMany(List<ObjectId> auctionIds) {
         var auctionDaos = new HashMap<ObjectId, AuctionDao>();
         var missingAuctionIds = new HashSet<>(auctionIds);
         if (this.config.isCachingEnabled()) {
@@ -91,6 +93,7 @@ public class KubeData {
             Redis.setAuction(this.jedis, auctionDao);
             Redis.pushUserAuction(jedis, auctionDao.userId, auctionDao.id);
         }
+        Redis.pushRecentAuction(jedis, auctionDao.id);
         return Result.ok(auctionDao);
     }
 
@@ -118,19 +121,49 @@ public class KubeData {
     }
 
     public Result<List<BidDao>, ServiceError> getAuctionBids(ObjectId auctionId, int skip, int limit) {
-        if (this.config.isCachingEnabled()) {
-            var bidIds = Redis.getAuctionBids(this.jedis, auctionId, skip, limit);
-            if (bidIds != null) {
+        // TODO: this could be cached
+        return this.mongo.getAuctionBids(auctionId, skip, limit);
+    }
 
-            }
-        }
-        return null;
+    public Result<List<AuctionDao>, ServiceError> getRecentAuctions() {
+        var auctionIds = Redis.getRecentAuctionIds(this.jedis);
+        var auctionDaosResult = this.getAuctionMany(auctionIds);
+        if (auctionDaosResult.isError())
+            return Result.err(auctionDaosResult);
+        var auctionDaos = auctionDaosResult.value();
+        return Result.ok(auctionIds.stream().map(auctionDaos::get).filter(Objects::nonNull).toList());
+    }
+
+    public Result<List<AuctionDao>, ServiceError> getAuctionsSoonToClose() {
+        var auctionIds = Redis.getSoonToCloseAuctionIds(this.jedis);
+        var auctionDaosResult = this.getAuctionMany(auctionIds);
+        if (auctionDaosResult.isError())
+            return Result.err(auctionDaosResult);
+        var auctionDaos = auctionDaosResult.value();
+        return Result.ok(auctionIds.stream().map(auctionDaos::get).filter(Objects::nonNull).toList());
+    }
+
+    public Result<List<AuctionDao>, ServiceError> getPopularAuctions() {
+        var auctionIds = Redis.getPopularAuctions(this.jedis);
+        var auctionDaosResult = this.getAuctionMany(auctionIds);
+        if (auctionDaosResult.isError())
+            return Result.err(auctionDaosResult);
+        var auctionDaos = auctionDaosResult.value();
+        return Result.ok(auctionIds.stream().map(auctionDaos::get).filter(Objects::nonNull).toList());
     }
 
     public AuctionItem auctionDaoToItem(AuctionDao auctionDao) {
         var topBidId = Redis.getAuctionTopBid(this.jedis, auctionDao.id);
         var topBid = topBidId == null ? Optional.<BidDao>empty() : this.getAuctionBid(auctionDao.id, topBidId);
         return auctionDaoToItem(auctionDao, topBid);
+    }
+
+    public Map<ObjectId, AuctionItem> auctionDaoToItemMany(List<AuctionDao> auctionDaos) {
+        // TODO: this can be improved later
+        var items = new HashMap<ObjectId, AuctionItem>();
+        for (var auctionDao : auctionDaos)
+            items.put(auctionDao.id, auctionDaoToItem(auctionDao));
+        return items;
     }
 
     public AuctionItem auctionDaoToItem(AuctionDao auctionDao, Optional<BidDao> highestBidDao) {

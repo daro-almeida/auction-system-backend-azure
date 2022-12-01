@@ -19,7 +19,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>scc-worker-user-delete</artifactId>
+            <artifactId>scc-worker-user</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>scc-worker-auction</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

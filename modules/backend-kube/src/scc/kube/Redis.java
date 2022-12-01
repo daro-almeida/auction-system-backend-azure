@@ -1,7 +1,9 @@
 package scc.kube;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.bson.types.ObjectId;
 
@@ -11,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Response;
+import scc.AppLogic;
 import scc.PagingWindow;
 import scc.kube.dao.AuctionDao;
 import scc.kube.dao.BidDao;
@@ -99,6 +102,23 @@ public class Redis {
         if (bidId == null)
             return null;
         return new ObjectId(bidId);
+    }
+
+    public static Map<ObjectId, ObjectId> getAuctionTopBidMany(Jedis jedis, Collection<ObjectId> auctionIds) {
+        var responses = new HashMap<ObjectId, Response<String>>();
+        try (var pipeline = jedis.pipelined()) {
+            for (var auctionId : auctionIds) {
+                var key = PREFIX_TOP_BID + auctionId;
+                responses.put(auctionId, pipeline.get(key));
+            }
+        }
+        var map = new HashMap<ObjectId, ObjectId>();
+        for (var entry : responses.entrySet()) {
+            var bidId = entry.getValue().get();
+            if (bidId != null)
+                map.put(entry.getKey(), new ObjectId(bidId));
+        }
+        return map;
     }
 
     /* ------------------------- Bid ------------------------- */
@@ -223,6 +243,57 @@ public class Redis {
         jedis.del(key);
     }
 
+    /*
+     * ------------------------- Recent Auction Tracking -------------------------
+     */
+
+    public static void pushRecentAuction(Jedis jedis, ObjectId auctionId) {
+        jedis.lpush(KEY_RECENT_AUCTIONS, auctionId.toHexString());
+        jedis.ltrim(KEY_RECENT_AUCTIONS, 0, AppLogic.MAX_RECENT_AUCTIONS - 1);
+    }
+
+    public static List<ObjectId> getRecentAuctionIds(Jedis jedis) {
+        var auctionIds = jedis.lrange(KEY_RECENT_AUCTIONS, 0, AppLogic.MAX_RECENT_AUCTIONS - 1)
+                .stream().map(ObjectId::new).toList();
+        return auctionIds;
+    }
+
+    /*
+     * ---------------------- Soon To Close Auction Tracking -------------------
+     */
+
+    public static void setSoonToCloseAuctions(Jedis jedis, List<ObjectId> auctionIds) {
+        jedis.del(KEY_AUCTIONS_ABOUNT_TO_CLOSE);
+        jedis.rpush(KEY_AUCTIONS_ABOUNT_TO_CLOSE, auctionIds.stream().map(ObjectId::toString).toArray(String[]::new));
+        jedis.expire(KEY_AUCTIONS_ABOUNT_TO_CLOSE, TTL_DAO);
+    }
+
+    public static List<ObjectId> getSoonToCloseAuctionIds(Jedis jedis) {
+        var auctionIds = jedis.lrange(KEY_AUCTIONS_ABOUNT_TO_CLOSE, 0, -1)
+                .stream().map(ObjectId::new).toList();
+        return auctionIds;
+    }
+
+    /*
+     * ----------------------- Auction Popularity Tracking -----------------------
+     */
+
+    public static List<ObjectId> getPopularAuctions(Jedis jedis) {
+        var key = KEY_POPULAR_AUCTIONS;
+        return jedis.lrange(key, 0, -1).stream().map(ObjectId::new).toList();
+    }
+
+    public static void updatePopularAuctions(Jedis jedis) {
+        var mostPopular = jedis.zrevrange(KEY_POPULAR_AUCTIONS_RANKING, 0, AppLogic.MAX_MOST_POPULAR_AUCTIONS);
+        if (mostPopular.size() > 0) {
+            jedis.lpush(KEY_POPULAR_AUCTIONS, mostPopular.toArray(new String[mostPopular.size()]));
+            jedis.ltrim(KEY_POPULAR_AUCTIONS, 0, AppLogic.MAX_MOST_POPULAR_AUCTIONS - 1);
+        }
+    }
+
+    public static void incrementPopularAuction(Jedis jedis, ObjectId auctionId) {
+        jedis.zincrby(KEY_POPULAR_AUCTIONS_RANKING, 1, auctionId.toHexString());
+    }
     /* ------------------------- Internal ------------------------- */
 
     private static <T> String daoToString(T dao) {

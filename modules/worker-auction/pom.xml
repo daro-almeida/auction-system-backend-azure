@@ -9,7 +9,7 @@
     <version>1.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>scc-worker-user-delete</artifactId>
+  <artifactId>scc-worker-auction</artifactId>
   <name>${project.artifactId}</name>
 
   <dependencies>
@@ -22,6 +22,11 @@
       <groupId>com.rabbitmq</groupId>
       <artifactId>amqp-client</artifactId>
       <version>5.16.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.mongodb</groupId>
+      <artifactId>mongo-java-driver</artifactId>
+      <version>3.12.11</version>
     </dependency>
   </dependencies>
 

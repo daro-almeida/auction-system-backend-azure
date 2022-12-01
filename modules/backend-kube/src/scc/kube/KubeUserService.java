@@ -18,11 +18,13 @@ public class KubeUserService implements UserService {
     private final KubeConfig config;
     private final JedisPool jedisPool;
     private final Mongo mongo;
+    private final Rabbitmq rabbitmq;
 
-    public KubeUserService(KubeConfig config, JedisPool jedisPool, Mongo mongo) {
+    public KubeUserService(KubeConfig config, JedisPool jedisPool, Mongo mongo, Rabbitmq rabbitmq) {
         this.config = config;
         this.jedisPool = jedisPool;
         this.mongo = mongo;
+        this.rabbitmq = rabbitmq;
     }
 
     @Override
@@ -82,6 +84,9 @@ public class KubeUserService implements UserService {
             var result = data.deactivateUser(userId);
             if (result.isError())
                 return Result.err(result);
+
+            this.rabbitmq.deleteUser(userId.toHexString());
+
             var userDao = result.value();
             var userItem = data.userDaoToItem(userDao);
             return Result.ok(userItem);

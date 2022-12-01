@@ -32,6 +32,13 @@ public class AppLogic {
     public static final Duration DURATION_ABOUT_TO_CLOSE_THRESHOLD = Duration.ofMinutes(5);
 
     /**
+     * Interval at which the auction popularity list is updated.
+     * The most popular auctions are updated with the most popular auctions from the
+     * list time window.
+     */
+    public static final Duration DURATION_UPDATE_AUCTION_POPULARITY = Duration.ofMinutes(1);
+
+    /**
      * The maximum number of auctions that can be returned by a search query.
      */
     public static final int MAX_AUCTION_QUERY_RESULTS = 20;

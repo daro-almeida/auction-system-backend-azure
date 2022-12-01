@@ -20,7 +20,8 @@
     <module>modules/backend</module>
     <module>modules/backend-app</module>
     <module>modules/backend-kube</module>
-    <module>modules/worker-user-delete</module>
+    <module>modules/worker-user</module>
+    <module>modules/worker-auction</module>
     <module>modules/worker-assembly</module>
   </modules>
 
