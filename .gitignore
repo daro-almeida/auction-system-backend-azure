@@ -51,3 +51,6 @@ __pycache__/
 *.fls
 *.log
 *.synctex.gz
+
+# random stuff
+/rabbitmq

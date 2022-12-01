@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>scc-backend-kube</name>
+	<name>scc-worker-user-delete</name>
 	<comment>NO_M2ECLIPSE_SUPPORT: Project files created with the maven-eclipse-plugin are not supported in M2Eclipse.</comment>
 	<projects>
+		<project>scc-backend-kube</project>
 		<project>scc-backend</project>
 	</projects>
 	<buildSpec>
@@ -23,7 +24,7 @@
 	</natures>
 	<filteredResources>
 		<filter>
-			<id>1669893266697</id>
+			<id>1669893266704</id>
 			<name></name>
 			<type>30</type>
 			<matcher>

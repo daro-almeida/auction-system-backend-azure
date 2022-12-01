@@ -16,11 +16,15 @@ public class KubeEnv {
     public static final String KUBE_REDIS_URL = "KUBE_REDIS_URL";
     public static final String KUBE_REDIS_PORT = "KUBE_REDIS_PORT";
 
+    public static final String KUBE_RABBITMQ_HOST = "KUBE_RABBITMQ_HOST";
+    public static final String KUBE_RABBITMQ_PORT = "KUBE_RABBITMQ_PORT";
+
     public static KubeConfig getKubeConfig() {
         return new KubeConfig(
                 getKubeMediaConfig(),
                 getMongoConfig(),
                 getRedisConfig(),
+                getRabbitmqConfig(),
                 getEnableCaching());
     }
 
@@ -42,6 +46,12 @@ public class KubeEnv {
         return new RedisConfig(
                 getEnvVar(KUBE_REDIS_URL),
                 Integer.parseInt(getEnvVar(KUBE_REDIS_PORT)));
+    }
+
+    public static RabbitmqConfig getRabbitmqConfig() {
+        return new RabbitmqConfig(
+                getEnvVar(KUBE_RABBITMQ_HOST),
+                Integer.parseInt(getEnvVar(KUBE_RABBITMQ_PORT)));
     }
 
     public static boolean getEnableCaching() {

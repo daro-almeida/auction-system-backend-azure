@@ -4,16 +4,19 @@ public class KubeConfig {
     private final KubeMediaConfig mediaConfig;
     private final MongoConfig mongoConfig;
     private final RedisConfig redisConfig;
+    private final RabbitmqConfig rabbitmqConfig;
     private final boolean enableCaching;
 
     public KubeConfig(
             KubeMediaConfig mediaConfig,
             MongoConfig mongoConfig,
             RedisConfig redisConfig,
+            RabbitmqConfig rabbitmqConfig,
             boolean enableCaching) {
         this.mediaConfig = mediaConfig;
         this.mongoConfig = mongoConfig;
         this.redisConfig = redisConfig;
+        this.rabbitmqConfig = rabbitmqConfig;
         this.enableCaching = enableCaching;
     }
 
@@ -29,6 +32,10 @@ public class KubeConfig {
         return redisConfig;
     }
 
+    public RabbitmqConfig getRabbitmqConfig() {
+        return rabbitmqConfig;
+    }
+
     public boolean isCachingEnabled() {
         return enableCaching;
     }
@@ -36,7 +43,7 @@ public class KubeConfig {
     @Override
     public String toString() {
         return "KubeConfig [mediaConfig=" + mediaConfig + ", mongoConfig=" + mongoConfig + ", redisConfig="
-                + redisConfig + ", enableCaching=" + enableCaching + "]";
+                + redisConfig + ", rabbitmqConfig=" + rabbitmqConfig + ", enableCaching=" + enableCaching + "]";
     }
 
 }
