@@ -39,7 +39,7 @@ import scc.rest.dto.UserDTO;
 public class UserResource {
     private static final Logger logger = Logger.getLogger(UserResource.class.toString());
 
-    private static final String USER_ID = "userId";
+    private static final String USER_NAME = "userId";
 
     private final UserService service;
     private final AuctionService auctionService;
@@ -52,10 +52,10 @@ public class UserResource {
     }
 
     @GET
-    @Path("/{" + USER_ID + "}")
+    @Path("/{" + USER_NAME + "}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public UserDTO getUser(@PathParam(USER_ID) String id) {
+    public UserDTO getUser(@PathParam(USER_NAME) String id) {
         logger.fine("GET /user/" + id);
 
         if (id == null)
@@ -182,9 +182,9 @@ public class UserResource {
      *                       application
      */
     @PATCH
-    @Path("/{" + USER_ID + "}")
+    @Path("/{" + USER_NAME + "}")
     @Consumes(MediaType.APPLICATION_JSON)
-    public void updateUser(@PathParam(USER_ID) String id,
+    public void updateUser(@PathParam(USER_NAME) String id,
             UpdateUserRequest request,
             @CookieParam(SESSION_COOKIE) Cookie authentication) {
         logger.fine("PATCH /user/" + id + " " + request);
@@ -217,8 +217,8 @@ public class UserResource {
      *                       application
      */
     @DELETE
-    @Path("/{" + USER_ID + "}")
-    public void deleteUser(@PathParam(USER_ID) String id,
+    @Path("/{" + USER_NAME + "}")
+    public void deleteUser(@PathParam(USER_NAME) String id,
             @CookieParam(SESSION_COOKIE) Cookie authentication) {
         logger.fine("DELETE /user/" + id);
         if (id == null)
@@ -234,10 +234,10 @@ public class UserResource {
     }
 
     @GET
-    @Path("/{" + USER_ID + "}/auctions")
+    @Path("/{" + USER_NAME + "}/auctions")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public List<AuctionDTO> getUserAuctions(@PathParam(USER_ID) String id, @QueryParam("status") String status) {
+    public List<AuctionDTO> getUserAuctions(@PathParam(USER_NAME) String id, @QueryParam("status") String status) {
         logger.fine("GET /user/" + id + "/auctions");
 
         if (id == null)
@@ -255,10 +255,10 @@ public class UserResource {
     }
 
     @GET
-    @Path("/{" + USER_ID + "}/following")
+    @Path("/{" + USER_NAME + "}/following")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public List<AuctionDTO> getUserFollowing(@PathParam(USER_ID) String id) {
+    public List<AuctionDTO> getUserFollowing(@PathParam(USER_NAME) String id) {
         logger.fine("GET /user/" + id + "/following");
 
         if (id == null)

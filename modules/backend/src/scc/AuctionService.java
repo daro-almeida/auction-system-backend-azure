@@ -77,7 +77,7 @@ public interface AuctionService {
          * @param limit     the maximum number of bids to return
          * @return the bids for the auction with the given id
          */
-        Result<List<BidItem>, ServiceError> listAuctionBids(String auctionId, int skip, int limit);
+        Result<List<BidItem>, ServiceError> listAuctionBids(String auctionId, PagingWindow window);
 
         record CreateQuestionParams(
                         String auctionId,

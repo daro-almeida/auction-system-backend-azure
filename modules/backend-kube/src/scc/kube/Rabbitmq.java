@@ -17,11 +17,21 @@ public class Rabbitmq implements AutoCloseable {
             ObjectId bidId) {
     }
 
+    public static record CreatedAuction(
+            ObjectId auctionId) {
+    }
+
     public static final String ROUTING_KEY_USER_DELETE = "user-delete";
     public static final String ROUTING_KEY_AUCTION_CLOSE = "auction-close";
+
+    // Broadcast creation of bids
     public static final String EXCHANGE_BROADCAST_BIDS = "broadcast-bids";
+    // Broadcast creation of auctions
+    public static final String EXCHANGE_BROADCAST_AUCTIONS = "broadcast-auctions";
 
     private final Connection connection;
+    // TODO: this is wrong, we should have a channel per thread
+    // we should probably create one per request
     private final Channel channel;
 
     public Rabbitmq(RabbitmqConfig config) throws IOException, TimeoutException {
@@ -72,6 +82,16 @@ public class Rabbitmq implements AutoCloseable {
         }
     }
 
+    public void broadcastCreatedAuction(ObjectId auctionId) {
+        try {
+            var createdAuction = new CreatedAuction(auctionId);
+            var messageContent = KubeSerde.toJson(createdAuction);
+            channel.basicPublish(EXCHANGE_BROADCAST_AUCTIONS, "", null, messageContent.getBytes());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public void close() throws Exception {
         this.channel.close();
@@ -97,9 +117,14 @@ public class Rabbitmq implements AutoCloseable {
         channel.exchangeDeclare(EXCHANGE_BROADCAST_BIDS, "fanout");
     }
 
+    public static void declareBroadcastAuctionsExchange(Channel channel) throws IOException {
+        channel.exchangeDeclare(EXCHANGE_BROADCAST_AUCTIONS, "fanout");
+    }
+
     private static void declare(Channel channel) throws IOException {
         declareUserDeleteQueue(channel);
         declareAuctionCloseQueue(channel);
         declareBroadcastBidsExchange(channel);
+        declareBroadcastAuctionsExchange(channel);
     }
 }

@@ -14,7 +14,7 @@ data:
   KUBE_MONGO_USER_COLLECTION: users
   KUBE_REDIS_URL: scc-redis
   KUBE_REDIS_PORT: "6379"
-  KUBE_RABBITMQ_HOST: "scc-rabbitmq"
+  KUBE_RABBITMQ_HOST: scc-rabbitmq
   KUBE_RABBITMQ_PORT: "5672"
 ---
 apiVersion: apps/v1
@@ -35,8 +35,8 @@ spec:
           image: git.d464.sh/diogo464/scc-backend
           resources:
             limits:
-              memory: "2Gi"
-              cpu: "4"
+              memory: "1Gi"
+              cpu: "500m"
           ports:
             - containerPort: 8080
           envFrom:
@@ -73,8 +73,8 @@ spec:
           args: [scc.worker.UserScrub]
           resources:
             limits:
-              memory: "512Mi"
-              cpu: "500m"
+              memory: "128Mi"
+              cpu: "80m"
           envFrom:
             - configMapRef:
                 name: scc-backend-cmap
@@ -98,8 +98,8 @@ spec:
           args: [scc.worker.AuctionClose]
           resources:
             limits:
-              memory: "512Mi"
-              cpu: "500m"
+              memory: "128Mi"
+              cpu: "80m"
           envFrom:
             - configMapRef:
                 name: scc-backend-cmap
@@ -123,8 +123,8 @@ spec:
           args: [scc.worker.AuctionPopularity]
           resources:
             limits:
-              memory: "512Mi"
-              cpu: "500m"
+              memory: "128Mi"
+              cpu: "50m"
           envFrom:
             - configMapRef:
                 name: scc-backend-cmap

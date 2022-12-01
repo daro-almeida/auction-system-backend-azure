@@ -26,37 +26,37 @@ public interface UserService {
     /**
      * Gets the user with the given id.
      * 
-     * @param userId the id of the user to get
+     * @param username the id of the user to get
      * @return the user with the given id
      */
-    Result<UserItem, ServiceError> getUser(String userId);
+    Result<UserItem, ServiceError> getUser(String username);
 
     /**
      * Deletes the user with the given id.
      * 
-     * @param token  the session token of the user
-     * @param userId the id of the user to delete
+     * @param token    the session token of the user
+     * @param username the id of the user to delete
      * @return The deleted user
      */
-    Result<UserItem, ServiceError> deleteUser(SessionToken token, String userId);
+    Result<UserItem, ServiceError> deleteUser(SessionToken token, String username);
 
     /**
      * Updates the user with the given id.
      * 
-     * @param token  the session token of the user
-     * @param userId the id of the user to update
-     * @param ops    the operations to perform
+     * @param token    the session token of the user
+     * @param username the id of the user to update
+     * @param ops      the operations to perform
      * @return the updated user
      */
-    Result<UserItem, ServiceError> updateUser(SessionToken token, String userId, UpdateUserOps ops);
+    Result<UserItem, ServiceError> updateUser(SessionToken token, String username, UpdateUserOps ops);
 
     /**
      * Authenticates the user with the given id and password.
      * Previous session tokens are invalidated.
      * 
-     * @param userId   the id of the user to authenticate
+     * @param username the id of the user to authenticate
      * @param password the password of the user to authenticate
      * @return the session token of the authenticated user
      */
-    Result<SessionToken, ServiceError> authenticateUser(String userId, String password);
+    Result<SessionToken, ServiceError> authenticateUser(String username, String password);
 }

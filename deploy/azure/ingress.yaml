@@ -1,0 +1,19 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: scc-backend-ingress
+  annotations:
+    kubernetes.io/ingress.class: addon-http-application-routing
+spec:
+  rules:
+  - host: scc.f96b58a6b7224d59b3af.westeurope.aksapp.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service: 
+            name: scc-backend
+            port: 
+              number: 8080

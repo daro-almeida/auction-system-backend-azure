@@ -1,0 +1,66 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scc-rabbitmq-cmap
+data:
+  config: ""
+  plugins: |
+    [rabbitmq_management,rabbitmq_management_agent].
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scc-rabbitmq-cmap-env
+data:
+  RABBITMQ_ENABLED_PLUGINS_FILE: /usr/local/configs/enabled_plugins
+  #RABBITMQ_CONFIG_FILE: /usr/local/configs/rabbitmq
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scc-rabbitmq
+spec:
+  selector:
+    matchLabels:
+      app: scc-rabbitmq
+  template:
+    metadata:
+      labels:
+        app: scc-rabbitmq
+    spec:
+      containers:
+        - name: scc-rabbitmq
+          image: rabbitmq
+          resources:
+            limits:
+              memory: "196Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 5672
+            - containerPort: 15672
+          volumeMounts:
+            - mountPath: /usr/local/configs
+              name: scc-rabbitmq-config-vol
+          envFrom:
+            - configMapRef:
+                name: scc-rabbitmq-cmap-env
+      volumes:
+        - name: scc-rabbitmq-config-vol
+          configMap:
+            name: scc-rabbitmq-cmap
+            items:
+              - key: config
+                path: rabbitmq.config
+              - key: plugins
+                path: enabled_plugins
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scc-rabbitmq
+spec:
+  selector:
+    app: scc-rabbitmq
+  ports:
+    - port: 5672

@@ -235,12 +235,12 @@ public class Mongo implements Closeable {
         return Result.ok(bidDao);
     }
 
-    public Result<List<BidDao>, ServiceError> getAuctionBids(ObjectId auctionId, int skip, int limit) {
+    public Result<List<BidDao>, ServiceError> getAuctionBids(ObjectId auctionId, PagingWindow window) {
         var aggregation = List.of(
                 Aggregates.match(Filters.eq("_id", auctionId)),
-                Aggregates.unwind("bids"),
-                Aggregates.skip(skip),
-                Aggregates.limit(limit));
+                Aggregates.unwind("$bids"),
+                Aggregates.skip(window.skip),
+                Aggregates.limit(window.limit));
         var bids = this.auctionCollection.aggregate(aggregation, BidDao.class).into(new ArrayList<BidDao>());
         return Result.ok(bids);
     }
@@ -248,7 +248,7 @@ public class Mongo implements Closeable {
     public Result<List<BidDao>, ServiceError> getAuctionBidsFiltered(ObjectId auctionId, List<ObjectId> bidids) {
         var aggregation = List.of(
                 Aggregates.match(Filters.eq("_id", auctionId)),
-                Aggregates.unwind("bids"),
+                Aggregates.unwind("$bids"),
                 Aggregates.match(Filters.in("_id", bidids)));
         var bids = this.auctionCollection.aggregate(aggregation, BidDao.class).into(new ArrayList<BidDao>());
         return Result.ok(bids);

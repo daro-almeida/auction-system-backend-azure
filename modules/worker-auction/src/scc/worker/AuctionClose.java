@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
 import java.util.TreeMap;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
@@ -11,24 +13,42 @@ import java.util.logging.Logger;
 
 import org.bson.types.ObjectId;
 
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
 
 import scc.kube.Kube;
 import scc.kube.KubeData;
+import scc.kube.KubeSerde;
 import scc.kube.Mongo;
 import scc.kube.Rabbitmq;
 import scc.kube.config.KubeEnv;
+import scc.kube.dao.AuctionDao;
 
 public class AuctionClose {
     private static final Logger logger = Logger.getLogger(AuctionClose.class.getName());
 
-    public static void main(String[] args) throws IOException, TimeoutException {
-        Logger rootLog = Logger.getLogger("");
-        rootLog.setLevel(Level.INFO);
-        rootLog.getHandlers()[0].setLevel(Level.INFO);
+    // How often to lookup for auctions that are about to close
+    static final Duration LOOKUP_INTERVAL = Duration.ofMinutes(2);
+    // How long before an auction closes to queue it in the worker
+    static final Duration CLOSE_THRESHOLD = Duration.ofMinutes(5);
 
+    public static void main(String[] args) {
+        try {
+            Logger rootLog = Logger.getLogger("");
+            rootLog.setLevel(Level.INFO);
+            rootLog.getHandlers()[0].setLevel(Level.INFO);
+            run();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    private static void run() throws IOException, TimeoutException {
         var kubeConfig = KubeEnv.getKubeConfig();
         var rabbitConfig = KubeEnv.getRabbitmqConfig();
         var mongoConfig = KubeEnv.getMongoConfig();
@@ -44,6 +64,19 @@ public class AuctionClose {
             var channel = connection.createChannel();
             var rabbitmq = new Rabbitmq(connection, channel);
             new Thread(new CloseAuctionWorker(mongo, rabbitmq)).start();
+        }
+
+        {
+            logger.info("Spawning auction create consumer");
+            var channel = connection.createChannel();
+            Rabbitmq.declareBroadcastAuctionsExchange(channel);
+            var rabbitmq = new Rabbitmq(connection, connection.createChannel());
+            var queue = channel.queueDeclare(Rabbitmq.EXCHANGE_BROADCAST_AUCTIONS, false, true, true, null).getQueue();
+            channel.queueBind(queue, Rabbitmq.EXCHANGE_BROADCAST_AUCTIONS, "");
+            var callback = new CloseAuctionWatcher(mongo, rabbitmq);
+            channel.basicQos(1);
+            channel.basicConsume(queue, true, callback, consumerTag -> {
+            });
         }
 
         {
@@ -92,11 +125,6 @@ class CloseAuctionCallback implements DeliverCallback {
 class CloseAuctionWorker implements Runnable {
     private static final Logger logger = Logger.getLogger(CloseAuctionWorker.class.getName());
 
-    // How often to lookup for auctions that are about to close
-    private static final Duration LOOKUP_INTERVAL = Duration.ofSeconds(2);
-    // How long before an auction closes to queue it in the worker
-    private static final Duration CLOSE_THRESHOLD = Duration.ofMinutes(5);
-
     private final Mongo mongo;
     private final Rabbitmq rabbitmq;
 
@@ -120,14 +148,14 @@ class CloseAuctionWorker implements Runnable {
 
             // Find auctions that are about to close
             if (Instant.now().isAfter(nextLookup)) {
-                var closingBefore = LocalDateTime.now().plus(CLOSE_THRESHOLD);
+                var closingBefore = LocalDateTime.now().plus(AuctionClose.CLOSE_THRESHOLD);
                 var soonToClose = this.mongo.getAuctionSoonToClose(closingBefore);
                 for (var auction : soonToClose) {
                     var ttc = Duration.between(LocalDateTime.now(), auction.closeTime);
                     pending.put(auction.id, Instant.now().plus(ttc));
                     logger.info("Found auction " + auction.id + " closing in " + ttc);
                 }
-                nextLookup = Instant.now().plus(LOOKUP_INTERVAL);
+                nextLookup = Instant.now().plus(AuctionClose.LOOKUP_INTERVAL);
             }
 
             { // Setup next sleep
@@ -139,7 +167,6 @@ class CloseAuctionWorker implements Runnable {
                 sleep(minDuration);
             }
         }
-
     }
 
     private static void sleep(Duration duration) {
@@ -152,4 +179,50 @@ class CloseAuctionWorker implements Runnable {
             e.printStackTrace();
         }
     }
+}
+
+// Watch the created auctions exchange and queue auctions with short duration
+// times.
+class CloseAuctionWatcher implements DeliverCallback {
+    private static final Logger logger = Logger.getLogger(CloseAuctionWatcher.class.getName());
+
+    private final Mongo mongo;
+    private final Rabbitmq rabbitmq;
+
+    public CloseAuctionWatcher(Mongo mongo, Rabbitmq rabbitmq) {
+        this.mongo = mongo;
+        this.rabbitmq = rabbitmq;
+    }
+
+    @Override
+    public void handle(String consumerTag, Delivery message) throws IOException {
+        try {
+            var createdAuction = KubeSerde.fromJson(message.getBody(), Rabbitmq.CreatedAuction.class);
+            handleCreated(createdAuction.auctionId());
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.severe("Failed to handle created auction");
+        }
+    }
+
+    private void handleCreated(ObjectId auctionId) {
+        var auctionDao = this.mongo.getAuction(auctionId).value();
+        var ttc = Duration.between(LocalDateTime.now(ZoneOffset.UTC), auctionDao.closeTime);
+        if (ttc.compareTo(AuctionClose.CLOSE_THRESHOLD) < 0) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (ttc.toMillis() > 0)
+                            Thread.sleep(ttc.toMillis());
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    logger.info("Queueing auction " + auctionDao.id);
+                    rabbitmq.closeAuction(auctionDao.id.toHexString());
+                }
+            }).start();
+        }
+    }
+
 }

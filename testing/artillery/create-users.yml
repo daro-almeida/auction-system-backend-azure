@@ -1,6 +1,5 @@
 config:
-  # target: "https://scc-backend-d464.azurewebsites.net/rest"
-  target: "https://scc-backend-d464-centralus.azurewebsites.net/rest"
+  target: "http://scc.f96b58a6b7224d59b3af.westeurope.aksapp.io/rest"
   # target: "http://localhost:8080/rest"
   http:
     timeout: 30

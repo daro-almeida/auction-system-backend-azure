@@ -72,8 +72,9 @@ public class KubeAuctionService implements AuctionService {
             var createResult = data.createAuction(auctionDao);
             if (createResult.isError())
                 return Result.err(createResult);
-
             auctionDao = createResult.value();
+
+            this.rabbitmq.broadcastCreatedAuction(auctionDao.id);
             var auctionItem = data.auctionDaoToItem(auctionDao, Optional.empty());
 
             return Result.ok(auctionItem);
@@ -169,14 +170,14 @@ public class KubeAuctionService implements AuctionService {
     }
 
     @Override
-    public Result<List<BidItem>, ServiceError> listAuctionBids(String auctionIdStr, int skip, int limit) {
+    public Result<List<BidItem>, ServiceError> listAuctionBids(String auctionIdStr, PagingWindow window) {
         if (!ObjectId.isValid(auctionIdStr))
             return Result.err(ServiceError.BAD_REQUEST);
         var auctionId = new ObjectId(auctionIdStr);
 
         try (var jedis = this.jedisPool.getResource()) {
             var data = new KubeData(this.config, this.mongo, jedis);
-            var result = data.getAuctionBids(auctionId, skip, limit);
+            var result = data.getAuctionBids(auctionId, window);
             if (result.isError())
                 return Result.err(result);
 
@@ -305,13 +306,13 @@ public class KubeAuctionService implements AuctionService {
     }
 
     @Override
-    public Result<List<AuctionItem>, ServiceError> listAuctionsFollowedByUser(String userIdStr) {
-        if (!ObjectId.isValid(userIdStr))
-            return Result.err(ServiceError.BAD_REQUEST);
-        var userId = new ObjectId(userIdStr);
-
+    public Result<List<AuctionItem>, ServiceError> listAuctionsFollowedByUser(String username) {
         try (var jedis = this.jedisPool.getResource()) {
             var data = new KubeData(this.config, this.mongo, jedis);
+            var userDaoResult = data.getUserByUsername(username);
+            if (userDaoResult.isError())
+                return Result.err(userDaoResult);
+            var userId = userDaoResult.value().id;
             var result = data.getAuctionsFollowedByUser(userId);
             if (result.isError())
                 return Result.err(result);

@@ -200,7 +200,7 @@ public class AuctionResource {
         if (auctionId == null)
             throw new BadRequestException("Auction id must be provided");
 
-        var result = this.service.listAuctionBids(auctionId, 0, 20);
+        var result = this.service.listAuctionBids(auctionId, new PagingWindow(0, 20));
         if (result.isError())
             ResourceUtils.throwError(result.error(), result.errorMessage());
 

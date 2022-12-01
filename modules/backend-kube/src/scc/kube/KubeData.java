@@ -120,9 +120,9 @@ public class KubeData {
         return Result.ok(auctionDao);
     }
 
-    public Result<List<BidDao>, ServiceError> getAuctionBids(ObjectId auctionId, int skip, int limit) {
+    public Result<List<BidDao>, ServiceError> getAuctionBids(ObjectId auctionId, PagingWindow window) {
         // TODO: this could be cached
-        return this.mongo.getAuctionBids(auctionId, skip, limit);
+        return this.mongo.getAuctionBids(auctionId, window);
     }
 
     public Result<List<AuctionDao>, ServiceError> getRecentAuctions() {
