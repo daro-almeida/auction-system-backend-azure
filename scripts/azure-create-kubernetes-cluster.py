@@ -2,7 +2,7 @@ import subprocess
 import lib.azure as azure
 
 
-def create_app():
+if __name__ == "__main__":
     subprocess.run(
         [
             "az",
@@ -15,7 +15,7 @@ def create_app():
             "--node-vm-size",
             "Standard_B2s",
             "--node-count",
-            "2",
+            "4",
             "--generate-ssh-keys",
             "--service-principal",
             "64c1c360-5bbd-45a8-8d11-543b18b4a2bc",
@@ -24,11 +24,10 @@ def create_app():
         ]
     )
 
-    subprocess.run(["kubectl", "apply", "-f", "../deploy/minikube"])
+    subprocess.run(["kubectl", "apply", "-f", "../deploy/backend.yaml"])
+    subprocess.run(["kubectl", "apply", "-f", "../deploy/mongo.yaml"])
+    subprocess.run(["kubectl", "apply", "-f", "../deploy/redis.yaml"])
+    subprocess.run(["kubectl", "apply", "-f", "../deploy/rabbitmq.yaml"])
+
     subprocess.run(["kubectl", "get", "services"])
-
-
-if __name__ == "__main__":
-    delete = False
-    # delete = True
-    create_app()
+    subprocess.run(["kubectl", "get", "pods"])
