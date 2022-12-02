@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import subprocess
 import lib.azure as azure
 
@@ -11,23 +13,29 @@ if __name__ == "__main__":
             "--resource-group",
             azure.RESOURCE_GROUP,
             "--name",
-            "scc-backend-app",
+            "scc",
             "--node-vm-size",
             "Standard_B2s",
             "--node-count",
-            "4",
+            "2",
+            "--enable-addons",
+            "http_application_routing",
             "--generate-ssh-keys",
-            "--service-principal",
-            "64c1c360-5bbd-45a8-8d11-543b18b4a2bc",
-            "--client-secret",
-            "_pa8Q~-tdl_wDO8KWzWLXicme1tlCCr2D9UtRcoK",
         ]
-    )
+    ).check_returncode()
 
-    subprocess.run(["kubectl", "apply", "-f", "../deploy/backend.yaml"])
-    subprocess.run(["kubectl", "apply", "-f", "../deploy/mongo.yaml"])
-    subprocess.run(["kubectl", "apply", "-f", "../deploy/redis.yaml"])
-    subprocess.run(["kubectl", "apply", "-f", "../deploy/rabbitmq.yaml"])
+    subprocess.run(
+        [
+            "az",
+            "aks",
+            "get-credentials",
+            "--resource-group",
+            azure.RESOURCE_GROUP,
+            "--name",
+            "scc",
+        ]
+    ).check_returncode()
 
-    subprocess.run(["kubectl", "get", "services"])
-    subprocess.run(["kubectl", "get", "pods"])
+    subprocess.run(["kubectl", "config", "use-context", "scc"]).check_returncode()
+
+    subprocess.run(["kubectl", "apply", "-f", "deploy/azure"]).check_returncode()
