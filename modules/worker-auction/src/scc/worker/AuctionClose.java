@@ -5,7 +5,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.TreeMap;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
@@ -13,9 +12,6 @@ import java.util.logging.Logger;
 
 import org.bson.types.ObjectId;
 
-import com.mongodb.client.model.Aggregates;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
@@ -26,7 +22,6 @@ import scc.kube.KubeSerde;
 import scc.kube.Mongo;
 import scc.kube.Rabbitmq;
 import scc.kube.config.KubeEnv;
-import scc.kube.dao.AuctionDao;
 
 public class AuctionClose {
     private static final Logger logger = Logger.getLogger(AuctionClose.class.getName());
