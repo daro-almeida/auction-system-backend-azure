@@ -31,14 +31,16 @@ public class Rabbitmq implements AutoCloseable {
     public static final String EXCHANGE_BROADCAST_AUCTIONS = "broadcast-auctions";
 
     private final Channel channel;
+    private final boolean shouldClose;
 
     public Rabbitmq(Connection connection) throws IOException, TimeoutException {
         this.channel = createChannelFromConnection(connection);
+        this.shouldClose = true;
     }
 
     public Rabbitmq(Channel channel) throws IOException {
         this.channel = channel;
-        declare(channel);
+        this.shouldClose = false;
     }
 
     /**
@@ -89,7 +91,8 @@ public class Rabbitmq implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        this.channel.close();
+        if (this.shouldClose)
+            this.channel.close();
     }
 
     @WithSpan
@@ -123,7 +126,7 @@ public class Rabbitmq implements AutoCloseable {
         channel.exchangeDeclare(EXCHANGE_BROADCAST_AUCTIONS, "fanout");
     }
 
-    private static void declare(Channel channel) throws IOException {
+    public static void declare(Channel channel) throws IOException {
         declareUserDeleteQueue(channel);
         declareAuctionCloseQueue(channel);
         declareBroadcastBidsExchange(channel);

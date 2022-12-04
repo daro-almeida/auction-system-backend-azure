@@ -233,8 +233,6 @@ public class KubeAuctionService implements AuctionService {
 
     @Override
     public void close() throws Exception {
-        this.auth.close();
-        this.rabbitmq.close();
     }
 
     private ObjectId auctionIdFromString(String auctionId) throws BadRequestException {
