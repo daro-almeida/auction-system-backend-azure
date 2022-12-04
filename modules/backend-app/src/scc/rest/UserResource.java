@@ -25,8 +25,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import scc.AuctionService;
 import scc.MediaId;
-import scc.MediaNamespace;
-import scc.MediaService;
+import scc.ServiceFactory;
 import scc.UpdateUserOps;
 import scc.UserService;
 import scc.rest.dto.AuctionDTO;
@@ -41,35 +40,30 @@ public class UserResource {
 
     private static final String USER_NAME = "userId";
 
-    private final UserService service;
-    private final AuctionService auctionService;
-    private final MediaService mediaService;
+    private final ServiceFactory<UserService> userFactory;
+    private final ServiceFactory<AuctionService> auctionFactory;
 
-    public UserResource(UserService service, AuctionService auctionService, MediaService mediaService) {
-        this.service = service;
-        this.auctionService = auctionService;
-        this.mediaService = mediaService;
+    public UserResource(ServiceFactory<UserService> userFactory, ServiceFactory<AuctionService> auctionService) {
+        this.userFactory = userFactory;
+        this.auctionFactory = auctionService;
     }
 
     @GET
     @Path("/{" + USER_NAME + "}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public UserDTO getUser(@PathParam(USER_NAME) String id) {
+    public UserDTO getUser(@PathParam(USER_NAME) String id) throws Exception {
         logger.fine("GET /user/" + id);
 
         if (id == null)
             throw new BadRequestException("User id cannot be null");
 
-        var result = this.service.getUser(id);
-        if (result.isError())
-            ResourceUtils.throwError(result.error(), result.errorMessage());
-
-        var userItem = result.value();
-        var userDto = UserDTO.from(userItem);
-        logger.fine("GET /user/" + id + " -> " + userDto);
-
-        return userDto;
+        try (var service = this.userFactory.createService()) {
+            var user = service.getUser(id);
+            var userDto = UserDTO.from(user);
+            logger.fine("GET /user/" + id + " -> " + userDto);
+            return userDto;
+        }
     }
 
     /**
@@ -79,7 +73,6 @@ public class UserResource {
             @JsonProperty(required = true) String id,
             @JsonProperty(required = true) String name,
             @JsonProperty(required = true) String pwd,
-            String photoBase64,
             String photoId) {
     }
 
@@ -100,25 +93,15 @@ public class UserResource {
     @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public CreateUserResponse createUser(CreateUserRequest request) {
+    public CreateUserResponse createUser(CreateUserRequest request) throws Exception {
         logger.fine("POST /user/ " + request);
-
-        if (request.photoBase64 != null && request.photoId != null)
-            throw new BadRequestException("Only one of photoBase64 and photoId should be provided");
 
         if (request.id == null || request.name == null || request.pwd == null)
             throw new BadRequestException("id, name and pwd are required");
 
         Optional<MediaId> photoId = Optional.empty();
-        if (request.photoBase64 != null) {
-            var content = ResourceUtils.decodeBase64(request.photoBase64);
-            var result = this.mediaService.uploadMedia(MediaNamespace.User, content);
-            if (result.isError())
-                ResourceUtils.throwError(result.error(), result.errorMessage());
-            photoId = Optional.of(result.value());
-        } else if (request.photoId != null) {
+        if (request.photoId != null)
             photoId = Optional.of(ResourceUtils.stringToMediaId(request.photoId));
-        }
 
         var createUserParams = new UserService.CreateUserParams(
                 request.id,
@@ -126,19 +109,16 @@ public class UserResource {
                 request.pwd,
                 photoId);
 
-        var result = this.service.createUser(createUserParams);
-        if (result.isError()) {
-            logger.warning("POST /user/ " + request + " -> " + result);
-            ResourceUtils.throwError(result.error(), result.errorMessage());
-        }
-        var userItem = result.value();
-        logger.fine("POST /user/ " + request + " -> " + userItem);
+        try (var service = this.userFactory.createService()) {
+            var user = service.createUser(createUserParams);
+            logger.fine("POST /user/ " + request + " -> " + user);
 
-        return new CreateUserResponse(
-                userItem.getId(),
-                userItem.getName(),
-                request.pwd,
-                userItem.getPhotoId().map(ResourceUtils::mediaIdToString).orElse(null));
+            return new CreateUserResponse(
+                    user.getId(),
+                    user.getName(),
+                    request.pwd,
+                    user.getPhotoId().map(ResourceUtils::mediaIdToString).orElse(null));
+        }
     }
 
     public static record AuthenticateUserRequest(
@@ -149,21 +129,19 @@ public class UserResource {
     @POST
     @Path("/auth")
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response authenticateUser(AuthenticateUserRequest request) {
+    public Response authenticateUser(AuthenticateUserRequest request) throws Exception {
         logger.fine("POST /user/auth " + request);
 
         if (request.user == null || request.pwd == null)
             throw new BadRequestException("user and pwd are required");
 
-        var result = this.service.authenticateUser(request.user, request.pwd);
-        if (result.isError())
-            ResourceUtils.throwError(result.error(), result.errorMessage());
+        try (var service = this.userFactory.createService()) {
+            var sessionToken = service.authenticateUser(request.user, request.pwd);
+            var cookie = ResourceUtils.createSessionCookie(sessionToken);
+            logger.fine("POST /user/auth " + request + " -> " + sessionToken);
 
-        var sessionToken = result.value();
-        var cookie = ResourceUtils.createSessionCookie(sessionToken);
-        logger.fine("POST /user/auth " + request + " -> " + sessionToken);
-
-        return Response.ok().cookie(cookie).build();
+            return Response.ok().cookie(cookie).build();
+        }
     }
 
     /**
@@ -186,27 +164,27 @@ public class UserResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public void updateUser(@PathParam(USER_NAME) String id,
             UpdateUserRequest request,
-            @CookieParam(SESSION_COOKIE) Cookie authentication) {
+            @CookieParam(SESSION_COOKIE) Cookie authentication) throws Exception {
         logger.fine("PATCH /user/" + id + " " + request);
         if (id == null)
             throw new BadRequestException("User id cannot be null");
 
-        var sessionToken = ResourceUtils.sessionTokenOrFail(authentication);
+        try (var service = this.userFactory.createService()) {
+            var sessionToken = ResourceUtils.sessionTokenOrFail(authentication);
 
-        var ops = new UpdateUserOps();
-        if (request.name != null)
-            ops.updateName(request.name);
-        if (request.pwd != null)
-            ops.updatePassword(request.pwd);
-        if (request.imageId != null) {
-            var mediaId = ResourceUtils.stringToMediaId(request.imageId);
-            ops.updateImage(mediaId);
+            var ops = new UpdateUserOps();
+            if (request.name != null)
+                ops.updateName(request.name);
+            if (request.pwd != null)
+                ops.updatePassword(request.pwd);
+            if (request.imageId != null) {
+                var mediaId = ResourceUtils.stringToMediaId(request.imageId);
+                ops.updateImage(mediaId);
+            }
+
+            logger.fine("PATCH /user/" + id + " " + request + " -> " + ops);
+            service.updateUser(sessionToken, id, ops);
         }
-
-        logger.fine("PATCH /user/" + id + " " + request + " -> " + ops);
-        var result = this.service.updateUser(sessionToken, id, ops);
-        if (result.isError())
-            ResourceUtils.throwError(result.error(), result.errorMessage());
     }
 
     /**
@@ -219,60 +197,54 @@ public class UserResource {
     @DELETE
     @Path("/{" + USER_NAME + "}")
     public void deleteUser(@PathParam(USER_NAME) String id,
-            @CookieParam(SESSION_COOKIE) Cookie authentication) {
+            @CookieParam(SESSION_COOKIE) Cookie authentication) throws Exception {
         logger.fine("DELETE /user/" + id);
         if (id == null)
             throw new BadRequestException("User id cannot be null");
 
         var sessionToken = ResourceUtils.sessionTokenOrFail(authentication);
 
-        var result = this.service.deleteUser(sessionToken, id);
-        if (result.isError())
-            ResourceUtils.throwError(result.error(), result.errorMessage());
-
-        logger.fine("DELETE /user/" + id + " -> " + result.value());
+        try (var service = this.userFactory.createService()) {
+            var user = service.deleteUser(sessionToken, id);
+            logger.fine("DELETE /user/" + id + " -> " + user);
+        }
     }
 
     @GET
     @Path("/{" + USER_NAME + "}/auctions")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public List<AuctionDTO> getUserAuctions(@PathParam(USER_NAME) String id, @QueryParam("status") String status) {
+    public List<AuctionDTO> getUserAuctions(@PathParam(USER_NAME) String id, @QueryParam("status") String status)
+            throws Exception {
         logger.fine("GET /user/" + id + "/auctions");
 
         if (id == null)
             throw new BadRequestException("User id cannot be null");
 
-        var result = this.auctionService.listUserAuctions(id, "OPEN".equals(status));
-        if (result.isError())
-            ResourceUtils.throwError(result.error(), result.errorMessage());
-
-        var auctions = result.value();
-        var auctionDaos = auctions.stream().map(AuctionDTO::from).collect(Collectors.toList());
-        logger.fine("GET /user/" + id + "/auctions -> " + auctionDaos);
-
-        return auctionDaos;
+        try (var service = this.auctionFactory.createService()) {
+            var auctions = service.listUserAuctions(id, "OPEN".equals(status));
+            var auctionDtos = auctions.stream().map(AuctionDTO::from).collect(Collectors.toList());
+            logger.fine("GET /user/" + id + "/auctions -> " + auctionDtos);
+            return auctionDtos;
+        }
     }
 
     @GET
     @Path("/{" + USER_NAME + "}/following")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public List<AuctionDTO> getUserFollowing(@PathParam(USER_NAME) String id) {
+    public List<AuctionDTO> getUserFollowing(@PathParam(USER_NAME) String id) throws Exception {
         logger.fine("GET /user/" + id + "/following");
 
         if (id == null)
             throw new BadRequestException("User id cannot be null");
 
-        var result = this.auctionService.listAuctionsFollowedByUser(id);
-        if (result.isError())
-            ResourceUtils.throwError(result.error(), result.errorMessage());
-
-        var auctions = result.value();
-        var auctionDaos = auctions.stream().map(AuctionDTO::from).collect(Collectors.toList());
-        logger.fine("GET /user/" + id + "/following -> " + auctionDaos);
-
-        return auctionDaos;
+        try (var service = this.auctionFactory.createService()) {
+            var auctions = service.listAuctionsFollowedByUser(id);
+            var auctionDaos = auctions.stream().map(AuctionDTO::from).collect(Collectors.toList());
+            logger.fine("GET /user/" + id + "/following -> " + auctionDaos);
+            return auctionDaos;
+        }
     }
 
 }

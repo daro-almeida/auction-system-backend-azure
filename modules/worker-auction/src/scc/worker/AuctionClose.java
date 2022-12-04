@@ -16,8 +16,9 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
 
+import scc.exception.AuctionNotFoundException;
 import scc.kube.Kube;
-import scc.kube.KubeData;
+import scc.kube.KubeRepo;
 import scc.kube.KubeSerde;
 import scc.kube.Mongo;
 import scc.kube.Rabbitmq;
@@ -44,28 +45,22 @@ public class AuctionClose {
     }
 
     private static void run() throws IOException, TimeoutException {
-        var kubeConfig = KubeEnv.getKubeConfig();
         var rabbitConfig = KubeEnv.getRabbitmqConfig();
         var mongoConfig = KubeEnv.getMongoConfig();
         var redisConfig = KubeEnv.getRedisConfig();
         var connection = Rabbitmq.createConnectionFromConfig(rabbitConfig);
-
         var mongo = new Mongo(mongoConfig);
-        var jedis = Kube.createJedis(redisConfig);
-        var data = new KubeData(kubeConfig, mongo, jedis);
 
         {
             logger.info("Spawning auction close worker");
-            var channel = connection.createChannel();
-            var rabbitmq = new Rabbitmq(connection, channel);
+            var rabbitmq = new Rabbitmq(connection);
             new Thread(new CloseAuctionWorker(mongo, rabbitmq)).start();
         }
 
         {
             logger.info("Spawning auction create consumer");
             var channel = connection.createChannel();
-            Rabbitmq.declareBroadcastAuctionsExchange(channel);
-            var rabbitmq = new Rabbitmq(connection, connection.createChannel());
+            var rabbitmq = new Rabbitmq(channel);
             var queue = channel.queueDeclare(Rabbitmq.EXCHANGE_BROADCAST_AUCTIONS, false, true, true, null).getQueue();
             channel.queueBind(queue, Rabbitmq.EXCHANGE_BROADCAST_AUCTIONS, "");
             var callback = new CloseAuctionWatcher(mongo, rabbitmq);
@@ -76,8 +71,10 @@ public class AuctionClose {
 
         {
             logger.info("Spawning auction close consumer");
+            var jedis = Kube.createJedis(redisConfig);
+            var repo = new KubeRepo(jedis, mongo);
             var channel = connection.createChannel();
-            var closeAuctionCallback = new CloseAuctionCallback(channel, data);
+            var closeAuctionCallback = new CloseAuctionCallback(channel, repo);
             Rabbitmq.declareAuctionCloseQueue(channel);
             channel.basicQos(1);
             channel.basicConsume(Rabbitmq.ROUTING_KEY_AUCTION_CLOSE, false, closeAuctionCallback, consumerTag -> {
@@ -90,11 +87,11 @@ class CloseAuctionCallback implements DeliverCallback {
     private static final Logger logger = Logger.getLogger(CloseAuctionCallback.class.getName());
 
     private final Channel channel;
-    private final KubeData data;
+    private final KubeRepo repo;
 
-    public CloseAuctionCallback(Channel channel, KubeData data) {
+    public CloseAuctionCallback(Channel channel, KubeRepo data) {
         this.channel = channel;
-        this.data = data;
+        this.repo = data;
     }
 
     @Override
@@ -103,7 +100,7 @@ class CloseAuctionCallback implements DeliverCallback {
             var auctionId = new ObjectId(new String(message.getBody()));
             logger.info("Closing auction " + auctionId);
 
-            var result = data.closeAuction(auctionId);
+            var result = repo.closeAuction(auctionId);
             logger.info("Closed auction " + auctionId + " with result " + result);
 
             channel.basicAck(message.getEnvelope().getDeliveryTag(), false);
@@ -200,8 +197,8 @@ class CloseAuctionWatcher implements DeliverCallback {
         }
     }
 
-    private void handleCreated(ObjectId auctionId) {
-        var auctionDao = this.mongo.getAuction(auctionId).value();
+    private void handleCreated(ObjectId auctionId) throws AuctionNotFoundException {
+        var auctionDao = this.mongo.getAuction(auctionId);
         var ttc = Duration.between(LocalDateTime.now(ZoneOffset.UTC), auctionDao.closeTime);
         if (ttc.compareTo(AuctionClose.CLOSE_THRESHOLD) < 0) {
             new Thread(new Runnable() {

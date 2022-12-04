@@ -28,7 +28,7 @@ public class KubeEnv {
                 getEnableCaching());
     }
 
-    private static KubeMediaConfig getKubeMediaConfig() {
+    public static KubeMediaConfig getKubeMediaConfig() {
         return new KubeMediaConfig(getEnvVar(KUBE_MEDIA_DATA_DIRECTORY));
     }
 

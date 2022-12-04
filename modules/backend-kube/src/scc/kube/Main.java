@@ -8,7 +8,8 @@ import scc.kube.config.KubeEnv;
 public class Main {
     public static void main(String[] args) throws IOException, InterruptedException, TimeoutException {
         var config = KubeEnv.getKubeConfig();
-        var rabbitmq = new Rabbitmq(config.getRabbitmqConfig());
+        var channel = Rabbitmq.createConnectionFromConfig(config.getRabbitmqConfig());
+        var rabbitmq = new Rabbitmq(channel);
         rabbitmq.deleteUser(args[0]);
     }
 }

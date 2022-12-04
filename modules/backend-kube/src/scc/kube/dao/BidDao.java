@@ -9,10 +9,11 @@ public class BidDao {
     public ObjectId id;
 
     @BsonProperty(value = "auction_id")
+    public ObjectId auctionId;
+
+    @BsonProperty(value = "user_id")
     public ObjectId userId;
 
-    @BsonProperty(value = "user_id_display")
-    public String userIdDisplay;
     public double amount;
 
     @BsonProperty(value = "create_time")

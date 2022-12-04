@@ -9,6 +9,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import scc.kube.config.RabbitmqConfig;
 
 public class Rabbitmq implements AutoCloseable {
@@ -29,21 +30,15 @@ public class Rabbitmq implements AutoCloseable {
     // Broadcast creation of auctions
     public static final String EXCHANGE_BROADCAST_AUCTIONS = "broadcast-auctions";
 
-    private final Connection connection;
-    // TODO: this is wrong, we should have a channel per thread
-    // we should probably create one per request
     private final Channel channel;
 
-    public Rabbitmq(RabbitmqConfig config) throws IOException, TimeoutException {
-        this.connection = createConnectionFromConfig(config);
-        this.channel = connection.createChannel();
-        declare(this.channel);
+    public Rabbitmq(Connection connection) throws IOException, TimeoutException {
+        this.channel = createChannelFromConnection(connection);
     }
 
-    public Rabbitmq(Connection connection, Channel channel) throws IOException {
-        this.connection = connection;
+    public Rabbitmq(Channel channel) throws IOException {
         this.channel = channel;
-        declare(this.channel);
+        declare(channel);
     }
 
     /**
@@ -95,14 +90,21 @@ public class Rabbitmq implements AutoCloseable {
     @Override
     public void close() throws Exception {
         this.channel.close();
-        this.connection.close();
     }
 
+    @WithSpan
     public static Connection createConnectionFromConfig(RabbitmqConfig config) throws IOException, TimeoutException {
         var factory = new ConnectionFactory();
         factory.setHost(config.host);
         factory.setPort(config.port);
         return factory.newConnection();
+    }
+
+    @WithSpan
+    public static Channel createChannelFromConnection(Connection connection) throws IOException {
+        var channel = connection.createChannel();
+        declare(channel);
+        return channel;
     }
 
     public static void declareUserDeleteQueue(Channel channel) throws IOException {

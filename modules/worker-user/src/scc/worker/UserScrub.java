@@ -3,8 +3,6 @@ package scc.worker;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
-import org.bson.types.ObjectId;
-
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
@@ -13,7 +11,6 @@ import redis.clients.jedis.Jedis;
 import scc.kube.Kube;
 import scc.kube.Mongo;
 import scc.kube.Rabbitmq;
-import scc.kube.Redis;
 import scc.kube.config.KubeEnv;
 
 /**
@@ -55,15 +52,5 @@ class DeleteUserCallback implements DeliverCallback {
     @Override
     public void handle(String consumerTag, Delivery message) throws IOException {
         System.out.println("Scrubbing user " + new String(message.getBody()));
-        var userId = new ObjectId(new String(message.getBody()));
-        var result = mongo.scrubUser(userId);
-
-        result.auctionIds().forEach(id -> Redis.unsetAuction(jedis, id));
-        result.bidIds().forEach(id -> Redis.unsetBid(jedis, id));
-        result.questionIds().forEach(id -> Redis.unsetQuestion(jedis, id));
-        System.out.println("%d auctions, %d bids, %d questions scrubbed".formatted(
-                result.auctionIds().size(), result.bidIds().size(), result.questionIds().size()));
-
-        this.channel.basicAck(message.getEnvelope().getDeliveryTag(), false);
     }
 }

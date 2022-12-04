@@ -1,12 +1,12 @@
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jakarta.ws.rs.core.Application;
-import scc.kube.KubeServiceFactory;
-import scc.kube.config.KubeEnv;
+import scc.kube.KubeServices;
 import scc.rest.AuctionResource;
 import scc.rest.ControlResource;
 import scc.rest.MediaResource;
@@ -18,7 +18,7 @@ public class MainApplication extends Application {
 	private final Set<Object> singletons = new HashSet<Object>();
 	private final Set<Class<?>> resources = new HashSet<Class<?>>();
 
-	public MainApplication() throws IOException {
+	public MainApplication() throws IOException, TimeoutException {
 		try {
 			assert true == false;
 			throw new RuntimeException("Enable assertions with flag '-ea'");
@@ -30,20 +30,19 @@ public class MainApplication extends Application {
 		rootLog.getHandlers()[0].setLevel(Level.FINE);
 
 		resources.add(ControlResource.class);
+		resources.add(ServiceExceptionMapper.class);
 		resources.add(GenericExceptionMapper.class);
 
-		var config = KubeEnv.getKubeConfig();
-		var factory = new KubeServiceFactory();
-		logger.info("Kube config: " + config);
+		var services = new KubeServices();
 
-		var mediaService = factory.createMediaService(config.getMediaConfig());
+		var mediaService = services.getMediaServiceFactory();
 		singletons.add(new MediaResource(mediaService));
 
-		var auctionService = factory.createAuctionService(config);
+		var auctionService = services.getAuctionServiceFactory();
 		singletons.add(new AuctionResource(auctionService));
 
-		var userService = factory.createUserService(config);
-		singletons.add(new UserResource(userService, auctionService, mediaService));
+		var userService = services.getUserServiceFactory();
+		singletons.add(new UserResource(userService, auctionService));
 
 	}
 

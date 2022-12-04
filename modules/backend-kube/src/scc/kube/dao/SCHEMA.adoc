@@ -9,7 +9,6 @@
     "description": "string",
     "image_id": "ImageId",
 	"user_id": "ObjectId",			// Indexed
-	"user_id_display": "string", 	// User's ID or 'deleted'
     "create_time": "DateTime",		// Indexed sort descend
     "close_time": "DateTime",		// Indexed sort descend
     "initial_price": "double",
@@ -17,12 +16,25 @@
     "bids": [
         {
             "_id": "ObjectId",				// Indexed
-            "user_id": "ObjectId",
-            "user_id_display": "string", 	// User's ID or 'deleted'
+            "auction_id": "ObjectId",
+            "user_id": "ObjectId",          // Indexed
             "amount": "double",
             "create_time": "DateTime"
         }
     ]
+}
+----
+
+.bid
+[source,json]
+----
+{
+    "_id": "ObjectId",
+    "auction_id": "ObjectId",       // Indexed
+    "user_id": "ObjectId",          // Indexed
+    "amount": "double",
+    "create_time": "DateTime"
+    // MultiIndex(auction_id, amount, descending)
 }
 ----
 
@@ -33,13 +45,12 @@
     "_id": "ObjectId",
     "auction_id": "ObjectId",		// Indexed
     "user_id": "ObjectId",			// Indexed
-    "user_id_display": "string", 	// User's ID or 'deleted'
     "question": "string",
     "create_time": "DateTime", 		// Indexed sort descend
     "reply" : { // Can be null if there is no reply
         "reply": "string",
         "create_time": "DateTime",
-        "user_display_id": "string", // User's ID or 'deleted'
+        "user_id": "ObjectId",
     }
 }
 ----
@@ -55,6 +66,5 @@
     "profile_image_id": "ImageId",
     "status": "ACTIVE" | "INACTIVE",
     "create_time": "DateTime",
-    "created_bids": "[ObjectId]" 		// List of bids created by the user
 }
 ----

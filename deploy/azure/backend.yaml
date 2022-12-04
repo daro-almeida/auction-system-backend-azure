@@ -15,6 +15,7 @@ data:
   KUBE_REDIS_URL: scc-redis
   KUBE_REDIS_PORT: "6379"
   KUBE_RABBITMQ_HOST: scc-rabbitmq
+  KUBE_OTLP_ENABLED: "true"
   KUBE_RABBITMQ_PORT: "5672"
 ---
 apiVersion: apps/v1

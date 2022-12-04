@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import scc.AppLogic;
 import scc.MediaId;
 import scc.kube.config.RedisConfig;
+import scc.kube.dao.UserDao;
 import scc.kube.utils.ObjectIdModule;
 import scc.utils.Hash;
 
@@ -29,13 +31,6 @@ public class Kube {
         return new JedisPool(poolConfig, config.url, config.port, 1000);
     }
 
-    static ObjectMapper createObjectMapper() {
-        var objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-        objectMapper.registerModule(new ObjectIdModule());
-        return objectMapper;
-    }
-
     static String hashUserPassword(String password) {
         return Hash.of(password);
     }
@@ -46,5 +41,12 @@ public class Kube {
 
     static MediaId stringToMediaId(String mediaId) {
         return new MediaId(mediaId);
+    }
+
+    static String userDisplayNameFromDao(UserDao userDao) {
+        if (userDao.status == UserDao.Status.ACTIVE)
+            return userDao.username;
+        else
+            return AppLogic.DELETED_USER_ID;
     }
 }

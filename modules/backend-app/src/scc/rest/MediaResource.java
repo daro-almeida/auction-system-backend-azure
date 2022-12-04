@@ -11,6 +11,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import scc.MediaNamespace;
 import scc.MediaService;
+import scc.ServiceFactory;
 
 /**
  * Resource for managing media files, such as images.
@@ -20,10 +21,10 @@ public class MediaResource {
     private static final Logger logger = Logger.getLogger(MediaResource.class.toString());
 
     private static final String MEDIA_ID = "media";
-    private final MediaService service;
+    private final ServiceFactory<MediaService> factory;
 
-    public MediaResource(MediaService service) {
-        this.service = service;
+    public MediaResource(ServiceFactory<MediaService> factory) {
+        this.factory = factory;
     }
 
     /**
@@ -33,14 +34,12 @@ public class MediaResource {
     @Path("/")
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.APPLICATION_JSON)
-    public String upload(byte[] contents) {
+    public String upload(byte[] contents) throws Exception {
         logger.fine("POST /media/ " + contents.length + " bytes");
-        var result = this.service.uploadMedia(MediaNamespace.Auction, contents);
-        if (result.isError())
-            ResourceUtils.throwError(result.error(), result.errorMessage());
-
-        var mediaId = result.value();
-        return ResourceUtils.mediaIdToString(mediaId);
+        try (var service = this.factory.createService()) {
+            var mediaId = service.uploadMedia(MediaNamespace.Auction, contents);
+            return ResourceUtils.mediaIdToString(mediaId);
+        }
     }
 
     /**
@@ -50,13 +49,12 @@ public class MediaResource {
     @GET
     @Path("/{" + MEDIA_ID + "}")
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    public byte[] download(@PathParam(MEDIA_ID) String id) {
+    public byte[] download(@PathParam(MEDIA_ID) String id) throws Exception {
         logger.fine("GET /media/" + id);
-        var mediaId = ResourceUtils.stringToMediaId(id);
-        var result = this.service.downloadMedia(mediaId);
-        if (result.isError())
-            ResourceUtils.throwError(result.error(), result.errorMessage());
-
-        return result.value();
+        try (var service = this.factory.createService()) {
+            var mediaId = ResourceUtils.stringToMediaId(id);
+            var content = service.downloadMedia(mediaId);
+            return content;
+        }
     }
 }

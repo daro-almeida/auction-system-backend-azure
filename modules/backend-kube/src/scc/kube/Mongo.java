@@ -4,9 +4,12 @@ import java.io.Closeable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistries;
@@ -27,14 +30,21 @@ import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Updates;
 
-import scc.AppLogic;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import scc.PagingWindow;
 import scc.Result;
 import scc.ServiceError;
+import scc.exception.AuctionNotFoundException;
+import scc.exception.BidConflictException;
+import scc.exception.BidNotFoundException;
+import scc.exception.QuestionAlreadyRepliedException;
+import scc.exception.QuestionNotFoundException;
+import scc.exception.UserAlreadyExistsException;
+import scc.exception.UserNotFoundException;
 import scc.kube.config.MongoConfig;
 import scc.kube.dao.AuctionDao;
+import scc.kube.dao.AuctionIdWithBidDao;
 import scc.kube.dao.BidDao;
-import scc.kube.dao.ObjectIdDao;
 import scc.kube.dao.QuestionDao;
 import scc.kube.dao.UserDao;
 
@@ -68,6 +78,7 @@ public class Mongo implements Closeable {
         this.auctionCollection.createIndex(Indexes.descending("create_time"));
         this.auctionCollection.createIndex(Indexes.descending("close_time"));
         this.auctionCollection.createIndex(Indexes.descending("bids._id"));
+        this.auctionCollection.createIndex(Indexes.descending("bids.user_id"));
 
         // Questions
         this.questionCollection = database.getCollection(config.questionCollection, QuestionDao.class);
@@ -87,23 +98,25 @@ public class Mongo implements Closeable {
 
     /* ------------------------- Auction ------------------------- */
 
-    public Result<AuctionDao, ServiceError> getAuction(ObjectId auctionId) {
+    @WithSpan
+    public AuctionDao getAuction(ObjectId auctionId) throws AuctionNotFoundException {
         var filter = Filters.eq("_id", auctionId);
         var projection = auctionDaoProjection();
         var auctionDao = this.auctionCollection.find(filter).projection(projection).first();
         if (auctionDao == null)
-            return Result.err(ServiceError.AUCTION_NOT_FOUND);
-        return Result.ok(auctionDao);
+            throw new AuctionNotFoundException(auctionId.toHexString());
+        return auctionDao;
     }
 
-    public Result<HashMap<ObjectId, AuctionDao>, ServiceError> getAuctionMany(List<ObjectId> auctionIds) {
+    @WithSpan
+    public HashMap<ObjectId, AuctionDao> getAuctionMany(List<ObjectId> auctionIds) {
         var filter = Filters.in("_id", auctionIds);
         var projection = auctionDaoProjection();
         var auctionDaos = this.auctionCollection.find(filter).projection(projection).into(new ArrayList<AuctionDao>());
         var auctionMap = new HashMap<ObjectId, AuctionDao>();
         for (var auctionDao : auctionDaos)
             auctionMap.put(auctionDao.id, auctionDao);
-        return Result.ok(auctionMap);
+        return auctionMap;
     }
 
     /**
@@ -114,6 +127,7 @@ public class Mongo implements Closeable {
      * @param auctionDao
      * @return
      */
+    @WithSpan
     public AuctionDao createAuction(AuctionDao auctionDao) {
         assert auctionDao.id == null : "Auction ID must be null";
         assert auctionDao.title != null : "Auction title must not be null";
@@ -130,10 +144,10 @@ public class Mongo implements Closeable {
         return auctionDao;
     }
 
-    public Result<AuctionDao, ServiceError> updateAuction(ObjectId auctionId, AuctionDao auctionDao) {
+    @WithSpan
+    public AuctionDao updateAuction(ObjectId auctionId, AuctionDao auctionDao) throws AuctionNotFoundException {
         assert auctionDao.id == null : "Auction ID must be null";
         assert auctionDao.userId == null : "Auction user ID must be null";
-        assert auctionDao.userIdDisplay == null : "Auction user ID display must be null";
         assert auctionDao.createTime == null : "Auction create time must be null";
         assert auctionDao.closeTime == null : "Auction close time must be null";
         assert auctionDao.initialPrice == 0 : "Auction initial price must be zero";
@@ -150,22 +164,38 @@ public class Mongo implements Closeable {
 
         var updated = this.auctionCollection.findOneAndUpdate(Filters.eq("_id", auctionId), updates);
         if (updated == null)
-            return Result.err(ServiceError.AUCTION_NOT_FOUND);
+            throw new AuctionNotFoundException(auctionId.toHexString());
 
         logger.fine("updateAuction: " + updated);
-        return Result.ok(updated);
+        return updated;
     }
 
-    public Result<AuctionDao, ServiceError> closeAuction(ObjectId auctionId) {
+    @WithSpan
+    public Map<ObjectId, BidDao> getAuctionTopBidMany(Collection<ObjectId> auctionIds) {
+        var filter = Filters.in("_id", auctionIds);
+        var projection = Projections.fields(
+                Projections.include("_id"),
+                new Document("bid", new Document("$first", "$bids")));
+        var daos = this.auctionCollection.find(filter, AuctionIdWithBidDao.class).projection(projection);
+        var map = new HashMap<ObjectId, BidDao>();
+        for (var dao : daos) {
+            if (dao.bid != null)
+                map.put(dao.id, dao.bid);
+        }
+        return map;
+    }
+
+    @WithSpan
+    public AuctionDao closeAuction(ObjectId auctionId) throws AuctionNotFoundException {
         logger.fine("closeAuction: trying to close" + auctionId);
         var updated = this.auctionCollection.findOneAndUpdate(
                 Filters.eq("_id", auctionId),
                 Updates.set("status", AuctionDao.Status.CLOSED.toString()));
         if (updated == null)
-            return Result.err(ServiceError.AUCTION_NOT_FOUND);
+            throw new AuctionNotFoundException(auctionId.toHexString());
         updated.status = AuctionDao.Status.CLOSED;
         logger.fine("closeAuction: closed " + updated);
-        return Result.ok(updated);
+        return updated;
     }
 
     /**
@@ -174,6 +204,7 @@ public class Mongo implements Closeable {
      * @param before The time before which auctions should close.
      * @return A list of auctions that are about to close.
      */
+    @WithSpan
     public List<AuctionDao> getAuctionSoonToClose(LocalDateTime before) {
         var filter = Filters.and(
                 Filters.eq("status", AuctionDao.Status.OPEN.toString()),
@@ -184,6 +215,7 @@ public class Mongo implements Closeable {
 
     /* ------------------------- Bid ------------------------- */
 
+    @WithSpan
     public Result<BidDao, ServiceError> getBid(ObjectId auctionId, ObjectId bidId) {
         var pipeline = Arrays.asList(
                 Aggregates.match(Filters.eq("_id", auctionId)),
@@ -196,6 +228,22 @@ public class Mongo implements Closeable {
         return Result.ok(bidDao);
     }
 
+    @WithSpan
+    public Map<ObjectId, BidDao> getBidMany(Collection<ObjectId> bidIds) throws BidNotFoundException {
+        var pipeline = Arrays.asList(
+                Aggregates.match(Filters.in("bids._id", bidIds)),
+                Aggregates.unwind("$bids"),
+                Aggregates.replaceRoot("$bids"),
+                Aggregates.match(Filters.in("_id", bidIds)));
+        var bidDaos = this.auctionCollection.aggregate(pipeline, BidDao.class).into(new ArrayList<BidDao>());
+        var bidMap = new HashMap<ObjectId, BidDao>();
+        for (var bidDao : bidDaos)
+            bidMap.put(bidDao.id, bidDao);
+        if (bidMap.size() != bidIds.size())
+            throw new BidNotFoundException();
+        return bidMap;
+    }
+
     /**
      * Create a new bid.
      * Required fields: userId, userIdDisplay, amount, createTime.
@@ -204,14 +252,16 @@ public class Mongo implements Closeable {
      * @param bidDao    Bid to create
      * @return Created bid
      */
-    public Result<BidDao, ServiceError> createBid(ObjectId auctionId, BidDao bidDao) {
+    @WithSpan
+    public BidDao createBid(ObjectId auctionId, BidDao bidDao) throws BidConflictException {
         assert bidDao.id == null : "Bid ID must be null";
+        assert bidDao.auctionId == null || bidDao.auctionId.equals(auctionId) : "Bid auction ID must match auction ID";
         assert bidDao.userId != null : "Bid user ID must not be null";
-        assert bidDao.userIdDisplay != null : "Bid user ID display must not be null";
         assert bidDao.amount >= 0 : "Bid amount must be non-negative";
         assert bidDao.createTime != null : "Bid create time must not be null";
 
         bidDao.id = new ObjectId();
+        bidDao.auctionId = auctionId;
         var filterLess = new Document().append("$expr", new Document("$lt", Arrays.asList(
                 new Document().append("$getField", new Document("field", "amount").append("input", new Document(
                         "$arrayElemAt", Arrays.asList("$bids", -1)))),
@@ -224,34 +274,21 @@ public class Mongo implements Closeable {
 
         var updated = this.auctionCollection.findOneAndUpdate(filter, Updates.push("bids", bidDao));
         if (updated == null)
-            return Result.err(ServiceError.BID_CONFLICT);
-
-        this.userCollection.findOneAndUpdate(
-                Filters.eq("_id", bidDao.userId),
-                Updates.push("created_bids", bidDao.id));
+            throw new BidConflictException();
 
         // db.auctions.find({$expr: {$gt: [{$getField: {field:"amount", input:
         // {$arrayElemAt: ["$bids", -1]}}}, 10]}})
-        return Result.ok(bidDao);
+        return bidDao;
     }
 
-    public Result<List<BidDao>, ServiceError> getAuctionBids(ObjectId auctionId, PagingWindow window) {
+    public List<BidDao> getAuctionBids(ObjectId auctionId, PagingWindow window) {
         var aggregation = List.of(
                 Aggregates.match(Filters.eq("_id", auctionId)),
                 Aggregates.unwind("$bids"),
                 Aggregates.skip(window.skip),
                 Aggregates.limit(window.limit));
         var bids = this.auctionCollection.aggregate(aggregation, BidDao.class).into(new ArrayList<BidDao>());
-        return Result.ok(bids);
-    }
-
-    public Result<List<BidDao>, ServiceError> getAuctionBidsFiltered(ObjectId auctionId, List<ObjectId> bidids) {
-        var aggregation = List.of(
-                Aggregates.match(Filters.eq("_id", auctionId)),
-                Aggregates.unwind("$bids"),
-                Aggregates.match(Filters.in("_id", bidids)));
-        var bids = this.auctionCollection.aggregate(aggregation, BidDao.class).into(new ArrayList<BidDao>());
-        return Result.ok(bids);
+        return bids;
     }
 
     /* ------------------------- Question ------------------------- */
@@ -262,12 +299,13 @@ public class Mongo implements Closeable {
      * @param questionId The ID of the question.
      * @return the question, or null if it doesn't exist
      */
-    public Result<QuestionDao, ServiceError> getQuestion(ObjectId questionId) {
+    @WithSpan
+    public QuestionDao getQuestion(ObjectId questionId) throws QuestionNotFoundException {
         var question = this.questionCollection.find(Filters.eq("_id", questionId)).first();
         if (question == null)
-            return Result.err(ServiceError.QUESTION_NOT_FOUND);
+            throw new QuestionNotFoundException();
         logger.fine("getQuestion: " + question);
-        return Result.ok(question);
+        return question;
     }
 
     /**
@@ -277,57 +315,74 @@ public class Mongo implements Closeable {
      * @param questionDao Question to create
      * @return Created question
      */
-    public Result<QuestionDao, ServiceError> createQuestion(QuestionDao questionDao) {
+    @WithSpan
+    public QuestionDao createQuestion(QuestionDao questionDao) {
         assert questionDao.id == null : "Question ID must be null";
         assert questionDao.auctionId != null : "Question auction ID must not be null";
         assert questionDao.userId != null : "Question user ID must not be null";
-        assert questionDao.userIdDisplay != null : "Question user ID display must not be null";
         assert questionDao.question != null : "Question question must not be null";
         assert questionDao.createTime != null : "Question create time must not be null";
 
         this.questionCollection.insertOne(questionDao);
         assert questionDao.id != null;
-        return Result.ok(questionDao);
+        return questionDao;
     }
 
-    public Result<QuestionDao, ServiceError> createReply(ObjectId questionId, QuestionDao.Reply reply) {
+    @WithSpan
+    public QuestionDao createReply(ObjectId questionId, QuestionDao.Reply reply)
+            throws QuestionNotFoundException, QuestionAlreadyRepliedException {
         assert reply.reply != null : "Reply reply must not be null";
         assert reply.createTime != null : "Reply create time must not be null";
-        assert reply.userIdDisplay != null : "Reply user ID display must not be null";
+        assert reply.userId != null : "Reply user ID must not be null";
 
         var filter = Filters.and(Filters.eq("_id", questionId), Filters.eq("reply", null));
         var update = Updates.set("reply", reply);
         var updated = this.questionCollection.findOneAndUpdate(filter, update);
         if (updated == null)
-            return Result.err(ServiceError.QUESTION_ALREADY_REPLIED);
+            throw new QuestionAlreadyRepliedException();
 
         return this.getQuestion(questionId);
     }
 
-    public Result<List<QuestionDao>, ServiceError> getAuctionQuestions(ObjectId auctionId, PagingWindow window) {
+    @WithSpan
+    public List<QuestionDao> getAuctionQuestions(ObjectId auctionId, PagingWindow window) {
         var questions = this.questionCollection.find(Filters.eq("auction_id", auctionId))
                 .skip(window.skip).limit(window.limit).into(new ArrayList<>());
-        return Result.ok(questions);
+        return questions;
     }
 
     /* ------------------------- User ------------------------- */
 
-    public Result<UserDao, ServiceError> getUser(ObjectId userId) {
+    @WithSpan
+    public UserDao getUser(ObjectId userId) throws UserNotFoundException {
         var filter = Filters.eq("_id", userId);
         var projection = userDaoProjection();
         var userDao = this.userCollection.find(filter).projection(projection).first();
         if (userDao == null)
-            return Result.err(ServiceError.USER_NOT_FOUND);
-        return Result.ok(userDao);
+            throw new UserNotFoundException();
+        return userDao;
     }
 
-    public Result<UserDao, ServiceError> getUserByUsername(String username) {
+    @WithSpan
+    public Map<ObjectId, UserDao> getUserMany(Collection<ObjectId> userIds) throws UserNotFoundException {
+        var filter = Filters.in("_id", userIds);
+        var projection = userDaoProjection();
+        var userDao = this.userCollection.find(filter).projection(projection).into(new ArrayList<>());
+        var map = userDao.stream().collect(Collectors.toMap(u -> u.id, u -> u));
+        if (map.size() != userIds.size())
+            throw new UserNotFoundException();
+        return map;
+    }
+
+    @WithSpan
+    public UserDao getUserByUsername(String username)
+            throws UserNotFoundException {
         var filter = Filters.eq("username", username);
         var projection = userDaoProjection();
         var userDao = this.userCollection.find(filter).projection(projection).first();
         if (userDao == null)
-            return Result.err(ServiceError.USER_NOT_FOUND);
-        return Result.ok(userDao);
+            throw new UserNotFoundException(username);
+        return userDao;
     }
 
     /**
@@ -337,7 +392,9 @@ public class Mongo implements Closeable {
      * @param userDao The user to create.
      * @return the created user, or null if the username is already taken
      */
-    public Result<UserDao, ServiceError> createUser(UserDao userDao) {
+    @WithSpan
+    public UserDao createUser(UserDao userDao)
+            throws UserAlreadyExistsException {
         assert userDao.id == null : "User ID must be null";
         assert userDao.username != null : "Username must not be null";
         assert userDao.name != null : "Name must not be null";
@@ -348,15 +405,16 @@ public class Mongo implements Closeable {
         try {
             this.userCollection.insertOne(userDao);
             logger.fine("createUser: " + userDao);
-            return Result.ok(userDao);
+            return userDao;
         } catch (MongoWriteException e) {
             logger.fine("createUser: user already exists");
             logger.fine(e.toString());
-            return Result.err(ServiceError.USER_ALREADY_EXISTS);
+            throw new UserAlreadyExistsException(userDao.username);
         }
     }
 
-    public Result<UserDao, ServiceError> updateUser(ObjectId userId, UserDao userDao) {
+    @WithSpan
+    public UserDao updateUser(ObjectId userId, UserDao userDao) throws UserNotFoundException {
         assert userDao.id == null : "userDao.id must be null";
         assert userDao.username == null : "userDao.username must be null";
         assert userDao.status == null : "userDao.status must be null";
@@ -372,70 +430,51 @@ public class Mongo implements Closeable {
 
         var updated = this.userCollection.findOneAndUpdate(Filters.eq("_id", userId), updates);
         if (updated == null)
-            return Result.err(ServiceError.USER_NOT_FOUND);
+            throw new UserNotFoundException();
 
         logger.fine("updateUser: " + updated);
 
         return this.getUser(userId);
     }
 
-    public Result<UserDao, ServiceError> deactivateUser(ObjectId userId) {
+    @WithSpan
+    public UserDao deactivateUser(ObjectId userId) throws UserNotFoundException {
         logger.fine("deactivateUser: attempting to deactivate " + userId);
         var updated = this.userCollection.findOneAndUpdate(
                 Filters.eq("_id", userId),
                 Updates.set("status", "INACTIVE"));
         if (updated == null) {
             logger.fine("deactivateUser: user not found or already inactive");
-            return Result.err(ServiceError.USER_NOT_FOUND);
+            throw new UserNotFoundException();
         }
         logger.fine("deactivateUser: deactivated " + userId);
-        return Result.ok(updated);
+        return updated;
     }
 
-    public Result<List<AuctionDao>, ServiceError> getUserAuctions(ObjectId userId) {
+    @WithSpan
+    public List<AuctionDao> getUserAuctions(ObjectId userId) {
         var auctions = this.auctionCollection.find(Filters.eq("user_id", userId)).into(new ArrayList<>());
-        return Result.ok(auctions);
+        return auctions;
     }
 
-    public Result<List<ObjectId>, ServiceError> getUserBidIds(ObjectId userId) {
+    @WithSpan
+    public List<ObjectId> getUserBidIds(ObjectId userId) {
         var pipeline = Arrays.asList(
                 Aggregates.match(Filters.eq("_id", userId)),
                 Aggregates.project(Projections.include("bids")),
                 Aggregates.unwind("$bids"),
                 Aggregates.replaceRoot("$bids"));
         var bidIds = this.userCollection.aggregate(pipeline, ObjectId.class).into(new ArrayList<ObjectId>());
-        return Result.ok(bidIds);
+        return bidIds;
     }
 
-    // Record with id's of all the documents that were modified by the update.
-    public record UserScrubeResult(List<ObjectId> auctionIds, List<ObjectId> bidIds, List<ObjectId> questionIds) {
-    }
-
-    public UserScrubeResult scrubUser(ObjectId userId) {
-        var idProjection = Projections.include("_id");
-
-        // Update auctions
-        var auctionFilter = Filters.eq("user_id", userId);
-        var auctionUpdate = Updates.set("user_id_display", AppLogic.DELETED_USER_ID);
-        var modifiedAuctionIds = this.auctionCollection.find(auctionFilter)
-                .projection(idProjection).into(new ArrayList<>())
-                .stream().map(a -> a.id).toList();
-        this.auctionCollection.updateMany(auctionFilter, auctionUpdate);
-
-        // Update bids
-        var modifiedBidIds = this.getUserBidIds(userId).value();
-        var bidFilter = Filters.in("bids._id", modifiedBidIds);
-        var bidUpdate = Updates.set("bids.$.user_id_display", AppLogic.DELETED_USER_ID);
-        this.auctionCollection.updateMany(bidFilter, bidUpdate);
-
-        // Update questions
-        var questionFilter = Filters.eq("user_id", userId);
-        var questionUpdate = Updates.set("user_id_display", AppLogic.DELETED_USER_ID);
-        var modifiedQuestions = this.questionCollection.find(questionFilter, ObjectIdDao.class).projection(idProjection)
-                .into(new ArrayList<>()).stream().map(dao -> dao.id).toList();
-        this.questionCollection.updateMany(questionFilter, questionUpdate);
-
-        return new UserScrubeResult(modifiedAuctionIds, modifiedBidIds, modifiedQuestions);
+    @WithSpan
+    public List<AuctionDao> getAuctionsFollowedByUser(ObjectId userId) {
+        var pipeline = Arrays.asList(
+                Aggregates.match(Filters.in("bids.user_id", userId)),
+                Aggregates.project(auctionDaoProjection()));
+        var auctions = this.auctionCollection.aggregate(pipeline, AuctionDao.class).into(new ArrayList<>());
+        return auctions;
     }
 
     /* ------------------------- Internal ------------------------- */
@@ -445,6 +484,6 @@ public class Mongo implements Closeable {
     }
 
     private static Bson userDaoProjection() {
-        return Projections.exclude("created_auctions", "created_bids");
+        return Projections.exclude();
     }
 }

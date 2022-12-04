@@ -2,11 +2,12 @@ package scc;
 
 import java.util.Optional;
 
+import scc.exception.ServiceException;
 import scc.item.UserItem;
 
-public interface UserService {
+public interface UserService extends AutoCloseable {
     public static record CreateUserParams(
-            String id,
+            String username,
             String name,
             String password,
             Optional<MediaId> imageId) {
@@ -21,7 +22,7 @@ public interface UserService {
      * @param params the parameters of the user to create
      * @return the created user
      */
-    Result<UserItem, ServiceError> createUser(CreateUserParams params);
+    UserItem createUser(CreateUserParams params) throws ServiceException;
 
     /**
      * Gets the user with the given id.
@@ -29,7 +30,7 @@ public interface UserService {
      * @param username the id of the user to get
      * @return the user with the given id
      */
-    Result<UserItem, ServiceError> getUser(String username);
+    UserItem getUser(String username) throws ServiceException;
 
     /**
      * Deletes the user with the given id.
@@ -38,7 +39,7 @@ public interface UserService {
      * @param username the id of the user to delete
      * @return The deleted user
      */
-    Result<UserItem, ServiceError> deleteUser(SessionToken token, String username);
+    UserItem deleteUser(SessionToken token, String username) throws ServiceException;
 
     /**
      * Updates the user with the given id.
@@ -48,7 +49,7 @@ public interface UserService {
      * @param ops      the operations to perform
      * @return the updated user
      */
-    Result<UserItem, ServiceError> updateUser(SessionToken token, String username, UpdateUserOps ops);
+    UserItem updateUser(SessionToken token, String username, UpdateUserOps ops) throws ServiceException;
 
     /**
      * Authenticates the user with the given id and password.
@@ -58,5 +59,5 @@ public interface UserService {
      * @param password the password of the user to authenticate
      * @return the session token of the authenticated user
      */
-    Result<SessionToken, ServiceError> authenticateUser(String username, String password);
+    SessionToken authenticateUser(String username, String password) throws ServiceException;
 }

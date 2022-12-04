@@ -1,0 +1,51 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scc-jaeger
+spec:
+  selector:
+    matchLabels:
+      app: scc-jaeger
+  template:
+    metadata:
+      labels:
+        app: scc-jaeger
+    spec:
+      containers:
+        - name: scc-jaeger
+          image: docker.io/jaegertracing/all-in-one:1.39
+          resources:
+            limits:
+              memory: "2Gi"
+              cpu: "1"
+          ports:
+            - containerPort: 4317
+              name: otlp-grpc
+            - containerPort: 16686
+              name: frontend
+          env:
+            - name: COLLECTOR_OTLP_ENABLED
+              value: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scc-jaeger
+spec:
+  selector:
+    app: scc-jaeger
+  ports:
+    - port: 4317
+      name: otlp-grpc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scc-jaeger-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: scc-jaeger
+  ports:
+    - port: 16686

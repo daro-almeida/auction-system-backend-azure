@@ -20,9 +20,6 @@ public class AuctionDao {
     @BsonProperty(value = "user_id")
     public ObjectId userId;
 
-    @BsonProperty(value = "user_id_display")
-    public String userIdDisplay;
-
     @BsonProperty(value = "create_time")
     public LocalDateTime createTime;
 

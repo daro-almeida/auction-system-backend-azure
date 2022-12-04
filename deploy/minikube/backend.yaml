@@ -16,6 +16,9 @@ data:
   KUBE_REDIS_PORT: "6379"
   KUBE_RABBITMQ_HOST: "scc-rabbitmq"
   KUBE_RABBITMQ_PORT: "5672"
+  KUBE_JAEGER_ENDPOINT: "http://scc-jaeger:4317"
+  OTEL_SERVICE_NAME: "scc-backend"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://scc-jaeger:4317"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -74,7 +77,7 @@ spec:
           resources:
             limits:
               memory: "512Mi"
-              cpu: "500m"
+              cpu: "150m"
           envFrom:
             - configMapRef:
                 name: scc-backend-cmap
@@ -99,7 +102,7 @@ spec:
           resources:
             limits:
               memory: "512Mi"
-              cpu: "500m"
+              cpu: "150m"
           envFrom:
             - configMapRef:
                 name: scc-backend-cmap
@@ -124,7 +127,7 @@ spec:
           resources:
             limits:
               memory: "512Mi"
-              cpu: "500m"
+              cpu: "150m"
           envFrom:
             - configMapRef:
                 name: scc-backend-cmap
