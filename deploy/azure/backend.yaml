@@ -18,6 +18,20 @@ data:
   KUBE_OTLP_ENABLED: "true"
   KUBE_RABBITMQ_PORT: "5672"
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: scc-backend-pvc
+spec:
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: azurefile
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -40,9 +54,16 @@ spec:
               cpu: "500m"
           ports:
             - containerPort: 8080
+          volumeMounts:
+            - mountPath: /var/data
+              name: scc-backend-pvc
           envFrom:
             - configMapRef:
                 name: scc-backend-cmap
+      volumes:
+        - name: scc-backend-pvc
+          persistentVolumeClaim:
+            claimName: scc-backend-pvc
 ---
 apiVersion: v1
 kind: Service
