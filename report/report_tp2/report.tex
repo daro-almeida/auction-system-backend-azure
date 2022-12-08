@@ -11,7 +11,44 @@
 % If you use the hyperref package, please uncomment the following line
 % to display URLs in blue roman font according to Springer's eBook style:
 % \renewcommand\UrlFont{\color{blue}\rmfamily}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[T1]{fontenc}
+\usepackage{minted}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92} 
+\lstdefinestyle{code}{
+    backgroundcolor=\color{backcolour}, % colour for the background. External color or xcolor package needed.
+    basicstyle=\ttfamily\footnotesize,  % font size/family/etc. for source (e.g. basicstyle=\ttfamily\small)
+    breaklines=true,                    % automatic line-breaking
+    captionpos=b,                       % position of caption (t/b)
+    keepspaces=true,                    %  keep spaces in the code, useful for indetation
+    numbers=left,                       % position of line numbers (left/right/none, i.e. no line numbers)
+    numbersep=5pt,                      % distance of line-numbers from the code
+    showspaces=false,                   % emphasize spaces in code (true/false)
+    showstringspaces=false,             % emphasize spaces in strings (true/false)
+    showtabs=false,                     % emphasize tabulators in code (true/false)  
+    tabsize=2                           % default tabsize
+    }
+    
+\lstdefinelanguage{Dockerfile}
+{
+  morekeywords={FROM, RUN, CMD, LABEL, MAINTAINER, EXPOSE, ENV, ADD, COPY,
+    ENTRYPOINT, VOLUME, USER, WORKDIR, ARG, ONBUILD, STOPSIGNAL, HEALTHCHECK,
+    SHELL},
+  morecomment=[l]{\#},
+  morestring=[b]"
+}
 
+\lstset{style=code}
+\lstset{
+    columns=flexible,
+    keepspaces=true,
+    showstringspaces=false,
+    basicstyle=\ttfamily\footnotesize,  % font size/family/etc. for source (e.g. basicstyle=\ttfamily\small)
+    commentstyle=\color{gray},
+    keywordstyle=\color{purple},
+    stringstyle=\color{green}
+}
 \begin{document}
 %
 \title{Cloud Computing Systems Work Report}
@@ -34,7 +71,14 @@ Diogo Fona\inst{57940}}
 \maketitle              % typeset the header of the contribution
 %
 \section{Solution}
-
+Our assignement was designed to be an auctions service deployed through Kubernetes clusters. We adapted our backend to utilize
+Mongo instead of Cosmos.
+\\The deployment of our application is as follows:
+\\- Backend with a Service of LoadBalancer, along with a Cronjob to update the popular auctions
+\\- Opentelemetry and Jaeger to capture request traces and measure performace
+\\- Mongo which will be our database to save every item necessary for our system
+\\- Rabbitmq in order to close auctions and necessary operations when deleting a user using their message queue
+\\- Redis which will serve as our cache for the application
 
 \section{Evaluation}
 
@@ -42,9 +86,827 @@ Diogo Fona\inst{57940}}
 \section{Annex}
 
 \subsection{Dockerfiles}
-
+\begin{lstlisting}[language=Dockerfile, caption=backend.dockerfile]
+FROM docker.io/tomcat:10-jdk17-corretto
+WORKDIR /usr/local/tomcat/webapps
+RUN curl https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.20.2/opentelemetry-javaagent.jar -L --output opentelemetry-javaagent.jar
+ENV JAVA_OPTS="-ea -javaagent:opentelemetry-javaagent.jar"
+COPY modules/backend-app/target/scc-backend-app-1.0-SNAPSHOT.war ROOT.war
+EXPOSE 8080
+\end{lstlisting}
+\begin{lstlisting}[language=Dockerfile, caption=worker.dockerfile]
+FROM docker.io/amazoncorretto:19
+WORKDIR /usr/local/app
+ENV JAVA_OPTS="-ea"
+COPY modules/worker-assembly/target/scc-worker-assembly-1.0-SNAPSHOT-jar-with-dependencies.jar app.jar
+ENTRYPOINT ["java", "-cp", "app.jar"]
+\end{lstlisting}
 
 \subsection{Kubernetes}
+% -------------------------------------------------------
+% -------------------------------------------------------
+\subsubsection{miniKubes/backend.yaml}
+\begin{minted}[
+    gobble=4,
+    frame=single,
+    linenos,
+    breaklines 
+  ]{yaml}
+    ---
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: scc-backend-cmap
+    data:
+      KUBE_CACHING_ENABLED: "true"
+      KUBE_MEDIA_DATA_DIRECTORY: /var/data
+      KUBE_MONGO_CONNECTION_URI: mongodb://scc-mongodb:27017
+      KUBE_MONGO_DATABASE_NAME: scc-backend
+      KUBE_MONGO_AUCTION_COLLECTION: auctions
+      KUBE_MONGO_BID_COLLECTION: bids
+      KUBE_MONGO_QUESTION_COLLECTION: questions
+      KUBE_MONGO_USER_COLLECTION: users
+      KUBE_REDIS_URL: scc-redis
+      KUBE_REDIS_PORT: "6379"
+      KUBE_RABBITMQ_HOST: "scc-rabbitmq"
+      KUBE_RABBITMQ_PORT: "5672"
+      KUBE_JAEGER_ENDPOINT: "http://scc-jaeger:4317"
+      OTEL_SERVICE_NAME: "scc-backend"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://scc-jaeger:4317"
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: scc-backend
+    spec:
+      selector:
+        matchLabels:
+          app: scc-backend
+      template:
+        metadata:
+          labels:
+            app: scc-backend
+        spec:
+          containers:
+            - name: scc-backend
+              image: git.d464.sh/diogo464/scc-backend
+              resources:
+                limits:
+                  memory: "2Gi"
+                  cpu: "4"
+              ports:
+                - containerPort: 8080
+              envFrom:
+                - configMapRef:
+                    name: scc-backend-cmap
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: scc-backend
+    spec:
+      type: LoadBalancer
+      selector:
+        app: scc-backend
+      ports:
+        - port: 8080
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: scc-worker-user-scrub
+    spec:
+      selector:
+        matchLabels:
+          app: scc-worker-user-scrub
+      template:
+        metadata:
+          labels:
+            app: scc-worker-user-scrub
+        spec:
+          containers:
+            - name: scc-worker-user-scrub
+              image: git.d464.sh/diogo464/scc-worker
+              args: [scc.worker.UserScrub]
+              resources:
+                limits:
+                  memory: "512Mi"
+                  cpu: "150m"
+              envFrom:
+                - configMapRef:
+                    name: scc-backend-cmap
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: scc-worker-auction-close
+    spec:
+      selector:
+        matchLabels:
+          app: scc-worker-auction-close
+      template:
+        metadata:
+          labels:
+            app: scc-worker-auction-close
+        spec:
+          containers:
+            - name: scc-worker-auction-close
+              image: git.d464.sh/diogo464/scc-worker
+              args: [scc.worker.AuctionClose]
+              resources:
+                limits:
+                  memory: "512Mi"
+                  cpu: "150m"
+              envFrom:
+                - configMapRef:
+                    name: scc-backend-cmap
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: scc-worker-auction-popularity-consumer
+    spec:
+      selector:
+        matchLabels:
+          app: scc-worker-auction-popularity-consumer
+      template:
+        metadata:
+          labels:
+            app: scc-worker-auction-popularity-consumer
+        spec:
+          containers:
+            - name: scc-worker-auction-popularity-consumer
+              image: git.d464.sh/diogo464/scc-worker
+              args: [scc.worker.AuctionPopularityConsumer]
+              resources:
+                limits:
+                  memory: "512Mi"
+                  cpu: "150m"
+              envFrom:
+                - configMapRef:
+                    name: scc-backend-cmap
+    ---
+    apiVersion: apps/v1
+    kind: CronJob
+    metadata:
+      name: scc-worker-auction-popularity-updater
+    spec:
+      schedule: "*/1 * * * *"f
+      jobTemplate:
+        spec:
+          template:
+            spec:
+              containers:
+                - name: scc-worker-auction-popularity-updater
+                  image: git.d464.sh/diogo464/scc-worker
+                  args: [scc.worker.AuctionPopularityUpdater]
+                  resources:
+                    limits:
+                      memory: "512Mi"
+                      cpu: "150m"
+                  envFrom:
+                    - configMapRef:
+                        name: scc-backend-cmap
+              restartPolicy: OnFailure
+\end{minted}
 
+% -------------------------------------------------------
+% -------------------------------------------------------
+\subsubsection{miniKube/jaeger.yml}
+\begin{minted}[
+    gobble=4,
+    frame=single,
+    linenos,
+    breaklines
+  ]{yaml}
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: scc-jaeger
+    spec:
+      selector:
+        matchLabels:
+          app: scc-jaeger
+      template:
+        metadata:
+          labels:
+            app: scc-jaeger
+        spec:
+          containers:
+            - name: scc-jaeger
+              image: docker.io/jaegertracing/all-in-one:1.39
+              resources:
+                limits:
+                  memory: "2Gi"
+                  cpu: "1"
+              ports:
+                - containerPort: 4317
+                  name: otlp-grpc
+                - containerPort: 16686
+                  name: frontend
+              env:
+                - name: COLLECTOR_OTLP_ENABLED
+                  value: "true"
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: scc-jaeger
+    spec:
+      selector:
+        app: scc-jaeger
+      ports:
+        - port: 4317
+          name: otlp-grpc
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: scc-jaeger-lb
+    spec:
+      type: LoadBalancer
+      selector:
+        app: scc-jaeger
+      ports:
+        - port: 16686
+\end{minted}
+% -------------------------------------------------------
+% -------------------------------------------------------
+\subsubsection{miniKube/mongo.yaml}
+\begin{minted}[
+    gobble=4,
+    frame=single,
+    linenos,
+    breaklines
+  ]{yaml}
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: scc-mongodb
+    spec:
+      selector:
+        matchLabels:
+          app: scc-mongodb
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          labels:
+            app: scc-mongodb
+        spec:
+          containers:
+            - name: scc-mongodb
+              image: docker.io/mongo:5.0.14
+              resources:
+                limits:
+                  memory: "1Gi"
+                  cpu: "1"
+              ports:
+                - containerPort: 27017
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: scc-mongodb
+    spec:
+      selector:
+        app: scc-mongodb
+      ports:
+        - port: 27017
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: scc-mongodb-ld
+    spec:
+      type: LoadBalancer
+      selector:
+        app: scc-mongodb
+      ports:
+        - port: 27017
+\end{minted}
+% -------------------------------------------------------
+% -------------------------------------------------------
+\subsubsection{miniKube/rabbitmq.yaml}
+\begin{minted}[
+    gobble=4,
+    frame=single,
+    linenos,
+    breaklines
+  ]{yaml}
+    ---
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: scc-rabbitmq-cmap
+    data:
+      config: ""
+      plugins: |
+        [rabbitmq_management,rabbitmq_management_agent].
+    ---
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: scc-rabbitmq-cmap-env
+    data:
+      RABBITMQ_ENABLED_PLUGINS_FILE: /usr/local/configs/enabled_plugins
+      #RABBITMQ_CONFIG_FILE: /usr/local/configs/rabbitmq
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: scc-rabbitmq
+    spec:
+      selector:
+        matchLabels:
+          app: scc-rabbitmq
+      template:
+        metadata:
+          labels:
+            app: scc-rabbitmq
+        spec:
+          containers:
+            - name: scc-rabbitmq
+              image: rabbitmq
+              resources:
+                limits:
+                  memory: "1Gi"
+                  cpu: "1"
+              ports:
+                - containerPort: 5672
+                - containerPort: 15672
+              volumeMounts:
+                - mountPath: /usr/local/configs
+                  name: scc-rabbitmq-config-vol
+              envFrom:
+                - configMapRef:
+                    name: scc-rabbitmq-cmap-env
+          volumes:
+            - name: scc-rabbitmq-config-vol
+              configMap:
+                name: scc-rabbitmq-cmap
+                items:
+                  - key: config
+                    path: rabbitmq.config
+                  - key: plugins
+                    path: enabled_plugins
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: scc-rabbitmq
+    spec:
+      selector:
+        app: scc-rabbitmq
+      ports:
+        - port: 5672
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: scc-rabbitmq-lb
+    spec:
+      selector:
+        app: scc-rabbitmq
+      type: LoadBalancer
+      ports:
+        - port: 5672
+          targetPort: 5672
+          name: rabbitmq
+        - port: 15672
+          targetPort: 15672
+          name: rabbitmq-management
+\end{minted}
+% -------------------------------------------------------
+% -------------------------------------------------------
+\subsubsection{miniKube/redis.yaml}
+\begin{minted}[
+    gobble=4,
+    frame=single,
+    linenos,
+    breaklines
+  ]{yaml}
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: scc-redis
+    spec:
+      selector:
+        matchLabels:
+          app: scc-redis
+      template:
+        metadata:
+          labels:
+            app: scc-redis
+        spec:
+          containers:
+            - name: scc-redis
+              image: docker.io/redis:7.0.5
+              resources:
+                limits:
+                  memory: "512Mi"
+                  cpu: "1"
+              ports:
+                - containerPort: 6379
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: scc-redis
+    spec:
+      selector:
+        app: scc-redis
+      ports:
+        - port: 6379
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: scc-redis-lb
+    spec:
+      type: LoadBalancer
+      selector:
+        app: scc-redis
+      ports:
+        - port: 6379
+\end{minted}
+% -------------------------------------------------------
+% -------------------------------------------------------
+\subsubsection{azure/backend.yaml}
+\begin{minted}[
+    gobble=4,
+    frame=single,
+    linenos,
+    breaklines
+  ]{yaml}
+    ---
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: scc-backend-cmap
+    data:
+      KUBE_CACHING_ENABLED: "true"
+      KUBE_MEDIA_DATA_DIRECTORY: /var/data
+      KUBE_MONGO_CONNECTION_URI: mongodb://scc-mongodb:27017
+      KUBE_MONGO_DATABASE_NAME: scc-backend
+      KUBE_MONGO_AUCTION_COLLECTION: auctions
+      KUBE_MONGO_BID_COLLECTION: bids
+      KUBE_MONGO_QUESTION_COLLECTION: questions
+      KUBE_MONGO_USER_COLLECTION: users
+      KUBE_REDIS_URL: scc-redis
+      KUBE_REDIS_PORT: "6379"
+      KUBE_RABBITMQ_HOST: scc-rabbitmq
+      KUBE_OTLP_ENABLED: "true"
+      KUBE_RABBITMQ_PORT: "5672"
+    ---
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: scc-backend-pvc
+    spec:
+      resources:
+        requests:
+          storage: 2Gi
+      storageClassName: azurefile
+      volumeMode: Filesystem
+      accessModes:
+        - ReadWriteOnce
+    
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: scc-backend
+    spec:
+      selector:
+        matchLabels:
+          app: scc-backend
+      template:
+        metadata:
+          labels:
+            app: scc-backend
+        spec:
+          containers:
+            - name: scc-backend
+              image: git.d464.sh/diogo464/scc-backend
+              resources:
+                limits:
+                  memory: "1Gi"
+                  cpu: "500m"
+              ports:
+                - containerPort: 8080
+              volumeMounts:
+                - mountPath: /var/data
+                  name: scc-backend-pvc
+              envFrom:
+                - configMapRef:
+                    name: scc-backend-cmap
+          volumes:
+            - name: scc-backend-pvc
+              persistentVolumeClaim:
+                claimName: scc-backend-pvc
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: scc-backend
+    spec:
+      type: LoadBalancer
+      selector:
+        app: scc-backend
+      ports:
+        - port: 8080
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: scc-worker-user-scrub
+    spec:
+      selector:
+        matchLabels:
+          app: scc-worker-user-scrub
+      template:
+        metadata:
+          labels:
+            app: scc-worker-user-scrub
+        spec:
+          containers:
+            - name: scc-worker-user-scrub
+              image: git.d464.sh/diogo464/scc-worker
+              args: [scc.worker.UserScrub]
+              resources:
+                limits:
+                  memory: "128Mi"
+                  cpu: "80m"
+              envFrom:
+                - configMapRef:
+                    name: scc-backend-cmap
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: scc-worker-auction-close
+    spec:
+      selector:
+        matchLabels:
+          app: scc-worker-auction-close
+      template:
+        metadata:
+          labels:
+            app: scc-worker-auction-close
+        spec:
+          containers:
+            - name: scc-worker-auction-close
+              image: git.d464.sh/diogo464/scc-worker
+              args: [scc.worker.AuctionClose]
+              resources:
+                limits:
+                  memory: "128Mi"
+                  cpu: "80m"
+              envFrom:
+                - configMapRef:
+                    name: scc-backend-cmap
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: scc-worker-auction-popularity-consumer
+    spec:
+      selector:
+        matchLabels:
+          app: scc-worker-auction-popularity-consumer
+      template:
+        metadata:
+          labels:
+            app: scc-worker-auction-popularity-consumer
+        spec:
+          containers:
+            - name: scc-worker-auction-popularity-consumer
+              image: git.d464.sh/diogo464/scc-worker
+              args: [scc.worker.AuctionPopularityConsumer]
+              resources:
+                limits:
+                  memory: "128Mi"
+                  cpu: "50m"
+              envFrom:
+                - configMapRef:
+                    name: scc-backend-cmap
+    ---
+    apiVersion: apps/v1
+    kind: CronJob
+    metadata:
+      name: scc-worker-auction-popularity-updater
+    spec:
+      schedule: "*/1 * * * *"f
+      jobTemplate:
+        spec:
+          template:
+            spec:
+              containers:
+                - name: scc-worker-auction-popularity-updater
+                  image: git.d464.sh/diogo464/scc-worker
+                  args: [scc.worker.AuctionPopularityUpdater]
+                  resources:
+                    limits:
+                      memory: "128Mi"
+                      cpu: "80m"
+                  envFrom:
+                    - configMapRef:
+                        name: scc-backend-cmap
+              restartPolicy: OnFailure
+\end{minted}
+% -------------------------------------------------------
+% -------------------------------------------------------
+\subsubsection{azure/ingress.yaml}
+\begin{minted}[
+    gobble=4,
+    frame=single,
+    linenos,
+    breaklines
+  ]{yaml}
+    ---
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: scc-backend-ingress
+      annotations:
+        kubernetes.io/ingress.class: addon-http-application-routing
+    spec:
+      rules:
+      - host: scc.f96b58a6b7224d59b3af.westeurope.aksapp.io
+        http:
+          paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: 
+                name: scc-backend
+                port: 
+                  number: 8080
+\end{lstlisting}
+			  
+% -------------------------------------------------------
+% -------------------------------------------------------
+\begin{lstlisting}[caption=azure/mongo.yaml]
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: scc-mongodb
+    spec:
+      selector:
+        matchLabels:
+          app: scc-mongodb
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          labels:
+            app: scc-mongodb
+        spec:
+          containers:
+            - name: scc-mongodb
+              image: docker.io/mongo:5.0.14
+              resources:
+                limits:
+                  memory: "256Mi"
+                  cpu: "500m"
+              ports:
+                - containerPort: 27017
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: scc-mongodb
+    spec:
+      selector:
+        app: scc-mongodb
+      ports:
+        - port: 27017
+\end{minted}
+
+% -------------------------------------------------------
+% -------------------------------------------------------
+\subsubsection{azure/rabbitmq.yaml}
+\begin{minted}[
+    gobble=4,
+    frame=single,
+    linenos,
+    breaklines
+  ]{yaml}
+    ---
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: scc-rabbitmq-cmap
+    data:
+      config: ""
+      plugins: |
+        [rabbitmq_management,rabbitmq_management_agent].
+    ---
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: scc-rabbitmq-cmap-env
+    data:
+      RABBITMQ_ENABLED_PLUGINS_FILE: /usr/local/configs/enabled_plugins
+      #RABBITMQ_CONFIG_FILE: /usr/local/configs/rabbitmq
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: scc-rabbitmq
+    spec:
+      selector:
+        matchLabels:
+          app: scc-rabbitmq
+      template:
+        metadata:
+          labels:
+            app: scc-rabbitmq
+        spec:
+          containers:
+            - name: scc-rabbitmq
+              image: rabbitmq
+              resources:
+                limits:
+                  memory: "196Mi"
+                  cpu: "500m"
+              ports:
+                - containerPort: 5672
+                - containerPort: 15672
+              volumeMounts:
+                - mountPath: /usr/local/configs
+                  name: scc-rabbitmq-config-vol
+              envFrom:
+                - configMapRef:
+                    name: scc-rabbitmq-cmap-env
+          volumes:
+            - name: scc-rabbitmq-config-vol
+              configMap:
+                name: scc-rabbitmq-cmap
+                items:
+                  - key: config
+                    path: rabbitmq.config
+                  - key: plugins
+                    path: enabled_plugins
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: scc-rabbitmq
+    spec:
+      selector:
+        app: scc-rabbitmq
+      ports:
+        - port: 5672
+\end{minted}
+% -------------------------------------------------------
+% -------------------------------------------------------
+\subsubsection{azure/redis.yaml}
+\begin{minted}[
+    gobble=4,
+    frame=single,
+    linenos,
+    breaklines
+  ]{yaml}
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: scc-redis
+    spec:
+      selector:
+        matchLabels:
+          app: scc-redis
+      template:
+        metadata:
+          labels:
+            app: scc-redis
+        spec:
+          containers:
+            - name: scc-redis
+              image: docker.io/redis:7.0.5
+              resources:
+                limits:
+                  memory: "256Mi"
+                  cpu: "500m"
+              ports:
+                - containerPort: 6379
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: scc-redis
+    spec:
+      selector:
+        app: scc-redis
+      ports:
+        - port: 6379
+\end{minted}
+\subsection{Additional deployments}
 
 \end{document}
