@@ -110,20 +110,20 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: scc-worker-auction-popularity
+  name: scc-worker-auction-popularity-consumer
 spec:
   selector:
     matchLabels:
-      app: scc-worker-auction-popularity
+      app: scc-worker-auction-popularity-consumer
   template:
     metadata:
       labels:
-        app: scc-worker-auction-popularity
+        app: scc-worker-auction-popularity-consumer
     spec:
       containers:
-        - name: scc-worker-auction-popularity
+        - name: scc-worker-auction-popularity-consumer
           image: git.d464.sh/diogo464/scc-worker
-          args: [scc.worker.AuctionPopularity]
+          args: [scc.worker.AuctionPopularityConsumer]
           resources:
             limits:
               memory: "512Mi"
@@ -131,3 +131,26 @@ spec:
           envFrom:
             - configMapRef:
                 name: scc-backend-cmap
+---
+apiVersion: apps/v1
+kind: CronJob
+metadata:
+  name: scc-worker-auction-popularity-updater
+spec:
+  schedule: "*/1 * * * *"f
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: scc-worker-auction-popularity-updater
+              image: git.d464.sh/diogo464/scc-worker
+              args: [scc.worker.AuctionPopularityUpdater]
+              resources:
+                limits:
+                  memory: "512Mi"
+                  cpu: "150m"
+              envFrom:
+                - configMapRef:
+                    name: scc-backend-cmap
+          restartPolicy: OnFailure
