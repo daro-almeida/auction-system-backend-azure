@@ -163,7 +163,7 @@ spec:
         spec:
           containers:
             - name: scc-worker-auction-popularity-updater
-              image: busybox:1.28
+              image: git.d464.sh/diogo464/scc-worker
               args: [scc.worker.AuctionPopularityUpdater]
               resources:
                 limits:
