@@ -74,7 +74,8 @@ spec:
   selector:
     app: scc-backend
   ports:
-    - port: 8080
+    - port: 80
+      targetPort: 8080
 ---
 apiVersion: apps/v1
 kind: Deployment
