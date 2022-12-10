@@ -38,8 +38,8 @@ spec:
           image: git.d464.sh/diogo464/scc-backend
           resources:
             limits:
-              memory: "2Gi"
-              cpu: "4"
+              memory: "1Gi"
+              cpu: "1"
           ports:
             - containerPort: 8080
           envFrom:

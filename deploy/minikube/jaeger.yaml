@@ -17,8 +17,8 @@ spec:
           image: docker.io/jaegertracing/all-in-one:1.39
           resources:
             limits:
-              memory: "2Gi"
-              cpu: "1"
+              memory: "128Mi"
+              cpu: "200m"
           ports:
             - containerPort: 4317
               name: otlp-grpc
