@@ -6,4 +6,6 @@ if __name__ == '__main__':
         ["az", "container", "create",
          "--resource-group", azure.RESOURCE_GROUP,
          "--name", "scc-tester",
-         "--image", "git.d464.sh/diogo464/scc-tester:latest"])
+         "--restart-policy", "Never",
+         "--image", "git.d464.sh/diogo464/scc-tester:latest",
+         "--environment-variables", "TESTID=azure", "TARGET="+azure.TARGET])
