@@ -1,9 +1,11 @@
 #!/bin/sh
 
+USERS=${USERS:-"users.data"}
 EXTRA=""
 if [ "$TESTID" != "" ]; then
   EXTRA="-$TESTID"
 fi
+
 
 if [ "$TARGET" == "" ]; then
     echo "TARGET not set"
