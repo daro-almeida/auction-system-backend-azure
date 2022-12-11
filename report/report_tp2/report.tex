@@ -82,7 +82,7 @@ As in the previous work, for the application to support the storage, querying, a
 
 \subsubsection{Application:}
 
-The application's backend that was implemented in the first work is built in a container and deployed. Since we use different components the communication API calls with them are altered. The application is accessed externally its a LoadBalancer type service.
+The application's backend that was implemented in the first work is built in a container and deployed. Since we use different components the communication API calls with them are altered. To allow external access into our application we use a LoadBalancer service.
 
 \subsubsection{Database:}
 
@@ -90,7 +90,7 @@ The database we use is MongoDB instead of Azure CosmosDB. Particularly in this w
 
 \subsubsection{Media Storage:}
 
-For the storage of media content in the application we use a Persistent Volume Claim instead of Azure Blob Storage. It stores the contents persistently in a file system volume.
+For the storage of media content in the application we use a persistent volume instead of Azure Blob Storage. It stores the contents persistently in a file system volume.
 
 \subsubsection{Cache:}
 
@@ -117,9 +117,9 @@ Each of the Kubernetes cluster's Pods are single-container and contain the appli
 
 To perform the evaluation of our implementation we deploy a Docker container with workload tests executed with Artillery, using Azure Container Instances, in different regions and also run it locally with Docker.
 
-The results shown in Fig.~\ref{fig:latencies} demonstrate that using either the Azure services or Kubernetes with alternate services has no significant difference in impact. 
+The results shown in Fig.~\ref{fig:latencies} demonstrate, by observing the perceived latency of writes in the same client region (blue and orange bar), that using either the Azure services or Kubernetes with alternate services has no significant difference in impact. 
 
-In the graph of writes it's observed that using Kubernetes perceives slightly lower latency but that is probably due to the different mechanism's performance or variance.  
+In the graph of writes it's observed that using Kubernetes perceives slightly lower latency which might be caused by the different component's performance or variance.  
 
 In the graph of reads we can see that the previous implementation has a much higher perceived latency. This is because we repaired an implementation issue that caused some listing operations to make too much requests which we mentioned in the first work.
 
