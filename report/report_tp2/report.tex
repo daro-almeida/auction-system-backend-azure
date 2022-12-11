@@ -51,41 +51,82 @@
 }
 \begin{document}
 %
-\title{Cloud Computing Systems Work Report}
+\title{Cloud Computing Systems Second Work Report}
 %
 %\titlerunning{Abbreviated paper title}
 % If the paper title is too long for the running head, you can set
 % an abbreviated paper title here
 %
-\author{Bruno Cabrita\inst{57833} \and
-Diogo Almeida\inst{58369} \and
-Diogo Fona\inst{57940}}
+\author{Diogo Almeida\inst{58369} \and
+Diogo Fona\inst{57940} \and
+Bruno Cabrita\inst{57833}}
 %
-\authorrunning{B. Cabrita, D. Almeida, D. Fona}
+\authorrunning{D. Almeida, D. Fona and B. Cabrita}
 % First names are abbreviated in the running head.
 % If there are more than two authors, 'et al.' is used.
 %
 \institute{NOVA School of Science and Technology - MSc in Computer Engineering 
 \email{\{brm.cabrita,daro.almeida,d.fona\}@campus.fct.unl.pt}}
 %
-\maketitle              % typeset the header of the contribution
+\maketitle % typeset the header of the contribution
 %
-\section{Solution}
-Our assignement was designed to be an auctions service deployed through Kubernetes clusters. We adapted our backend to utilize
-Mongo instead of Cosmos.
-\\The deployment of our application is as follows:
-\\- Backend with a Service of LoadBalancer, along with a Cronjob to update the popular auctions
-\\- Opentelemetry and Jaeger to capture request traces and measure performace
-\\- Mongo which will be our database to save every item necessary for our system
-\\- Rabbitmq in order to close auctions and necessary operations when deleting a user using their message queue
-\\- Redis which will serve as our cache for the application
+\section{Assignment Solution}
+
+In this work, we implement the application presented in the first work and deploy it in Azure in a Kubernetes cluster, instead of using the built-in Azure components. To achieve this we build containers, using Docker, with the application's constituents and deploy them in Kubernetes Pods. 
+
+%  implement project1 application in Azure with Kubernetes and different technology 
+
+\subsection{Implementation}
+
+As in the previous work, for the application to support the storage, querying, and processing of information, we use cloud software and hardware components that we deploy with Kubernetes: (settings described in deployment files in appendix)
+
+\subsubsection{Application:}
+
+The application's backend that was implemented in the first work is built in a container and deployed. Since we use different components the communication API calls with them are altered. The application is accessed externally its a LoadBalancer type service.
+
+\subsubsection{Database:}
+
+The database we use is MongoDB instead of Azure CosmosDB. Particularly in this work for simplicity its information is not stored persistently.
+
+\subsubsection{Media Storage:}
+
+For the storage of media content in the application we use a Persistent Volume Claim instead of Azure Blob Storage. It stores the contents persistently in a file system volume.
+
+\subsubsection{Cache:}
+
+The caching system we use is Redis like in the first work.
+
+\subsubsection{Serverless Functions:}
+
+Regarding serverless functions that were previously implemented with Azure Functions, functions that were timer based (TimerTrigger) are implemented with CronJobs, and the rest in separate deployments.
+
+\subsubsection{Message Queues:}
+
+The message queue system we use is RabbitMQ instead of Azure Service Bus.
+
+\subsection{Pods}
+
+Each of the Kubernetes cluster's Pods are single-container and contain the application's services: backend, mongodb, rabbitmq, redis, and one for each function.
 
 \section{Evaluation}
 
+\begin{figure}
+    \includegraphics[width=\textwidth]{latencies}
+    \caption{Average latency in milliseconds of read and write operations from clients in different regions with the application in West Europe. The blue bar concerns the previous implementation that used Azure services and the remaining concerns the new one that uses the Kubernetes cluster.} \label{fig:latencies}
+\end{figure}
 
-\section{Annex}
+To perform the evaluation of our implementation we deploy a Docker container with workload tests executed with Artillery, using Azure Container Instances, in different regions and also run it locally with Docker.
 
-\subsection{Dockerfiles}
+The results shown in Fig.~\ref{fig:latencies} demonstrate that using either the Azure services or Kubernetes with alternate services has no significant difference in impact. 
+
+In the graph of writes it's observed that using Kubernetes perceives slightly lower latency but that is probably due to the different mechanism's performance or variance.  
+
+In the graph of reads we can see that the previous implementation has a much higher perceived latency. This is because we repaired an implementation issue that caused some listing operations to make too much requests which we mentioned in the first work.
+
+\clearpage
+\appendix
+\section{Dockerfiles}
+
 \begin{lstlisting}[language=Dockerfile, caption=backend.dockerfile]
 FROM docker.io/tomcat:10-jdk17-corretto
 WORKDIR /usr/local/tomcat/webapps
@@ -94,6 +135,7 @@ ENV JAVA_OPTS="-ea -javaagent:opentelemetry-javaagent.jar"
 COPY modules/backend-app/target/scc-backend-app-1.0-SNAPSHOT.war ROOT.war
 EXPOSE 8080
 \end{lstlisting}
+
 \begin{lstlisting}[language=Dockerfile, caption=worker.dockerfile]
 FROM docker.io/amazoncorretto:19
 WORKDIR /usr/local/app
@@ -102,447 +144,25 @@ COPY modules/worker-assembly/target/scc-worker-assembly-1.0-SNAPSHOT-jar-with-de
 ENTRYPOINT ["java", "-cp", "app.jar"]
 \end{lstlisting}
 
-\subsection{Kubernetes}
-% -------------------------------------------------------
-% -------------------------------------------------------
-\subsubsection{miniKubes/backend.yaml}
+\begin{lstlisting}[language=Dockerfile, caption=tester.dockerfile]
+FROM docker.io/artilleryio/artillery
+WORKDIR /usr/local/app
+RUN npm install @faker-js/faker --save-dev
+ADD tester/testing/artillery/*.yml .
+ADD tester/testing/artillery/*.js .
+COPY tester/artillery-entrypoint.sh .
+ENTRYPOINT ["/bin/sh", "./artillery-entrypoint.sh"]
+\end{lstlisting}
+
+\section{Kubernetes deployment files}
+
+\subsubsection{backend.yaml}
 \begin{minted}[
     gobble=4,
     frame=single,
     linenos,
     breaklines 
   ]{yaml}
-    ---
-    apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      name: scc-backend-cmap
-    data:
-      KUBE_CACHING_ENABLED: "true"
-      KUBE_MEDIA_DATA_DIRECTORY: /var/data
-      KUBE_MONGO_CONNECTION_URI: mongodb://scc-mongodb:27017
-      KUBE_MONGO_DATABASE_NAME: scc-backend
-      KUBE_MONGO_AUCTION_COLLECTION: auctions
-      KUBE_MONGO_BID_COLLECTION: bids
-      KUBE_MONGO_QUESTION_COLLECTION: questions
-      KUBE_MONGO_USER_COLLECTION: users
-      KUBE_REDIS_URL: scc-redis
-      KUBE_REDIS_PORT: "6379"
-      KUBE_RABBITMQ_HOST: "scc-rabbitmq"
-      KUBE_RABBITMQ_PORT: "5672"
-      KUBE_JAEGER_ENDPOINT: "http://scc-jaeger:4317"
-      OTEL_SERVICE_NAME: "scc-backend"
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://scc-jaeger:4317"
-    ---
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: scc-backend
-    spec:
-      selector:
-        matchLabels:
-          app: scc-backend
-      template:
-        metadata:
-          labels:
-            app: scc-backend
-        spec:
-          containers:
-            - name: scc-backend
-              image: git.d464.sh/diogo464/scc-backend
-              resources:
-                limits:
-                  memory: "2Gi"
-                  cpu: "4"
-              ports:
-                - containerPort: 8080
-              envFrom:
-                - configMapRef:
-                    name: scc-backend-cmap
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: scc-backend
-    spec:
-      type: LoadBalancer
-      selector:
-        app: scc-backend
-      ports:
-        - port: 8080
-    ---
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: scc-worker-user-scrub
-    spec:
-      selector:
-        matchLabels:
-          app: scc-worker-user-scrub
-      template:
-        metadata:
-          labels:
-            app: scc-worker-user-scrub
-        spec:
-          containers:
-            - name: scc-worker-user-scrub
-              image: git.d464.sh/diogo464/scc-worker
-              args: [scc.worker.UserScrub]
-              resources:
-                limits:
-                  memory: "512Mi"
-                  cpu: "150m"
-              envFrom:
-                - configMapRef:
-                    name: scc-backend-cmap
-    ---
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: scc-worker-auction-close
-    spec:
-      selector:
-        matchLabels:
-          app: scc-worker-auction-close
-      template:
-        metadata:
-          labels:
-            app: scc-worker-auction-close
-        spec:
-          containers:
-            - name: scc-worker-auction-close
-              image: git.d464.sh/diogo464/scc-worker
-              args: [scc.worker.AuctionClose]
-              resources:
-                limits:
-                  memory: "512Mi"
-                  cpu: "150m"
-              envFrom:
-                - configMapRef:
-                    name: scc-backend-cmap
-    ---
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: scc-worker-auction-popularity-consumer
-    spec:
-      selector:
-        matchLabels:
-          app: scc-worker-auction-popularity-consumer
-      template:
-        metadata:
-          labels:
-            app: scc-worker-auction-popularity-consumer
-        spec:
-          containers:
-            - name: scc-worker-auction-popularity-consumer
-              image: git.d464.sh/diogo464/scc-worker
-              args: [scc.worker.AuctionPopularityConsumer]
-              resources:
-                limits:
-                  memory: "512Mi"
-                  cpu: "150m"
-              envFrom:
-                - configMapRef:
-                    name: scc-backend-cmap
-    ---
-    apiVersion: apps/v1
-    kind: CronJob
-    metadata:
-      name: scc-worker-auction-popularity-updater
-    spec:
-      schedule: "*/1 * * * *"f
-      jobTemplate:
-        spec:
-          template:
-            spec:
-              containers:
-                - name: scc-worker-auction-popularity-updater
-                  image: git.d464.sh/diogo464/scc-worker
-                  args: [scc.worker.AuctionPopularityUpdater]
-                  resources:
-                    limits:
-                      memory: "512Mi"
-                      cpu: "150m"
-                  envFrom:
-                    - configMapRef:
-                        name: scc-backend-cmap
-              restartPolicy: OnFailure
-\end{minted}
-
-% -------------------------------------------------------
-% -------------------------------------------------------
-\subsubsection{miniKube/jaeger.yml}
-\begin{minted}[
-    gobble=4,
-    frame=single,
-    linenos,
-    breaklines
-  ]{yaml}
-    ---
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: scc-jaeger
-    spec:
-      selector:
-        matchLabels:
-          app: scc-jaeger
-      template:
-        metadata:
-          labels:
-            app: scc-jaeger
-        spec:
-          containers:
-            - name: scc-jaeger
-              image: docker.io/jaegertracing/all-in-one:1.39
-              resources:
-                limits:
-                  memory: "2Gi"
-                  cpu: "1"
-              ports:
-                - containerPort: 4317
-                  name: otlp-grpc
-                - containerPort: 16686
-                  name: frontend
-              env:
-                - name: COLLECTOR_OTLP_ENABLED
-                  value: "true"
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: scc-jaeger
-    spec:
-      selector:
-        app: scc-jaeger
-      ports:
-        - port: 4317
-          name: otlp-grpc
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: scc-jaeger-lb
-    spec:
-      type: LoadBalancer
-      selector:
-        app: scc-jaeger
-      ports:
-        - port: 16686
-\end{minted}
-% -------------------------------------------------------
-% -------------------------------------------------------
-\subsubsection{miniKube/mongo.yaml}
-\begin{minted}[
-    gobble=4,
-    frame=single,
-    linenos,
-    breaklines
-  ]{yaml}
-    ---
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: scc-mongodb
-    spec:
-      selector:
-        matchLabels:
-          app: scc-mongodb
-      strategy:
-        type: Recreate
-      template:
-        metadata:
-          labels:
-            app: scc-mongodb
-        spec:
-          containers:
-            - name: scc-mongodb
-              image: docker.io/mongo:5.0.14
-              resources:
-                limits:
-                  memory: "1Gi"
-                  cpu: "1"
-              ports:
-                - containerPort: 27017
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: scc-mongodb
-    spec:
-      selector:
-        app: scc-mongodb
-      ports:
-        - port: 27017
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: scc-mongodb-ld
-    spec:
-      type: LoadBalancer
-      selector:
-        app: scc-mongodb
-      ports:
-        - port: 27017
-\end{minted}
-% -------------------------------------------------------
-% -------------------------------------------------------
-\subsubsection{miniKube/rabbitmq.yaml}
-\begin{minted}[
-    gobble=4,
-    frame=single,
-    linenos,
-    breaklines
-  ]{yaml}
-    ---
-    apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      name: scc-rabbitmq-cmap
-    data:
-      config: ""
-      plugins: |
-        [rabbitmq_management,rabbitmq_management_agent].
-    ---
-    apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      name: scc-rabbitmq-cmap-env
-    data:
-      RABBITMQ_ENABLED_PLUGINS_FILE: /usr/local/configs/enabled_plugins
-      #RABBITMQ_CONFIG_FILE: /usr/local/configs/rabbitmq
-    ---
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: scc-rabbitmq
-    spec:
-      selector:
-        matchLabels:
-          app: scc-rabbitmq
-      template:
-        metadata:
-          labels:
-            app: scc-rabbitmq
-        spec:
-          containers:
-            - name: scc-rabbitmq
-              image: rabbitmq
-              resources:
-                limits:
-                  memory: "1Gi"
-                  cpu: "1"
-              ports:
-                - containerPort: 5672
-                - containerPort: 15672
-              volumeMounts:
-                - mountPath: /usr/local/configs
-                  name: scc-rabbitmq-config-vol
-              envFrom:
-                - configMapRef:
-                    name: scc-rabbitmq-cmap-env
-          volumes:
-            - name: scc-rabbitmq-config-vol
-              configMap:
-                name: scc-rabbitmq-cmap
-                items:
-                  - key: config
-                    path: rabbitmq.config
-                  - key: plugins
-                    path: enabled_plugins
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: scc-rabbitmq
-    spec:
-      selector:
-        app: scc-rabbitmq
-      ports:
-        - port: 5672
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: scc-rabbitmq-lb
-    spec:
-      selector:
-        app: scc-rabbitmq
-      type: LoadBalancer
-      ports:
-        - port: 5672
-          targetPort: 5672
-          name: rabbitmq
-        - port: 15672
-          targetPort: 15672
-          name: rabbitmq-management
-\end{minted}
-% -------------------------------------------------------
-% -------------------------------------------------------
-\subsubsection{miniKube/redis.yaml}
-\begin{minted}[
-    gobble=4,
-    frame=single,
-    linenos,
-    breaklines
-  ]{yaml}
-    ---
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: scc-redis
-    spec:
-      selector:
-        matchLabels:
-          app: scc-redis
-      template:
-        metadata:
-          labels:
-            app: scc-redis
-        spec:
-          containers:
-            - name: scc-redis
-              image: docker.io/redis:7.0.5
-              resources:
-                limits:
-                  memory: "512Mi"
-                  cpu: "1"
-              ports:
-                - containerPort: 6379
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: scc-redis
-    spec:
-      selector:
-        app: scc-redis
-      ports:
-        - port: 6379
-    ---
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: scc-redis-lb
-    spec:
-      type: LoadBalancer
-      selector:
-        app: scc-redis
-      ports:
-        - port: 6379
-\end{minted}
-% -------------------------------------------------------
-% -------------------------------------------------------
-\subsubsection{azure/backend.yaml}
-\begin{minted}[
-    gobble=4,
-    frame=single,
-    linenos,
-    breaklines
-  ]{yaml}
-    ---
     apiVersion: v1
     kind: ConfigMap
     metadata:
@@ -618,32 +238,8 @@ ENTRYPOINT ["java", "-cp", "app.jar"]
       selector:
         app: scc-backend
       ports:
-        - port: 8080
-    ---
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: scc-worker-user-scrub
-    spec:
-      selector:
-        matchLabels:
-          app: scc-worker-user-scrub
-      template:
-        metadata:
-          labels:
-            app: scc-worker-user-scrub
-        spec:
-          containers:
-            - name: scc-worker-user-scrub
-              image: git.d464.sh/diogo464/scc-worker
-              args: [scc.worker.UserScrub]
-              resources:
-                limits:
-                  memory: "128Mi"
-                  cpu: "80m"
-              envFrom:
-                - configMapRef:
-                    name: scc-backend-cmap
+        - port: 80
+          targetPort: 8080
     ---
     apiVersion: apps/v1
     kind: Deployment
@@ -695,12 +291,12 @@ ENTRYPOINT ["java", "-cp", "app.jar"]
                 - configMapRef:
                     name: scc-backend-cmap
     ---
-    apiVersion: apps/v1
+    apiVersion: batch/v1
     kind: CronJob
     metadata:
       name: scc-worker-auction-popularity-updater
     spec:
-      schedule: "*/1 * * * *"f
+      schedule: "*/1 * * * *"
       jobTemplate:
         spec:
           template:
@@ -718,40 +314,15 @@ ENTRYPOINT ["java", "-cp", "app.jar"]
                         name: scc-backend-cmap
               restartPolicy: OnFailure
 \end{minted}
-% -------------------------------------------------------
-% -------------------------------------------------------
-\subsubsection{azure/ingress.yaml}
+
+
+\subsubsection{mongo.yaml}
 \begin{minted}[
     gobble=4,
     frame=single,
     linenos,
     breaklines
   ]{yaml}
-    ---
-    apiVersion: networking.k8s.io/v1
-    kind: Ingress
-    metadata:
-      name: scc-backend-ingress
-      annotations:
-        kubernetes.io/ingress.class: addon-http-application-routing
-    spec:
-      rules:
-      - host: scc.f96b58a6b7224d59b3af.westeurope.aksapp.io
-        http:
-          paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service: 
-                name: scc-backend
-                port: 
-                  number: 8080
-\end{lstlisting}
-			  
-% -------------------------------------------------------
-% -------------------------------------------------------
-\begin{lstlisting}[caption=azure/mongo.yaml]
-    ---
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -786,18 +357,16 @@ ENTRYPOINT ["java", "-cp", "app.jar"]
         app: scc-mongodb
       ports:
         - port: 27017
+    
 \end{minted}
 
-% -------------------------------------------------------
-% -------------------------------------------------------
-\subsubsection{azure/rabbitmq.yaml}
+\subsubsection{rabbitmq.yaml}
 \begin{minted}[
     gobble=4,
     frame=single,
     linenos,
     breaklines
   ]{yaml}
-    ---
     apiVersion: v1
     kind: ConfigMap
     metadata:
@@ -863,17 +432,16 @@ ENTRYPOINT ["java", "-cp", "app.jar"]
         app: scc-rabbitmq
       ports:
         - port: 5672
+    
 \end{minted}
-% -------------------------------------------------------
-% -------------------------------------------------------
-\subsubsection{azure/redis.yaml}
+
+\subsubsection{redis.yaml}
 \begin{minted}[
     gobble=4,
     frame=single,
     linenos,
     breaklines
   ]{yaml}
-    ---
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -907,6 +475,5 @@ ENTRYPOINT ["java", "-cp", "app.jar"]
       ports:
         - port: 6379
 \end{minted}
-\subsection{Additional deployments}
 
 \end{document}
